@@ -36,7 +36,7 @@ Ship shared AuthZ (human user + Digital Worker delegated actor) before sensitive
 
 **Exit Criteria**
 1. Deny-by-default enforced across web/API
-2. Digital Worker delegation evaluation available in the same policy engine
+2. Digital Worker delegation evaluation available in the same policy engine — this means AuthZ Stage D (`docs/todo/authorization/00-prd.md`): `PrincipalType::DIGITAL_WORKER` actor and same RBAC as human are operational. Assignment-time validation and cascade revocation (Stage D remaining items) are not required for Stage 0 since it is a read-only playground with no sensitive write tools.
 3. Decision logs available for allow/deny traces
 
 ---
@@ -53,9 +53,9 @@ Establish a safe, testable end-to-end loop: web chat UI -> Digital Worker runtim
 4. Debug panel (latency, token usage, model, run id)
 
 **What Is Implemented**
-1. Digital Worker as employee: `employees` with `employee_type` and `job_description`; `digital_worker_sessions` + `digital_worker_messages` keyed by employee (Digital Worker)
+1. Digital Worker as employee: `employees` with `employee_type` and `job_description`; file-based sessions (JSONL per session + `.meta.json`) in per-Digital Worker workspace directories (see [01-stage-0 §3.2](01-stage-0-digital-worker-playground.md))
 2. Basic runtime orchestration with no high-risk tools
-3. Persistence for all user/assistant messages
+3. Persistence for all user/assistant messages (append-only JSONL files with `LOCK_EX`)
 
 **Manual Test Script**
 1. Open playground page as a user
@@ -66,6 +66,7 @@ Establish a safe, testable end-to-end loop: web chat UI -> Digital Worker runtim
 **Exit Criteria**
 1. No message loss after refresh/session switch
 2. Session-level isolation verified
+3. All criteria in [Stage 0 implementation checklist](01-stage-0-digital-worker-playground.md) §8 met
 
 ---
 
@@ -245,9 +246,9 @@ Convert interaction data into operational insight and measurable business value.
 1. Session identity across channels (same user, multiple entry points)
 2. Approval race conditions (double approval/replay)
 3. Tool idempotency for retries
-4. Data model choice for message/action logs (DB-only vs hybrid with files)
+4. Data model choice for message/action logs — **decided:** file-based (JSONL per session, OpenClaw pattern); see Stage 0 checklist §3.2
 5. Access controls for multi-company and supervisor/subordinate Digital Worker interactions
-6. **Memory/recall architecture:** Transcript (messages table) vs semantic memory (MemSearch-style). Decision: PHP-native, markdown source of truth, SQLite per Digital Worker for vectors. See `docs/architecture/ai-digital-worker.md` §12.
+6. **Memory/recall architecture:** Transcript (messages table) vs semantic memory (MemSearch-style). Decision: PHP-native, markdown source of truth, SQLite per Digital Worker for vectors. See `docs/architecture/ai-digital-worker.md` §14.
 
 ## 7. Suggested Delivery Rhythm
 

@@ -4,7 +4,7 @@
 **Scope:** Web-only Digital Worker chat loop with persistent sessions/messages and visible runtime metadata
 **Target Outcome:** A user can open Digital Worker Playground, chat, switch sessions, refresh, and keep full history.
 **Prerequisite:** `docs/architecture/authorization.md` and `docs/todo/authorization/00-prd.md` Stage B + Stage D
-**Last Updated:** 2026-02-26
+**Last Updated:** 2026-02-27
 
 ## 1. Stage 0 Contract
 
@@ -21,50 +21,83 @@
 4. High-risk tool execution
 
 ### Digital Worker Chained to Human
-Per `docs/architecture/ai-digital-worker.md`: every Digital Worker is an employee with a supervision chain that resolves to a human. In Stage 0, playground sessions belong to a Digital Worker (an employee with `employee_type = 'digital_worker'`); access is scoped by “current user supervises this Digital Worker” (or is the human at the end of the chain).
+Per `docs/architecture/ai-digital-worker.md`: every Digital Worker is an employee with a supervision chain that resolves to a human. In Stage 0, playground sessions belong to a Digital Worker (an employee with `employee_type = 'digital_worker'`); access is scoped by "current user supervises this Digital Worker" (or is the human at the end of the chain).
 
 ## 2. UI Deliverables
 
 1. `Digital Worker Playground` page route
-2. Left column: session list + “new session” action
+2. Left column: Digital Worker selector (dropdown when user supervises multiple; badge when one) + session list + "new session" action
 3. Main column: chat transcript + composer
 4. Right column: debug panel with latest run metadata
 
 ## 3. Data Model Deliverables
 
-Align with `docs/architecture/ai-digital-worker.md`: one `employees` table for both human and Digital Worker.
+### 3.1 Employees (existing table — already has required columns)
 
-### 3.1 Employees (existing table, add columns)
-
-- `employee_type`: add `'digital_worker'` as a valid value (existing values: full_time, part_time, contractor, intern). When `employee_type === 'digital_worker'`, row is a Digital Worker. Model exposes `isDigitalWorker(): bool` and scopes `digitalWorker()` / `human()`.
-- `job_description` (TEXT, nullable) — optional short role label per architecture §4.5; full Digital Worker context is workspace-based when OpenClaw-like runtime is adopted
+- `employee_type`: `'digital_worker'` already a valid value. Model exposes `isDigitalWorker(): bool` and scopes `digitalWorker()` / `human()`.
+- `job_description` (TEXT, nullable) — already exists; optional short role label per architecture §4.5
 - `supervisor_id` already exists — for Digital Worker supervision chain to human
 
-### 3.2 New tables (transcript only; memory/recall out of scope — see §11 below)
+### 3.2 File-Based Sessions and Messages (Workspace)
 
-1. `digital_worker_sessions`
-   - `id`, `employee_id` (FK → employees where employee_type = 'digital_worker'), `channel_type` (`web`), `title`, `last_activity_at`, timestamps
-2. `digital_worker_messages`
-   - `id`, `digital_worker_session_id`, `role` (`user`|`assistant`|`system`), `content` (JSON/text), `run_id`, `meta` (JSON), timestamps
-   - **Transcript only** — ordered turn-by-turn chat history for context assembly. Semantic memory (long-term recall over markdown) is a post–Stage 0 concern; see `docs/architecture/ai-digital-worker.md` §12.
+Following the OpenClaw pattern: sessions and messages are stored as files in a per-Digital Worker workspace directory, not in database tables.
 
-### 3.3 Constraints/indexes
+**Workspace layout:**
 
-1. FK integrity: `digital_worker_sessions.employee_id` → `employees.id`; `digital_worker_messages.digital_worker_session_id` → `digital_worker_sessions.id`
-2. Index on `digital_worker_sessions.employee_id`
-3. Index on `digital_worker_messages.digital_worker_session_id`
-4. Index on `digital_worker_messages.run_id`
+```
+storage/app/workspace/{employee_id}/
+├── sessions/
+│   ├── {uuid}.jsonl           # Append-only transcript (one JSON line per message)
+│   └── {uuid}.meta.json       # Session metadata (title, channel, timestamps)
+├── MEMORY.md                  # (future) Long-term curated memory
+├── memory/                    # (future) Daily logs
+└── memory.db                  # (future) Vector index
+```
+
+**Session metadata (`{uuid}.meta.json`):**
+```json
+{
+    "id": "uuid",
+    "employee_id": 42,
+    "channel_type": "web",
+    "title": "Session title or null",
+    "created_at": "2026-02-27T10:00:00Z",
+    "last_activity_at": "2026-02-27T10:05:00Z"
+}
+```
+
+**Message format (one JSON line per message in `{uuid}.jsonl`):**
+```json
+{"role": "user", "content": "Hello", "timestamp": "2026-02-27T10:00:00Z", "run_id": null, "meta": {}}
+{"role": "assistant", "content": "Hi there!", "timestamp": "2026-02-27T10:00:01Z", "run_id": "run_abc123", "meta": {"model": "gpt-4o-mini", "latency_ms": 850, "tokens": {"prompt": 42, "completion": 8}}}
+```
+
+### 3.3 File Conventions
+
+1. Workspace base path: `storage/app/workspace/` (configurable via `config('ai.workspace_path')`)
+   - Config file: `app/Base/AI/Config/ai.php` (module-level config, registered by `AIServiceProvider`)
+   - Env override: `AI_WORKSPACE_PATH` (defaults to `storage_path('app/workspace')`)
+2. Employee workspace: `{base}/{employee_id}/sessions/`
+3. Session ID: UUID v4
+4. JSONL: one JSON object per line, append-only, `FILE_APPEND | LOCK_EX` for atomic writes
+5. Meta file: overwritten on each activity (title change, new message)
+6. No DB migrations needed for sessions/messages
 
 ## 4. Backend Deliverables
 
-1. `PlaygroundSessionService`
-   - create/list/switch sessions for Digital Workers supervised by the current user (or equivalent: sessions for Digital Worker employees whose supervision chain includes current user)
-2. `PlaygroundMessageService`
-   - append user message
-   - append assistant message
-   - fetch ordered timeline
+Module: `app/Base/AI/`
+
+1. `SessionManager`
+   - create/list/get/delete sessions for a Digital Worker
+   - `list` returns sessions ordered by `last_activity_at` descending (newest first)
+   - access scoped by supervisor relationship (caller must supervise the Digital Worker)
+2. `MessageManager`
+   - append user message (JSONL append)
+   - append assistant message (JSONL append)
+   - read ordered timeline (parse JSONL)
 3. `DigitalWorkerRuntime` (Stage 0 adapter)
    - takes latest conversation context
+   - calls OpenAI-compatible API via Laravel HTTP client
    - returns plain assistant text + metadata (`run_id`, `model`, `latency_ms`)
 4. Authorization policy
    - user can only access sessions for Digital Workers they supervise (Digital Worker chained to human)
@@ -72,10 +105,10 @@ Align with `docs/architecture/ai-digital-worker.md`: one `employees` table for b
 ## 5. Frontend Deliverables (Volt/Livewire)
 
 1. Volt page component for playground shell
-2. Child component for session list
-3. Child component for chat timeline
-4. Child component for composer submit action
-5. Debug panel component
+2. Session list (left panel)
+3. Chat timeline (main panel)
+4. Composer submit action
+5. Debug panel (right panel, latest run metadata)
 
 Behavior requirements:
 
@@ -89,13 +122,14 @@ Behavior requirements:
 ### Feature Tests
 1. Auth user can open playground
 2. Session create/list only shows sessions for Digital Workers the user supervises
-3. Message post persists both user and assistant rows
-4. User cannot access another user’s session (403/404)
+3. Message post persists both user and assistant lines in JSONL
+4. User cannot access another user's Digital Worker sessions (403/404)
 5. Refresh fetches existing timeline in order
 
 ### Unit Tests
 1. Runtime adapter returns required metadata keys
-2. Message service maintains role ordering and timestamp ordering
+2. MessageManager maintains role ordering and timestamp ordering
+3. SessionManager creates valid meta.json and empty JSONL
 
 ## 7. Manual UAT Script
 
@@ -115,25 +149,27 @@ Behavior requirements:
 
 ## 9. Implementation Order (Recommended)
 
-1. Migrations (employees columns + digital_worker_sessions + digital_worker_messages) + models + relationships
-2. Authorization policy boundaries (Digital Worker chained to human, scope by supervisor)
-3. Session/message services
-4. Runtime adapter (simple, deterministic)
-5. Volt UI shell + components
+1. Module skeleton (`app/Base/AI/ServiceProvider.php`, `Config/ai.php`, DTOs)
+2. File-based services (`SessionManager`, `MessageManager`)
+3. Authorization policy boundaries (Digital Worker chained to human, scope by supervisor)
+4. Runtime adapter (OpenAI-compatible via HTTP client)
+5. Routes + Volt UI shell + components
 6. Pest tests + UAT run
 
-## 11. Future: Memory and Recall
+## 10. Future: Memory and Recall
 
-Stage 0 persists only the **chat transcript** (messages table). Long-term semantic memory (MemSearch-style: markdown source of truth, vector index for recall) is out of scope. When implementing memory:
+Stage 0 persists only the **chat transcript** (JSONL files). Long-term semantic memory (MemSearch-style: markdown source of truth, vector index for recall) is out of scope. When implementing memory:
 
-- See `docs/architecture/ai-digital-worker.md` §12 for the design: transcript vs memory, MemSearch pattern, PHP-native implementation, SQLite per Digital Worker.
-- Workspace layout: `workspace/{employee_id}/` with MEMORY.md, memory/*.md, and memory.db (vector index).
+- See `docs/architecture/ai-digital-worker.md` §14 for the design: transcript vs memory, MemSearch pattern, PHP-native implementation, hybrid search, compaction.
+- Workspace layout already reserves `MEMORY.md`, `memory/*.md`, and `memory.db` alongside `sessions/`.
 
-## 12. Risks and Mitigations
+## 11. Risks and Mitigations
 
-1. **Risk:** Chat state desync between frontend and DB
-   - **Mitigation:** Source-of-truth reload after each send completion
+1. **Risk:** Chat state desync between frontend and files
+   - **Mitigation:** Source-of-truth reload from JSONL after each send completion
 2. **Risk:** Session leakage across users
-   - **Mitigation:** Enforce supervisor-scoped query methods only; Digital Worker chained to human
+   - **Mitigation:** Enforce supervisor-scoped access in SessionManager; workspace path derived from employee_id
 3. **Risk:** Runtime latency variance
    - **Mitigation:** Capture latency in metadata and expose in debug panel (no target for now)
+4. **Risk:** JSONL corruption from concurrent writes
+   - **Mitigation:** `LOCK_EX` flag on appends; Stage 0 is single-user-per-session (serialized by design)

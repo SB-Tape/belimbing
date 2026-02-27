@@ -74,7 +74,7 @@ Use one `employees` table for both human and Digital Worker records.
 ### 4.2 Minimal Additions
 
 1. **Digital Worker in employee_type:** Add `'digital_worker'` as a valid value for the existing `employee_type` column. When `employee_type === 'digital_worker'`, the row is a Digital Worker; otherwise (full_time, part_time, contractor, intern) it is a human. No additional column. The model exposes `isDigitalWorker(): bool` (e.g. `return $this->employee_type === 'digital_worker'`) and scopes `scopeDigitalWorker()` / `scopeHuman()` for convenience.
-2. **job_description** (`TEXT`, nullable at DB): Short role label or summary for the Digital Worker (e.g. “Customer support Digital Worker”, “Leave approver”). Used for HR/UI and optional display in execution context. Full agent identity and behaviour are defined by an OpenClaw-style workspace when that runtime is adopted (see §4.5 and §11).
+2. **job_description** (`TEXT`, nullable at DB): Short role label or summary for the Digital Worker (e.g. “Customer support Digital Worker”, “Leave approver”). Used for HR/UI and optional display in execution context. Full agent identity and behaviour are defined by an OpenClaw-style workspace when that runtime is adopted (see §4.5 and §13).
 
 ### 4.3 Attribute Applicability
 
@@ -168,16 +168,34 @@ The final capability vocabulary is owned by the AuthZ module.
 
 ---
 
-## 8. Implementation Boundaries (Now vs Later)
+## 8. Implementation Dependencies
 
-### 8.1 In Scope Now
+Stage 0 (Digital Worker Playground) requires authorization PRD Stage B (Policy Engine + RBAC) and Stage D (Digital Worker Delegation) from `docs/todo/authorization/00-prd.md`. Stage D is partially complete: `PrincipalType::DIGITAL_WORKER` actor and same RBAC as human are operational. Assignment-time validation and cascade revocation (Stage D remaining items) are not blockers for Stage 0, which is a read-only playground with no sensitive write tools.
+
+---
+
+## 9. Workspace Configuration
+
+The per-Digital Worker workspace base path is configured in `app/Base/AI/Config/ai.php` (module-level config registered by `AIServiceProvider`):
+
+- Config key: `config('ai.workspace_path')`
+- Env override: `AI_WORKSPACE_PATH`
+- Default: `storage_path('app/workspace')` → `storage/app/workspace/`
+
+Each Digital Worker gets a subdirectory: `{workspace_path}/{employee_id}/` containing `sessions/`, and future `MEMORY.md`, `memory/`, `memory.db` (see §14).
+
+---
+
+## 10. Implementation Boundaries (Now vs Later)
+
+### 10.1 In Scope Now
 
 1. Digital Worker as `employee_type = 'digital_worker'` in a unified employee model.
 2. `job_description` as optional short role label (nullable); full Digital Worker context is workspace-based when OpenClaw-like runtime is adopted (§4.5).
 3. Delegation constraints integrated with shared AuthZ.
 4. Unified management UI behavior.
 
-### 8.2 Out of Scope Now
+### 10.2 Out of Scope Now
 
 1. HR-specific compensation, token spend, and cost accounting.
 2. Rich Digital Worker runtime telemetry fields in employee core table.
@@ -185,7 +203,7 @@ The final capability vocabulary is owned by the AuthZ module.
 
 ---
 
-## 9. Alignment with BLB Principles
+## 11. Alignment with BLB Principles
 
 1. Deep module boundary: complexity (delegation, policy checks, audit rules) is hidden in AuthZ + employee domain services.
 2. Simple public interface: managers operate through familiar employee workflows.
@@ -193,7 +211,7 @@ The final capability vocabulary is owned by the AuthZ module.
 
 ---
 
-## 10. Open Questions
+## 12. Open Questions
 
 1. Resolved: `job_description` is optional short label; workspace is source of truth for execution (§4.5).
 2. Should policy set a hard maximum depth for Digital Worker supervision chains?
@@ -201,11 +219,11 @@ The final capability vocabulary is owned by the AuthZ module.
 
 ---
 
-## 11. OpenClaw Architecture (Research Findings)
+## 13. OpenClaw Architecture (Research Findings)
 
 *Relevant when designing Digital Worker execution, tooling, or channel integration. Source: OpenClaw agent system research. See also §4.5 for how BLB's `job_description` relates to OpenClaw-style workspace files.*
 
-### 11.1 High-Level Architecture
+### 13.1 High-Level Architecture
 
 **Pattern:** Skills (teach) + Tools (execute) + Policies (constrain) + Channels (interface)
 
@@ -225,7 +243,7 @@ Response (streamed back to channel)
 Session Persistence (JSONL history)
 ```
 
-### 11.2 Core Components
+### 13.2 Core Components
 
 #### Agent
 - Embedded AI runtime based on pi-mono
@@ -308,7 +326,7 @@ Multi-level security constraints
 }
 ```
 
-### 11.3 Agent Execution Loop (Summary)
+### 13.3 Agent Execution Loop (Summary)
 
 1. **Message Entry** — User sends via channel; gateway validates; enqueued in session lane
 2. **Session Resolution** — Load history from JSONL; restore context; token budgeting
@@ -320,7 +338,7 @@ Multi-level security constraints
 
 **Timeout Handling:** Agent runtime ~600s default; wait timeout ~30s client-side; AbortSignal for cancellation.
 
-### 11.4 Security Mechanisms
+### 13.4 Security Mechanisms
 
 - **Access Control:** Channel-specific policies (DM vs group), pairing codes, allowlists, mention requirements
 - **Tool Policy:** Multi-level allow/deny; per-user, per-company, per-tool; approval workflows for sensitive ops
@@ -329,7 +347,7 @@ Multi-level security constraints
 - **Session Isolation:** Separate sessions per user; company-scoped data; no cross-user/cross-company leakage
 - **Audit & Compliance:** All tool executions logged; session transcripts retained; security audit commands
 
-### 11.5 Research References
+### 13.5 Research References
 
 - Agent runtime, session management: `openclaw/src/agents/`
 - Skills: `openclaw/skills/` (AgentSkills-compatible)
@@ -340,22 +358,22 @@ Multi-level security constraints
 
 ---
 
-## 12. Memory and Recall Architecture
+## 14. Memory and Recall Architecture
 
-*Relevant when implementing Digital Worker semantic memory (long-term recall beyond the chat transcript). See also §4.5 (workspace files) and §11 (OpenClaw).*
+*Relevant when implementing Digital Worker semantic memory (long-term recall beyond the chat transcript). See also §4.5 (workspace files) and §13 (OpenClaw).*
 
-### 12.1 Transcript vs Memory
+### 14.1 Transcript vs Memory
 
 | Concern | Transcript | Memory (Recall) |
 |---------|------------|-----------------|
 | **Purpose** | Chat turn-by-turn history (user/assistant messages in order) | Long-term searchable knowledge (facts, decisions, observations) |
-| **Source** | `digital_worker_messages` table (relational) | Markdown files (MEMORY.md, memory/YYYY-MM-DD.md) |
+| **Source** | JSONL files per session (`workspace/{employee_id}/sessions/{uuid}.jsonl`) | Markdown files (MEMORY.md, memory/YYYY-MM-DD.md) |
 | **Usage** | Provide last N turns as LLM context | Semantic search: "recall relevant past knowledge" before responding |
 | **Stage** | Stage 0 (Playground) | Post-Stage 0 |
 
 Both are needed for a capable Digital Worker: transcript for immediate context, memory for history.
 
-### 12.2 MemSearch Pattern
+### 14.2 MemSearch Pattern
 
 [MemSearch](https://zilliztech.github.io/memsearch/) (Zilliz/Milvus) extracts OpenClaw's memory system into a standalone library. Core principles:
 
@@ -366,14 +384,14 @@ Both are needed for a capable Digital Worker: transcript for immediate context, 
 
 Reference: [Milvus blog: We extracted OpenClaw's memory system and open-sourced it (MemSearch)](https://milvus.io/blog/we-extracted-openclaws-memory-system-and-opensourced-it-memsearch.md)
 
-### 12.3 BLB Implementation Direction
+### 14.3 BLB Implementation Direction
 
 **PHP-native implementation** — Implement the MemSearch pattern in PHP to avoid Python subprocesses and keep the stack homogeneous. Components:
 
 - Markdown parsing: `league/commonmark` or similar
 - Chunking: by heading and paragraph structure
 - Embeddings: HTTP calls to OpenAI, Voyage, or Ollama
-- Vector storage: see §12.4
+- Vector storage: see §14.4
 
 **Vector backend: SQLite per Digital Worker** — Use a dedicated SQLite database per Digital Worker for vector storage:
 
@@ -395,7 +413,7 @@ workspace/{employee_id}/
 
 **Alternative:** pgvector in the main PostgreSQL database with `employee_id` for tenancy. Simpler ops (one DB, standard migrations) but less natural per-DW isolation. Choose based on scale and deployment constraints.
 
-### 12.4 Search Strategy: Hybrid Vector + BM25
+### 14.4 Search Strategy: Hybrid Vector + BM25
 
 MemSearch demonstrates that hybrid retrieval outperforms pure vector search for agent memory. Default weighting:
 
@@ -404,7 +422,7 @@ MemSearch demonstrates that hybrid retrieval outperforms pure vector search for 
 
 The 70/30 split is MemSearch's empirically tuned default. For workflows heavy on exact matches (code references, IDs), raise BM25 weight to 50%. BLB's PHP-native implementation should support configurable weights per Digital Worker or globally.
 
-### 12.5 Compaction: Daily Logs → Long-Term Memory
+### 14.5 Compaction: Daily Logs → Long-Term Memory
 
 MemSearch includes a **compact** workflow that distills older daily logs (`memory/YYYY-MM-DD.md`) into curated long-term entries in `MEMORY.md`. This prevents unbounded growth of daily files while preserving key facts and decisions.
 
@@ -416,7 +434,7 @@ MemSearch includes a **compact** workflow that distills older daily logs (`memor
 
 **BLB consideration:** Compaction can run as a scheduled Laravel command per Digital Worker. The human supervisor should be able to review and edit `MEMORY.md` directly (transparency principle). Compaction is post–Stage 0 but should be designed alongside the initial memory implementation to avoid rework.
 
-### 12.6 Implementation Scope (Future)
+### 14.6 Implementation Scope (Future)
 
 1. Scan markdown in `workspace/{employee_id}/`
 2. Chunk by heading/paragraph; embed via HTTP
@@ -433,5 +451,6 @@ MemSearch includes a **compact** workflow that distills older daily logs (`memor
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
 | 0.1 | 2026-02-25 | AI + Kiat | Pivoted from PA document to Digital Worker architecture; unified employee model and delegation invariants |
-| 0.2 | 2026-02-26 | AI + Kiat | Added §12 Memory and Recall: transcript vs memory, MemSearch pattern, PHP-native direction, SQLite per DW |
-| 0.3 | 2026-02-27 | AI + Kiat | Renamed §3.3 operations to Digital Worker; added §12.4 hybrid search strategy (vector 70% + BM25 30%); added §12.5 compaction workflow |
+| 0.2 | 2026-02-26 | AI + Kiat | Added §14 Memory and Recall: transcript vs memory, MemSearch pattern, PHP-native direction, SQLite per DW |
+| 0.3 | 2026-02-27 | AI + Kiat | Renamed §3.3 operations to Digital Worker; added §14.4 hybrid search strategy (vector 70% + BM25 30%); added §14.5 compaction workflow |
+| 0.4 | 2026-02-27 | AI + Kiat | Added §8 Implementation Dependencies, §9 Workspace Configuration; renumbered §8–12 → §10–14 |
