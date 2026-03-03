@@ -53,6 +53,7 @@ return [
     |   'local'        — Local/self-hosted server (api_key optional)
     |   'oauth'        — OAuth flow required (api_key optional)
     |   'subscription' — Included with subscription (api_key optional)
+    |   'device_flow'  — GitHub OAuth device flow (token obtained interactively)
     |   'custom'       — Requires additional configuration
     |
     */
@@ -1299,10 +1300,10 @@ return [
 
         'github-copilot' => [
             'display_name' => 'GitHub Copilot',
-            'description' => 'Included with GitHub Copilot subscription',
-            'base_url' => 'https://api.githubcopilot.com/v1',
+            'description' => 'GitHub device login — requires Copilot subscription',
+            'base_url' => 'https://api.individual.githubcopilot.com',
             'api_key_url' => 'https://github.com/settings/copilot',
-            'auth_type' => 'subscription',
+            'auth_type' => 'device_flow',
             'models' => [
                 [
                     'model_name' => 'gpt-5-mini',
@@ -1337,6 +1338,15 @@ return [
                     'cost_per_1m' => ['input' => null, 'output' => null, 'cache_read' => null, 'cache_write' => null],
                 ],
             ],
+        ],
+
+        'copilot-proxy' => [
+            'display_name' => 'Copilot Proxy',
+            'description' => 'Local proxy for VS Code Copilot models — requires Copilot Proxy extension',
+            'base_url' => 'http://localhost:1337/v1',
+            'api_key_url' => null,
+            'auth_type' => 'local',
+            'models' => [],
         ],
 
         'chutes' => [

@@ -8,6 +8,7 @@
 
 use App\Modules\Core\AI\Models\AiProvider;
 use App\Modules\Core\AI\Models\AiProviderModel;
+use App\Modules\Core\AI\Services\ProviderAuthFlowService;
 use Livewire\Volt\Component;
 
 new class extends Component
@@ -29,6 +30,9 @@ new class extends Component
 
     /** @var list<array{key: string, display_name: string, base_url: string, api_key: string, api_key_url: string|null}>  Connect form data */
     public array $connectForms = [];
+
+    /** @var array<int, array{status: string, user_code: string|null, verification_uri: string|null, error: string|null}>  Device flow state per connect form index */
+    public array $deviceFlows = [];
 
     // --- Provider form (manual CRUD) ---
 
@@ -162,7 +166,7 @@ new class extends Component
                 continue;
             }
 
-            $this->connectForms[] = [
+            $formEntry = [
                 'key' => $key,
                 'display_name' => $tpl['display_name'] ?? $key,
                 'base_url' => $tpl['base_url'] ?? '',
@@ -170,6 +174,14 @@ new class extends Component
                 'api_key_url' => $tpl['api_key_url'] ?? null,
                 'auth_type' => $tpl['auth_type'] ?? 'api_key',
             ];
+
+            // Cloudflare AI Gateway needs Account ID + Gateway ID to build the URL
+            if ($key === 'cloudflare-ai-gateway') {
+                $formEntry['cloudflare_account_id'] = '';
+                $formEntry['cloudflare_gateway_id'] = '';
+            }
+
+            $this->connectForms[] = $formEntry;
         }
 
         $this->wizardStep = 'connect';
@@ -180,7 +192,70 @@ new class extends Component
      */
     public function backToCatalog(): void
     {
+        $this->cleanupAuthFlows();
+        $this->deviceFlows = [];
         $this->wizardStep = 'catalog';
+    }
+
+    // --- Auth Flow methods (dispatched to ProviderAuthFlowService) ---
+
+    /**
+     * Start an interactive auth flow for a connect form entry.
+     *
+     * Delegates to ProviderAuthFlowService which handles provider-specific
+     * logic (e.g., GitHub device flow). Sensitive data stays in server cache.
+     *
+     * @param  int  $index  Connect form index
+     */
+    public function startDeviceFlow(int $index): void
+    {
+        $companyId = $this->getCompanyId();
+
+        if ($companyId === null) {
+            return;
+        }
+
+        $service = app(ProviderAuthFlowService::class);
+        $this->deviceFlows[$index] = $service->startFlow(
+            $this->connectForms[$index]['key'],
+            $companyId,
+            $index,
+        );
+    }
+
+    /**
+     * Poll an active auth flow for completion (called via wire:poll).
+     *
+     * On success, updates connectForms with the obtained credentials.
+     *
+     * @param  int  $index  Connect form index
+     */
+    public function pollDeviceFlow(int $index): void
+    {
+        $companyId = $this->getCompanyId();
+
+        if ($companyId === null) {
+            return;
+        }
+
+        $service = app(ProviderAuthFlowService::class);
+        $result = $service->pollFlow(
+            $this->connectForms[$index]['key'],
+            $companyId,
+            $index,
+        );
+
+        if ($result['status'] === 'pending') {
+            return;
+        }
+
+        if ($result['status'] === 'success') {
+            $this->connectForms[$index]['api_key'] = $result['api_key'] ?? '';
+            $this->connectForms[$index]['base_url'] = $result['base_url'] ?? $this->connectForms[$index]['base_url'];
+        }
+
+        $this->deviceFlows[$index]['status'] = $result['status'];
+        $this->deviceFlows[$index]['error'] = $result['error'] ?? null;
     }
 
     /**
@@ -197,11 +272,18 @@ new class extends Component
         $rules = [];
 
         foreach ($this->connectForms as $index => $form) {
-            $rules["connectForms.{$index}.base_url"] = ['required', 'string', 'max:2048'];
-
             $authType = $form['auth_type'] ?? 'api_key';
+            $key = $form['key'];
 
-            if ($authType === 'api_key' || $authType === 'custom') {
+            // Cloudflare uses Account ID + Gateway ID instead of base_url input
+            if ($key === 'cloudflare-ai-gateway') {
+                $rules["connectForms.{$index}.cloudflare_account_id"] = ['required', 'string', 'max:255'];
+                $rules["connectForms.{$index}.cloudflare_gateway_id"] = ['required', 'string', 'max:255'];
+            } else {
+                $rules["connectForms.{$index}.base_url"] = ['required', 'string', 'max:2048'];
+            }
+
+            if (in_array($authType, ['api_key', 'custom', 'device_flow'], true)) {
                 $rules["connectForms.{$index}.api_key"] = ['required', 'string', 'max:2048'];
             } else {
                 $rules["connectForms.{$index}.api_key"] = ['nullable', 'string', 'max:2048'];
@@ -211,6 +293,8 @@ new class extends Component
         $this->validate($rules, [
             'connectForms.*.base_url.required' => __('Base URL is required.'),
             'connectForms.*.api_key.required' => __('API key is required.'),
+            'connectForms.*.cloudflare_account_id.required' => __('Account ID is required.'),
+            'connectForms.*.cloudflare_gateway_id.required' => __('Gateway ID is required.'),
         ]);
 
         $templates = config('ai.provider_templates', []);
@@ -228,11 +312,20 @@ new class extends Component
                 continue;
             }
 
+            // Cloudflare: build base_url from Account ID + Gateway ID
+            $baseUrl = $form['base_url'];
+
+            if ($key === 'cloudflare-ai-gateway') {
+                $accountId = trim($form['cloudflare_account_id'] ?? '');
+                $gatewayId = trim($form['cloudflare_gateway_id'] ?? '');
+                $baseUrl = "https://gateway.ai.cloudflare.com/v1/{$accountId}/{$gatewayId}/openai";
+            }
+
             $provider = AiProvider::query()->create([
                 'company_id' => $companyId,
                 'name' => $key,
                 'display_name' => $form['display_name'],
-                'base_url' => $form['base_url'],
+                'base_url' => $baseUrl,
                 'api_key' => $form['api_key'] !== '' ? $form['api_key'] : 'not-required',
                 'is_active' => true,
                 'created_by' => auth()->user()->employee?->id,
@@ -254,9 +347,11 @@ new class extends Component
             }
         }
 
+        $this->cleanupAuthFlows();
         $this->wizardStep = null;
         $this->selectedTemplates = [];
         $this->connectForms = [];
+        $this->deviceFlows = [];
     }
 
     /**
@@ -264,9 +359,11 @@ new class extends Component
      */
     public function cancelWizard(): void
     {
+        $this->cleanupAuthFlows();
         $this->wizardStep = null;
         $this->selectedTemplates = [];
         $this->connectForms = [];
+        $this->deviceFlows = [];
         $this->expandedCatalogProvider = null;
     }
 
@@ -694,6 +791,21 @@ new class extends Component
         return $user?->employee?->company_id ? (int) $user->employee->company_id : null;
     }
 
+    /**
+     * Clean up all cached auth flow data for this company.
+     */
+    private function cleanupAuthFlows(): void
+    {
+        $companyId = $this->getCompanyId();
+
+        if ($companyId === null || count($this->deviceFlows) === 0) {
+            return;
+        }
+
+        $service = app(ProviderAuthFlowService::class);
+        $service->cleanupFlows($companyId, array_keys($this->deviceFlows));
+    }
+
     private function resetProviderForm(): void
     {
         $this->editingProviderId = null;
@@ -879,13 +991,24 @@ new class extends Component
         {{-- STEP 2: Connect Providers                  --}}
         {{-- ========================================== --}}
         <div class="space-y-section-gap">
+            @php
+                $hasIncompleteDeviceFlow = false;
+                foreach ($connectForms as $i => $f) {
+                    if (($f['auth_type'] ?? 'api_key') === 'device_flow') {
+                        $flowStatus = $deviceFlows[$i]['status'] ?? 'idle';
+                        if ($flowStatus !== 'success') {
+                            $hasIncompleteDeviceFlow = true;
+                        }
+                    }
+                }
+            @endphp
             <x-ui.page-header :title="__('Connect Providers')" :subtitle="__('Enter your API key for each selected provider.')">
                 <x-slot name="actions">
                     <x-ui.button variant="ghost" wire:click="backToCatalog">
                         <x-icon name="heroicon-o-arrow-left" class="w-4 h-4" />
                         {{ __('Back') }}
                     </x-ui.button>
-                    <x-ui.button variant="primary" wire:click="connectAll">
+                    <x-ui.button variant="primary" wire:click="connectAll" :disabled="$hasIncompleteDeviceFlow">
                         <x-icon name="heroicon-o-bolt" class="w-4 h-4" />
                         {{ __('Connect All & Import Models') }}
                     </x-ui.button>
@@ -894,21 +1017,24 @@ new class extends Component
 
             <div class="space-y-4">
                 @foreach($connectForms as $index => $form)
+                    @php $authType = $form['auth_type'] ?? 'api_key'; @endphp
                     <x-ui.card wire:key="connect-{{ $form['key'] }}">
                         <div class="flex items-center justify-between mb-3">
                             <div>
                                 <h3 class="text-base font-medium tracking-tight text-ink">{{ $form['display_name'] }}</h3>
-                                @if(($form['auth_type'] ?? 'api_key') === 'local')
+                                @if($authType === 'local')
                                     <p class="text-xs text-muted mt-0.5">{{ __('Local server — API key is optional') }}</p>
-                                @elseif(($form['auth_type'] ?? 'api_key') === 'oauth')
+                                @elseif($authType === 'oauth')
                                     <p class="text-xs text-muted mt-0.5">{{ __('OAuth provider — paste API key if available, or configure after connecting') }}</p>
-                                @elseif(($form['auth_type'] ?? 'api_key') === 'subscription')
+                                @elseif($authType === 'subscription')
                                     <p class="text-xs text-muted mt-0.5">{{ __('Subscription service — paste access token or API key') }}</p>
-                                @elseif(($form['auth_type'] ?? 'api_key') === 'custom')
+                                @elseif($authType === 'custom')
                                     <p class="text-xs text-muted mt-0.5">{{ __('Requires additional configuration after connecting') }}</p>
+                                @elseif($authType === 'device_flow')
+                                    <p class="text-xs text-muted mt-0.5">{{ __('Requires GitHub device login — an active GitHub Copilot subscription is needed') }}</p>
                                 @endif
                             </div>
-                            @if($form['api_key_url'])
+                            @if($authType !== 'device_flow' && $form['api_key_url'])
                                 <a
                                     href="{{ $form['api_key_url'] }}"
                                     target="_blank"
@@ -921,29 +1047,125 @@ new class extends Component
                             @endif
                         </div>
 
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <x-ui.input
-                                wire:model="connectForms.{{ $index }}.base_url"
-                                label="{{ __('Base URL') }}"
-                                required
-                                :error="$errors->first('connectForms.'.$index.'.base_url')"
-                            />
+                        @if($authType === 'device_flow')
+                            {{-- ── Device Flow UI (GitHub Copilot) ── --}}
+                            @php $flow = $deviceFlows[$index] ?? ['status' => 'idle', 'user_code' => null, 'verification_uri' => null, 'error' => null]; @endphp
 
-                            @php $authType = $form['auth_type'] ?? 'api_key'; @endphp
-                            <x-ui.input
-                                wire:model="connectForms.{{ $index }}.api_key"
-                                type="password"
-                                :label="in_array($authType, ['local', 'oauth', 'subscription']) ? __('API Key (optional)') : __('API Key')"
-                                :required="in_array($authType, ['api_key', 'custom'])"
-                                :placeholder="match($authType) {
-                                    'local' => __('Leave empty for local servers'),
-                                    'oauth' => __('Paste API key if available'),
-                                    'subscription' => __('Paste access token'),
-                                    default => __('Paste your API key'),
-                                }"
-                                :error="$errors->first('connectForms.'.$index.'.api_key')"
-                            />
-                        </div>
+                            @if($flow['status'] === 'idle')
+                                <div class="space-y-3">
+                                    <x-ui.input
+                                        wire:model="connectForms.{{ $index }}.base_url"
+                                        label="{{ __('Base URL') }}"
+                                        required
+                                        :error="$errors->first('connectForms.'.$index.'.base_url')"
+                                    />
+                                    <div>
+                                        <x-ui.button variant="primary" wire:click="startDeviceFlow({{ $index }})">
+                                            <x-icon name="github" class="w-4 h-4" />
+                                            {{ __('Start GitHub Login') }}
+                                        </x-ui.button>
+                                        <p class="text-xs text-muted mt-1.5">{{ __('Opens the GitHub device authorization flow. You\'ll receive a code to enter on GitHub.') }}</p>
+                                    </div>
+                                </div>
+                            @elseif($flow['status'] === 'pending')
+                                <div wire:poll.5s="pollDeviceFlow({{ $index }})">
+                                    <div class="bg-surface-subtle rounded-lg p-4 space-y-3">
+                                        <div class="flex items-center gap-2">
+                                            <div class="animate-spin h-4 w-4 border-2 border-accent border-t-transparent rounded-full"></div>
+                                            <span class="text-sm font-medium text-ink">{{ __('Waiting for GitHub authorization...') }}</span>
+                                        </div>
+                                        <div class="space-y-2">
+                                            <div>
+                                                <span class="text-[11px] uppercase tracking-wider font-semibold text-muted block mb-1">{{ __('Your Code') }}</span>
+                                                <p class="text-2xl font-mono font-bold text-ink tracking-[0.3em]">{{ $flow['user_code'] }}</p>
+                                            </div>
+                                            <p class="text-xs text-muted">{{ __('Visit the link below and enter this code to authorize BLB.') }}</p>
+                                            <a
+                                                href="{{ $flow['verification_uri'] }}"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                class="text-sm text-accent hover:underline inline-flex items-center gap-1"
+                                            >
+                                                {{ $flow['verification_uri'] }}
+                                                <x-icon name="heroicon-o-arrow-top-right-on-square" class="w-3.5 h-3.5" />
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            @elseif($flow['status'] === 'success')
+                                <div class="space-y-2">
+                                    <div class="flex items-center gap-2">
+                                        <x-icon name="heroicon-o-check-circle" class="w-5 h-5 text-status-success" />
+                                        <span class="text-sm font-medium text-ink">{{ __('GitHub Copilot authorized successfully') }}</span>
+                                    </div>
+                                    <p class="text-xs text-muted">{{ __('Click "Connect All & Import Models" above to finish setup.') }}</p>
+                                </div>
+                            @else
+                                {{-- error / expired / denied --}}
+                                <div class="space-y-3">
+                                    <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                                        <p class="text-sm text-red-700 dark:text-red-400">{{ $flow['error'] ?? __('Authorization failed') }}</p>
+                                    </div>
+                                    <x-ui.button variant="ghost" wire:click="startDeviceFlow({{ $index }})">
+                                        <x-icon name="heroicon-o-arrow-path" class="w-4 h-4" />
+                                        {{ __('Try Again') }}
+                                    </x-ui.button>
+                                </div>
+                            @endif
+                        @elseif($form['key'] === 'cloudflare-ai-gateway')
+                            {{-- ── Cloudflare AI Gateway (Account ID + Gateway ID + API Key) ── --}}
+                            <div class="space-y-4">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <x-ui.input
+                                        wire:model="connectForms.{{ $index }}.cloudflare_account_id"
+                                        label="{{ __('Account ID') }}"
+                                        required
+                                        placeholder="{{ __('Cloudflare Account ID') }}"
+                                        :error="$errors->first('connectForms.'.$index.'.cloudflare_account_id')"
+                                    />
+                                    <x-ui.input
+                                        wire:model="connectForms.{{ $index }}.cloudflare_gateway_id"
+                                        label="{{ __('Gateway ID') }}"
+                                        required
+                                        placeholder="{{ __('AI Gateway name') }}"
+                                        :error="$errors->first('connectForms.'.$index.'.cloudflare_gateway_id')"
+                                    />
+                                </div>
+                                <x-ui.input
+                                    wire:model="connectForms.{{ $index }}.api_key"
+                                    type="password"
+                                    label="{{ __('API Key') }}"
+                                    required
+                                    placeholder="{{ __('Cloudflare API token') }}"
+                                    :error="$errors->first('connectForms.'.$index.'.api_key')"
+                                />
+                                <p class="text-xs text-muted">{{ __('The base URL will be computed as: gateway.ai.cloudflare.com/v1/{account_id}/{gateway_id}/openai') }}</p>
+                            </div>
+                        @else
+                            {{-- ── Standard API Key / URL form ── --}}
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <x-ui.input
+                                    wire:model="connectForms.{{ $index }}.base_url"
+                                    label="{{ __('Base URL') }}"
+                                    required
+                                    :error="$errors->first('connectForms.'.$index.'.base_url')"
+                                />
+
+                                <x-ui.input
+                                    wire:model="connectForms.{{ $index }}.api_key"
+                                    type="password"
+                                    :label="in_array($authType, ['local', 'oauth', 'subscription']) ? __('API Key (optional)') : __('API Key')"
+                                    :required="in_array($authType, ['api_key', 'custom'])"
+                                    :placeholder="match($authType) {
+                                        'local' => __('Leave empty for local servers'),
+                                        'oauth' => __('Paste API key if available'),
+                                        'subscription' => __('Paste access token'),
+                                        default => __('Paste your API key'),
+                                    }"
+                                    :error="$errors->first('connectForms.'.$index.'.api_key')"
+                                />
+                            </div>
+                        @endif
                     </x-ui.card>
                 @endforeach
             </div>

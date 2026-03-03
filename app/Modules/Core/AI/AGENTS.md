@@ -51,9 +51,10 @@ The provider catalog in `Config/ai.php` under `provider_templates` is a **static
 | Value | Behavior | API Key | Examples |
 |-------|----------|---------|----------|
 | `api_key` | Standard API key auth | Required | OpenAI, Anthropic, Google, most providers |
-| `local` | Local/self-hosted server | Optional | Ollama, vLLM, LiteLLM |
+| `local` | Local/self-hosted server | Optional | Ollama, vLLM, LiteLLM, Copilot Proxy |
 | `oauth` | OAuth flow required | Optional | Qwen Portal, Chutes |
-| `subscription` | Included with subscription | Optional | GitHub Copilot |
+| `subscription` | Included with subscription | Optional | (reserved) |
+| `device_flow` | GitHub OAuth device flow | Auto (token) | GitHub Copilot |
 | `custom` | Needs additional config | Required | Cloudflare AI Gateway (Account ID + Gateway ID) |
 
 ### Relationship to OpenClaw
