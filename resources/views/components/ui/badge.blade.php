@@ -6,6 +6,7 @@ $variantClasses = match($variant) {
     'danger' => 'bg-status-danger-subtle text-status-danger',
     'warning' => 'bg-status-warning-subtle text-status-warning',
     'info' => 'bg-status-info-subtle text-status-info',
+    'accent' => 'bg-accent/10 text-accent',
     default => 'bg-surface-subtle text-ink',
 };
 @endphp

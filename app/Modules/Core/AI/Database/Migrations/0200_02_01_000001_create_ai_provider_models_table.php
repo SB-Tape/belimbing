@@ -21,6 +21,7 @@ return new class extends Migration
             $table->string('display_name');
             $table->json('capability_tags')->nullable();
             $table->boolean('is_active')->default(true);
+            $table->boolean('is_default')->default(false);
             $table->json('cost_per_1m')->nullable();
             $table->timestamps();
 

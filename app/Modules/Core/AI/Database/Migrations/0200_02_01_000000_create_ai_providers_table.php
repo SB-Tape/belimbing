@@ -22,6 +22,7 @@ return new class extends Migration
             $table->string('base_url');
             $table->text('api_key');
             $table->boolean('is_active')->default(true);
+            $table->unsignedSmallInteger('priority')->default(0);
             $table->unsignedBigInteger('created_by')->nullable()->index();
             $table->timestamps();
 

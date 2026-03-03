@@ -8,6 +8,7 @@
 
 use App\Modules\Core\AI\Models\AiProvider;
 use App\Modules\Core\AI\Models\AiProviderModel;
+use App\Modules\Core\AI\Services\ModelDiscoveryService;
 use App\Modules\Core\AI\Services\ProviderAuthFlowService;
 use Livewire\Volt\Component;
 
@@ -85,6 +86,9 @@ new class extends Component
     public string $modelCostCacheRead = '0.000000';
 
     public string $modelCostCacheWrite = '0.000000';
+
+    // Sync result flash
+    public ?string $syncMessage = null;
 
     // Model delete
     public bool $showDeleteModel = false;
@@ -185,6 +189,13 @@ new class extends Component
         }
 
         $this->wizardStep = 'connect';
+
+        // Auto-start device flows (e.g. GitHub Copilot) — no idle screen needed
+        foreach ($this->connectForms as $index => $form) {
+            if (($form['auth_type'] ?? 'api_key') === 'device_flow') {
+                $this->startDeviceFlow($index);
+            }
+        }
     }
 
     /**
@@ -260,6 +271,9 @@ new class extends Component
 
     /**
      * Create providers and import models for all connected forms.
+     *
+     * Delegates model discovery to ModelDiscoveryService which handles both
+     * live API discovery and static template fallback.
      */
     public function connectAll(): void
     {
@@ -297,11 +311,10 @@ new class extends Component
             'connectForms.*.cloudflare_gateway_id.required' => __('Gateway ID is required.'),
         ]);
 
-        $templates = config('ai.provider_templates', []);
+        $discovery = app(ModelDiscoveryService::class);
 
         foreach ($this->connectForms as $form) {
             $key = $form['key'];
-            $tpl = $templates[$key] ?? null;
 
             $existing = AiProvider::query()
                 ->forCompany($companyId)
@@ -331,20 +344,11 @@ new class extends Component
                 'created_by' => auth()->user()->employee?->id,
             ]);
 
-            if ($tpl !== null && ! empty($tpl['models'])) {
-                foreach ($tpl['models'] as $modelTemplate) {
-                    AiProviderModel::query()->create([
-                        'ai_provider_id' => $provider->id,
-                        'model_name' => $modelTemplate['model_name'],
-                        'display_name' => $modelTemplate['display_name'],
-                        'capability_tags' => $modelTemplate['capability_tags'] ?? [],
-                        'context_window' => $modelTemplate['context_window'] ?? null,
-                        'max_tokens' => $modelTemplate['max_tokens'] ?? null,
-                        'is_active' => true,
-                        'cost_per_1m' => $modelTemplate['cost_per_1m'] ?? null,
-                    ]);
-                }
-            }
+            // Auto-assign priority for each new provider
+            $provider->assignNextPriority();
+
+            // Discover and import models (falls back to template on failure)
+            $discovery->syncModels($provider);
         }
 
         $this->cleanupAuthFlows();
@@ -399,9 +403,11 @@ new class extends Component
     }
 
     /**
-     * Import suggested models from a provider template into an existing provider.
+     * Sync models for a provider from its live API, with template fallback.
+     *
+     * Replaces the old "Import Suggested" action with live discovery + upsert.
      */
-    public function importTemplateModels(int $providerId): void
+    public function syncProviderModels(int $providerId): void
     {
         $provider = AiProvider::query()->find($providerId);
 
@@ -409,32 +415,66 @@ new class extends Component
             return;
         }
 
-        $template = config('ai.provider_templates.'.$provider->name);
+        $discovery = app(ModelDiscoveryService::class);
+        $result = $discovery->syncModels($provider);
 
-        if ($template === null || empty($template['models'])) {
+        if ($result['added'] > 0 && $result['updated'] > 0) {
+            $this->syncMessage = __('Added :added, updated :updated models.', [
+                'added' => $result['added'],
+                'updated' => $result['updated'],
+            ]);
+        } elseif ($result['added'] > 0) {
+            $this->syncMessage = __('Added :count new models.', ['count' => $result['added']]);
+        } elseif ($result['updated'] > 0) {
+            $this->syncMessage = __('Updated :count models.', ['count' => $result['updated']]);
+        } else {
+            $this->syncMessage = __('Models are up to date.');
+        }
+    }
+
+    /**
+     * Promote a provider to top priority (priority 1).
+     */
+    public function promoteProvider(int $providerId): void
+    {
+        $provider = AiProvider::query()->find($providerId);
+
+        if (! $provider) {
             return;
         }
 
-        $existingModels = AiProviderModel::query()
-            ->where('ai_provider_id', $providerId)
-            ->pluck('model_name')
-            ->all();
+        $provider->setTopPriority();
+    }
 
-        foreach ($template['models'] as $modelTemplate) {
-            if (in_array($modelTemplate['model_name'], $existingModels, true)) {
-                continue;
-            }
+    /**
+     * Remove a provider from the priority ordering.
+     */
+    public function deprioritizeProvider(int $providerId): void
+    {
+        $provider = AiProvider::query()->find($providerId);
 
-            AiProviderModel::query()->create([
-                'ai_provider_id' => $providerId,
-                'model_name' => $modelTemplate['model_name'],
-                'display_name' => $modelTemplate['display_name'],
-                'capability_tags' => $modelTemplate['capability_tags'] ?? [],
-                'context_window' => $modelTemplate['context_window'] ?? null,
-                'max_tokens' => $modelTemplate['max_tokens'] ?? null,
-                'is_active' => true,
-                'cost_per_1m' => $modelTemplate['cost_per_1m'] ?? null,
-            ]);
+        if (! $provider) {
+            return;
+        }
+
+        $provider->clearPriority();
+    }
+
+    /**
+     * Toggle default status for a model.
+     */
+    public function toggleDefaultModel(int $modelId): void
+    {
+        $model = AiProviderModel::query()->find($modelId);
+
+        if (! $model) {
+            return;
+        }
+
+        if ($model->is_default) {
+            $model->unsetDefault();
+        } else {
+            $model->setAsDefault();
         }
     }
 
@@ -688,17 +728,6 @@ new class extends Component
             ->values()
             ->all();
 
-        $hasTemplateModels = false;
-
-        if ($this->expandedProviderId !== null) {
-            $expandedProvider = $providers->firstWhere('id', $this->expandedProviderId);
-
-            if ($expandedProvider) {
-                $template = config('ai.provider_templates.'.$expandedProvider->name);
-                $hasTemplateModels = ! empty($template['models']);
-            }
-        }
-
         $connectedNames = $providers->pluck('name')->all();
 
         $catalog = collect(config('ai.provider_templates', []))
@@ -743,7 +772,6 @@ new class extends Component
             'providers' => $providers,
             'expandedModels' => $expandedModels,
             'templateOptions' => $templates,
-            'hasTemplateModels' => $hasTemplateModels,
             'catalog' => $catalog,
         ];
     }
@@ -844,9 +872,27 @@ new class extends Component
         <div class="space-y-section-gap">
             <x-ui.page-header :title="__('Choose Providers')" :subtitle="__('Browse available LLM providers and select the ones you want to connect.')">
                 <x-slot name="help">
-                    <div class="space-y-2">
-                        <p>{{ __('Select one or more providers from the catalog below. Expand a row to compare models, context windows, and pricing. After selecting, you\'ll enter your API key for each provider.') }}</p>
-                        <p>{{ __('Each provider requires an API key from their developer dashboard. Providers like Ollama are free and run locally. GitHub Copilot is included with a GitHub Copilot subscription.') }}</p>
+                    <div class="space-y-3">
+                        <p>{{ __('An LLM provider is a service that hosts AI models your Digital Workers use to think and respond. You need at least one provider connected before Digital Workers can function.') }}</p>
+
+                        <div>
+                            <p class="font-medium text-ink">{{ __('Which provider should I choose?') }}</p>
+                            <ul class="list-disc list-inside space-y-1 text-muted mt-1">
+                                <li>{{ __('Already have a GitHub Copilot subscription? Start there — it includes models from OpenAI, Anthropic, Google, and xAI at no extra per-token cost.') }}</li>
+                                <li>{{ __('Need the latest models with full control? OpenAI and Anthropic offer direct API access with pay-per-token pricing.') }}</li>
+                                <li>{{ __('Want to keep data on-premise? Ollama runs models locally on your own hardware for free.') }}</li>
+                                <li>{{ __('Not sure? Select multiple providers now — you can disable or remove any of them later.') }}</li>
+                            </ul>
+                        </div>
+
+                        <div>
+                            <p class="font-medium text-ink">{{ __('How to use this page') }}</p>
+                            <ul class="list-disc list-inside space-y-1 text-muted mt-1">
+                                <li>{{ __('Tap a row to expand it and compare models, context windows, and pricing.') }}</li>
+                                <li>{{ __('Check the box next to each provider you want, then click "Connect Providers".') }}</li>
+                                <li>{{ __('On the next step you\'ll enter your API key (or log in for GitHub Copilot).') }}</li>
+                            </ul>
+                        </div>
                     </div>
                 </x-slot>
                 <x-slot name="actions">
@@ -872,9 +918,9 @@ new class extends Component
                                 <th class="px-table-cell-x py-table-header-y w-8"></th>
                                 <th class="px-table-cell-x py-table-header-y w-8"></th>
                                 <th class="px-table-cell-x py-table-header-y text-left text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Provider') }}</th>
-                                <th class="px-table-cell-x py-table-header-y text-left text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Description') }}</th>
-                                <th class="px-table-cell-x py-table-header-y text-right text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Models') }}</th>
-                                <th class="px-table-cell-x py-table-header-y text-right text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Cost $/1M') }}</th>
+                                <th class="hidden md:table-cell px-table-cell-x py-table-header-y text-left text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Description') }}</th>
+                                <th class="hidden md:table-cell px-table-cell-x py-table-header-y text-right text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Models') }}</th>
+                                <th class="hidden md:table-cell px-table-cell-x py-table-header-y text-right text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Cost $/1M') }}</th>
                                 <th class="px-table-cell-x py-table-header-y text-left text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Status') }}</th>
                             </tr>
                         </thead>
@@ -904,13 +950,15 @@ new class extends Component
                                         />
                                     </td>
                                     <td class="px-table-cell-x py-table-cell-y whitespace-nowrap text-sm font-medium text-ink">{{ $entry['display_name'] }}</td>
-                                    <td class="px-table-cell-x py-table-cell-y text-sm text-muted">{{ $entry['description'] }}</td>
-                                    <td class="px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted tabular-nums text-right">{{ $entry['model_count'] ?: '—' }}</td>
-                                    <td class="px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted tabular-nums text-right">
+                                    <td class="hidden md:table-cell px-table-cell-x py-table-cell-y text-sm text-muted">{{ $entry['description'] }}</td>
+                                    <td class="hidden md:table-cell px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted tabular-nums text-right">{{ $entry['model_count'] ?: '—' }}</td>
+                                    <td class="hidden md:table-cell px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted tabular-nums text-right">
                                         @if(is_array($entry['cost_range'] ?? null))
                                             {{ $this->formatCost((string) $entry['cost_range']['min']) }}–{{ $this->formatCost((string) $entry['cost_range']['max']) }}
                                         @elseif(($entry['cost_range'] ?? null) !== null)
                                             {{ $this->formatCost((string) $entry['cost_range']) }}
+                                        @elseif($entry['model_count'] > 0)
+                                            {{ __('Subscription') }}
                                         @else
                                             —
                                         @endif
@@ -935,14 +983,14 @@ new class extends Component
                                                             <th class="px-table-cell-x py-table-header-y text-left text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Tags') }}</th>
                                                             <th class="px-table-cell-x py-table-header-y text-right text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Context') }}</th>
                                                             <th class="px-table-cell-x py-table-header-y text-right text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Max Output') }}</th>
-                                                            <th class="px-table-cell-x py-table-header-y text-right text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Input $/1M') }}</th>
-                                                            <th class="px-table-cell-x py-table-header-y text-right text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Output $/1M') }}</th>
-                                                            <th class="px-table-cell-x py-table-header-y text-right text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Cache Read $/1M') }}</th>
-                                                            <th class="px-table-cell-x py-table-header-y text-right text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Cache Write $/1M') }}</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody class="bg-surface-card divide-y divide-border-default">
-                                                        @foreach($entry['models'] as $catModel)
+                                                            <th class="hidden lg:table-cell px-table-cell-x py-table-header-y text-right text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Input $/1M') }}</th>
+                                                            <th class="hidden lg:table-cell px-table-cell-x py-table-header-y text-right text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Output $/1M') }}</th>
+                                                            <th class="hidden lg:table-cell px-table-cell-x py-table-header-y text-right text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Cache Read $/1M') }}</th>
+                                                            <th class="hidden lg:table-cell px-table-cell-x py-table-header-y text-right text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Cache Write $/1M') }}</th>
+                                                            </tr>
+                                                            </thead>
+                                                            <tbody class="bg-surface-card divide-y divide-border-default">
+                                                            @foreach($entry['models'] as $catModel)
                                                             <tr class="hover:bg-surface-subtle/50 transition-colors">
                                                                 <td class="px-table-cell-x py-table-cell-y whitespace-nowrap text-sm font-medium text-ink">{{ $catModel['display_name'] }}</td>
                                                                 <td class="px-table-cell-x py-table-cell-y whitespace-nowrap">
@@ -959,14 +1007,14 @@ new class extends Component
                                                                 <td class="px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted tabular-nums text-right">{{ $this->formatTokenCount($catModel['context_window'] ?? null) }}</td>
                                                                 <td class="px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted tabular-nums text-right">{{ $this->formatTokenCount($catModel['max_tokens'] ?? null) }}</td>
                                                                 @php $cost = $catModel['cost_per_1m'] ?? []; @endphp
-                                                                <td class="px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted tabular-nums text-right">{{ $this->formatCost($cost['input'] ?? null) }}</td>
-                                                                <td class="px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted tabular-nums text-right">{{ $this->formatCost($cost['output'] ?? null) }}</td>
-                                                                <td class="px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted tabular-nums text-right">{{ $this->formatCost($cost['cache_read'] ?? null) }}</td>
-                                                                <td class="px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted tabular-nums text-right">{{ $this->formatCost($cost['cache_write'] ?? null) }}</td>
-                                                            </tr>
-                                                        @endforeach
-                                                    </tbody>
-                                                </table>
+                                                                <td class="hidden lg:table-cell px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted tabular-nums text-right">{{ $this->formatCost($cost['input'] ?? null) }}</td>
+                                                                <td class="hidden lg:table-cell px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted tabular-nums text-right">{{ $this->formatCost($cost['output'] ?? null) }}</td>
+                                                                <td class="hidden lg:table-cell px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted tabular-nums text-right">{{ $this->formatCost($cost['cache_read'] ?? null) }}</td>
+                                                                <td class="hidden lg:table-cell px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted tabular-nums text-right">{{ $this->formatCost($cost['cache_write'] ?? null) }}</td>
+                                                                </tr>
+                                                                @endforeach
+                                                                </tbody>
+                                                                </table>
                                             </div>
                                         </td>
                                     </tr>
@@ -1034,7 +1082,16 @@ new class extends Component
                                     <p class="text-xs text-muted mt-0.5">{{ __('Requires GitHub device login — an active GitHub Copilot subscription is needed') }}</p>
                                 @endif
                             </div>
-                            @if($authType !== 'device_flow' && $form['api_key_url'])
+                            @if($authType === 'device_flow')
+                                <button
+                                    type="button"
+                                    wire:click="backToCatalog"
+                                    class="p-1 rounded-md text-muted hover:text-ink hover:bg-surface-subtle transition-colors focus:ring-2 focus:ring-accent focus:ring-offset-2"
+                                    aria-label="{{ __('Cancel GitHub login') }}"
+                                >
+                                    <x-icon name="heroicon-o-x-mark" class="w-5 h-5" />
+                                </button>
+                            @elseif($form['api_key_url'])
                                 <a
                                     href="{{ $form['api_key_url'] }}"
                                     target="_blank"
@@ -1051,35 +1108,30 @@ new class extends Component
                             {{-- ── Device Flow UI (GitHub Copilot) ── --}}
                             @php $flow = $deviceFlows[$index] ?? ['status' => 'idle', 'user_code' => null, 'verification_uri' => null, 'error' => null]; @endphp
 
-                            @if($flow['status'] === 'idle')
-                                <div class="space-y-3">
-                                    <x-ui.input
-                                        wire:model="connectForms.{{ $index }}.base_url"
-                                        label="{{ __('Base URL') }}"
-                                        required
-                                        :error="$errors->first('connectForms.'.$index.'.base_url')"
-                                    />
-                                    <div>
-                                        <x-ui.button variant="primary" wire:click="startDeviceFlow({{ $index }})">
-                                            <x-icon name="github" class="w-4 h-4" />
-                                            {{ __('Start GitHub Login') }}
-                                        </x-ui.button>
-                                        <p class="text-xs text-muted mt-1.5">{{ __('Opens the GitHub device authorization flow. You\'ll receive a code to enter on GitHub.') }}</p>
-                                    </div>
-                                </div>
-                            @elseif($flow['status'] === 'pending')
+                            @if($flow['status'] === 'pending')
                                 <div wire:poll.5s="pollDeviceFlow({{ $index }})">
-                                    <div class="bg-surface-subtle rounded-lg p-4 space-y-3">
-                                        <div class="flex items-center gap-2">
-                                            <div class="animate-spin h-4 w-4 border-2 border-accent border-t-transparent rounded-full"></div>
-                                            <span class="text-sm font-medium text-ink">{{ __('Waiting for GitHub authorization...') }}</span>
-                                        </div>
+                                    <div
+                                        class="bg-surface-subtle rounded-lg p-4 space-y-3"
+                                        x-data="{ copied: false }"
+                                    >
                                         <div class="space-y-2">
-                                            <div>
-                                                <span class="text-[11px] uppercase tracking-wider font-semibold text-muted block mb-1">{{ __('Your Code') }}</span>
-                                                <p class="text-2xl font-mono font-bold text-ink tracking-[0.3em]">{{ $flow['user_code'] }}</p>
+                                            <span class="text-[11px] uppercase tracking-wider font-semibold text-muted block">{{ __('Step 1 — Copy your authorization code') }}</span>
+                                            <div class="flex items-center gap-3">
+                                                <p class="text-2xl font-mono font-bold text-ink tracking-[0.3em] select-all">{{ $flow['user_code'] }}</p>
+                                                <button
+                                                    type="button"
+                                                    class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-accent bg-surface-card border border-border-default rounded-md hover:bg-surface-subtle transition-colors focus:ring-2 focus:ring-accent focus:ring-offset-2"
+                                                    x-on:click="navigator.clipboard.writeText('{{ $flow['user_code'] }}'); copied = true; setTimeout(() => copied = false, 2000)"
+                                                    x-text="copied ? '{{ __('Copied!') }}' : '{{ __('Copy') }}'"
+                                                    :aria-label="copied ? '{{ __('Code copied to clipboard') }}' : '{{ __('Copy authorization code') }}'"
+                                                >
+                                                </button>
                                             </div>
-                                            <p class="text-xs text-muted">{{ __('Visit the link below and enter this code to authorize BLB.') }}</p>
+                                        </div>
+
+                                        <div class="space-y-1.5">
+                                            <span class="text-[11px] uppercase tracking-wider font-semibold text-muted block">{{ __('Step 2 — Paste it on GitHub') }}</span>
+                                            <p class="text-xs text-muted">{{ __('Open the link below, paste the code, and approve access for BLB.') }}</p>
                                             <a
                                                 href="{{ $flow['verification_uri'] }}"
                                                 target="_blank"
@@ -1089,6 +1141,11 @@ new class extends Component
                                                 {{ $flow['verification_uri'] }}
                                                 <x-icon name="heroicon-o-arrow-top-right-on-square" class="w-3.5 h-3.5" />
                                             </a>
+                                        </div>
+
+                                        <div class="flex items-center gap-2 pt-1 border-t border-border-default">
+                                            <div class="animate-spin h-3.5 w-3.5 border-2 border-accent border-t-transparent rounded-full"></div>
+                                            <span class="text-xs text-muted">{{ __('Listening for approval — this will update automatically once you authorize on GitHub.') }}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -1178,11 +1235,30 @@ new class extends Component
         <div class="space-y-section-gap">
             <x-ui.page-header :title="__('LLM Providers')" :subtitle="__('Manage AI providers and their models')">
                 <x-slot name="help">
-                    <div class="space-y-2">
-                        <p>{{ __('Digital Workers require at least one LLM to function. This page is where you register the AI providers your organization uses and the models available under each.') }}</p>
-                        <p>{{ __('Each provider needs an API key from the provider\'s developer dashboard (e.g. platform.openai.com, console.anthropic.com). When creating a provider from a template, expand it and click "Import Suggested" to add common models with approximate pricing.') }}</p>
-                        <p>{!! __('Once providers and models are registered here, assign them to individual Digital Workers from the :link.', ['link' => '<a href="' . route('admin.ai.playground') . '" class="text-accent hover:underline">' . e(__('AI Playground')) . '</a>']) !!}</p>
-                        <p>{{ __('API usage is billed directly by the provider based on token consumption — review their pricing before enabling models for production use.') }}</p>
+                    <div class="space-y-3">
+                        <p>{{ __('This page shows the LLM providers and models your organization has connected. Digital Workers use these models to think, reason, and respond — at least one active provider with one active model is required.') }}</p>
+
+                        <div>
+                            <p class="font-medium text-ink">{{ __('Managing providers') }}</p>
+                            <ul class="list-disc list-inside space-y-1 text-muted mt-1">
+                                <li>{{ __('Click a provider row to expand it and see its models.') }}</li>
+                                <li>{{ __('"Browse Providers" opens the catalog to connect additional providers.') }}</li>
+                                <li>{{ __('"Manual Add" lets you enter a custom provider not in the catalog (e.g. a private deployment).') }}</li>
+                                <li>{{ __('Use "Update Models" to fetch the latest model list from the provider\'s API.') }}</li>
+                                <li>{{ __('Click the star icon to set a default provider or model — used as the fallback for unconfigured Digital Workers.') }}</li>
+                            </ul>
+                        </div>
+
+                        <div>
+                            <p class="font-medium text-ink">{{ __('Costs & billing') }}</p>
+                            <ul class="list-disc list-inside space-y-1 text-muted mt-1">
+                                <li>{{ __('API providers (OpenAI, Anthropic, etc.) bill per token used — costs are shown per 1M tokens.') }}</li>
+                                <li>{{ __('Subscription providers (GitHub Copilot) are included in your subscription at no extra per-token cost.') }}</li>
+                                <li>{{ __('Local providers (Ollama, vLLM) run on your own hardware and have no API fees.') }}</li>
+                            </ul>
+                        </div>
+
+                        <p>{!! __('Once providers and models are set up here, assign them to Digital Workers from the :link.', ['link' => '<a href="' . route('admin.ai.playground') . '" class="text-accent hover:underline">' . e(__('AI Playground')) . '</a>']) !!}</p>
                     </div>
                 </x-slot>
                 <x-slot name="actions">
@@ -1210,9 +1286,9 @@ new class extends Component
                         <thead class="bg-surface-subtle/80">
                             <tr>
                                 <th class="px-table-cell-x py-table-header-y w-8"></th>
-                                <th class="px-table-cell-x py-table-header-y text-left text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Name') }}</th>
+                                <th class="hidden md:table-cell px-table-cell-x py-table-header-y text-left text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Name') }}</th>
                                 <th class="px-table-cell-x py-table-header-y text-left text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Display Name') }}</th>
-                                <th class="px-table-cell-x py-table-header-y text-left text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Base URL') }}</th>
+                                <th class="hidden md:table-cell px-table-cell-x py-table-header-y text-left text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Base URL') }}</th>
                                 <th class="px-table-cell-x py-table-header-y text-left text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Models') }}</th>
                                 <th class="px-table-cell-x py-table-header-y text-left text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Status') }}</th>
                                 <th class="px-table-cell-x py-table-header-y text-right text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Actions') }}</th>
@@ -1231,19 +1307,41 @@ new class extends Component
                                             class="w-4 h-4 text-muted"
                                         />
                                     </td>
-                                    <td class="px-table-cell-x py-table-cell-y whitespace-nowrap text-sm font-medium text-ink">{{ $provider->name }}</td>
+                                    <td class="hidden md:table-cell px-table-cell-x py-table-cell-y whitespace-nowrap text-sm font-medium text-ink">{{ $provider->name }}</td>
                                     <td class="px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted">{{ $provider->display_name }}</td>
-                                    <td class="px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted font-mono text-xs truncate max-w-[200px]">{{ $provider->base_url }}</td>
+                                    <td class="hidden md:table-cell px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted font-mono text-xs truncate max-w-[200px]">{{ $provider->base_url }}</td>
                                     <td class="px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted tabular-nums">{{ $provider->models_count }}</td>
                                     <td class="px-table-cell-x py-table-cell-y whitespace-nowrap">
-                                        @if($provider->is_active)
-                                            <x-ui.badge variant="success">{{ __('Active') }}</x-ui.badge>
-                                        @else
-                                            <x-ui.badge variant="default">{{ __('Inactive') }}</x-ui.badge>
-                                        @endif
+                                        <div class="flex items-center gap-1.5">
+                                            @if($provider->is_active)
+                                                <x-ui.badge variant="success">{{ __('Active') }}</x-ui.badge>
+                                            @else
+                                                <x-ui.badge variant="default">{{ __('Inactive') }}</x-ui.badge>
+                                            @endif
+                                            @if($provider->priority > 0)
+                                                <x-ui.badge variant="accent">{{ __('#:n', ['n' => $provider->priority]) }}</x-ui.badge>
+                                            @endif
+                                        </div>
                                     </td>
                                     <td class="px-table-cell-x py-table-cell-y whitespace-nowrap text-right">
                                         <div class="flex items-center justify-end gap-1">
+                                            @if($provider->priority > 0)
+                                                <button
+                                                    wire:click.stop="deprioritizeProvider({{ $provider->id }})"
+                                                    class="text-accent hover:bg-surface-subtle p-1 rounded"
+                                                    title="{{ __('Remove priority') }}"
+                                                >
+                                                    <x-icon name="heroicon-s-star" class="w-4 h-4" />
+                                                </button>
+                                            @else
+                                                <button
+                                                    wire:click.stop="promoteProvider({{ $provider->id }})"
+                                                    class="text-muted hover:text-accent hover:bg-surface-subtle p-1 rounded"
+                                                    title="{{ __('Set as top priority') }}"
+                                                >
+                                                    <x-icon name="heroicon-o-star" class="w-4 h-4" />
+                                                </button>
+                                            @endif
                                             <button
                                                 wire:click.stop="openEditProvider({{ $provider->id }})"
                                                 class="text-accent hover:bg-surface-subtle p-1 rounded"
@@ -1267,21 +1365,31 @@ new class extends Component
                                     <tr wire:key="provider-{{ $provider->id }}-models">
                                         <td colspan="7" class="p-0">
                                             <div class="bg-surface-subtle/30 border-t border-border-default px-8 py-3">
-                                                <div class="flex items-center justify-between mb-2">
+                                               <div class="flex items-center justify-between mb-2">
                                                     <span class="text-[11px] uppercase tracking-wider font-semibold text-muted">{{ __('Models') }}</span>
                                                     <div class="flex items-center gap-1">
-                                                        @if($hasTemplateModels)
-                                                            <x-ui.button variant="ghost" size="sm" wire:click.stop="importTemplateModels({{ $provider->id }})">
-                                                                <x-icon name="heroicon-o-arrow-down-tray" class="w-3.5 h-3.5" />
-                                                                {{ __('Import Suggested') }}
-                                                            </x-ui.button>
-                                                        @endif
+                                                        <x-ui.button variant="ghost" size="sm" wire:click.stop="syncProviderModels({{ $provider->id }})">
+                                                            <x-icon name="heroicon-o-arrow-path" class="w-3.5 h-3.5" />
+                                                            {{ __('Update Models') }}
+                                                        </x-ui.button>
                                                         <x-ui.button variant="ghost" size="sm" wire:click.stop="openCreateModel({{ $provider->id }})">
                                                             <x-icon name="heroicon-o-plus" class="w-3.5 h-3.5" />
                                                             {{ __('Add Model') }}
                                                         </x-ui.button>
                                                     </div>
                                                 </div>
+
+                                               @if($syncMessage)
+                                                    <div
+                                                        class="mb-2 px-3 py-1.5 bg-surface-subtle rounded text-sm text-muted"
+                                                        x-data="{ show: true }"
+                                                        x-init="setTimeout(() => { show = false; $wire.set('syncMessage', null) }, 4000)"
+                                                        x-show="show"
+                                                        x-transition.opacity
+                                                    >
+                                                        {{ $syncMessage }}
+                                                    </div>
+                                                @endif
 
                                                 @if($expandedModels->count() > 0)
                                                     <table class="min-w-full divide-y divide-border-default text-sm">
@@ -1292,10 +1400,10 @@ new class extends Component
                                                                 <th class="px-table-cell-x py-table-header-y text-left text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Tags') }}</th>
                                                                 <th class="px-table-cell-x py-table-header-y text-right text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Context') }}</th>
                                                                 <th class="px-table-cell-x py-table-header-y text-right text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Max Output') }}</th>
-                                                                <th class="px-table-cell-x py-table-header-y text-right text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Input $/1M') }}</th>
-                                                                <th class="px-table-cell-x py-table-header-y text-right text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Output $/1M') }}</th>
-                                                                <th class="px-table-cell-x py-table-header-y text-right text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Cache Read $/1M') }}</th>
-                                                                <th class="px-table-cell-x py-table-header-y text-right text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Cache Write $/1M') }}</th>
+                                                                <th class="hidden lg:table-cell px-table-cell-x py-table-header-y text-right text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Input $/1M') }}</th>
+                                                                <th class="hidden lg:table-cell px-table-cell-x py-table-header-y text-right text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Output $/1M') }}</th>
+                                                                <th class="hidden lg:table-cell px-table-cell-x py-table-header-y text-right text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Cache Read $/1M') }}</th>
+                                                                <th class="hidden lg:table-cell px-table-cell-x py-table-header-y text-right text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Cache Write $/1M') }}</th>
                                                                 <th class="px-table-cell-x py-table-header-y text-left text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Status') }}</th>
                                                                 <th class="px-table-cell-x py-table-header-y text-right text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Actions') }}</th>
                                                             </tr>
@@ -1319,19 +1427,31 @@ new class extends Component
                                                                     <td class="px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted tabular-nums text-right">{{ $this->formatTokenCount($model->context_window) }}</td>
                                                                     <td class="px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted tabular-nums text-right">{{ $this->formatTokenCount($model->max_tokens) }}</td>
                                                                     @php $cost = $model->cost_per_1m ?? []; @endphp
-                                                                    <td class="px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted tabular-nums text-right">{{ $this->formatCost($cost['input'] ?? null) }}</td>
-                                                                    <td class="px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted tabular-nums text-right">{{ $this->formatCost($cost['output'] ?? null) }}</td>
-                                                                    <td class="px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted tabular-nums text-right">{{ $this->formatCost($cost['cache_read'] ?? null) }}</td>
-                                                                    <td class="px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted tabular-nums text-right">{{ $this->formatCost($cost['cache_write'] ?? null) }}</td>
+                                                                    <td class="hidden lg:table-cell px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted tabular-nums text-right">{{ $this->formatCost($cost['input'] ?? null) }}</td>
+                                                                    <td class="hidden lg:table-cell px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted tabular-nums text-right">{{ $this->formatCost($cost['output'] ?? null) }}</td>
+                                                                    <td class="hidden lg:table-cell px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted tabular-nums text-right">{{ $this->formatCost($cost['cache_read'] ?? null) }}</td>
+                                                                    <td class="hidden lg:table-cell px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted tabular-nums text-right">{{ $this->formatCost($cost['cache_write'] ?? null) }}</td>
                                                                     <td class="px-table-cell-x py-table-cell-y whitespace-nowrap">
-                                                                        @if($model->is_active)
-                                                                            <x-ui.badge variant="success">{{ __('Active') }}</x-ui.badge>
-                                                                        @else
-                                                                            <x-ui.badge variant="default">{{ __('Inactive') }}</x-ui.badge>
-                                                                        @endif
+                                                                        <div class="flex items-center gap-1.5">
+                                                                            @if($model->is_active)
+                                                                                <x-ui.badge variant="success">{{ __('Active') }}</x-ui.badge>
+                                                                            @else
+                                                                                <x-ui.badge variant="default">{{ __('Inactive') }}</x-ui.badge>
+                                                                            @endif
+                                                                            @if($model->is_default)
+                                                                                <x-ui.badge variant="accent">{{ __('Default') }}</x-ui.badge>
+                                                                            @endif
+                                                                        </div>
                                                                     </td>
                                                                     <td class="px-table-cell-x py-table-cell-y whitespace-nowrap text-right">
                                                                         <div class="flex items-center justify-end gap-1">
+                                                                            <button
+                                                                                wire:click="toggleDefaultModel({{ $model->id }})"
+                                                                                class="{{ $model->is_default ? 'text-accent' : 'text-muted hover:text-accent' }} hover:bg-surface-subtle p-1 rounded"
+                                                                                title="{{ $model->is_default ? __('Unset default') : __('Set as default') }}"
+                                                                            >
+                                                                                <x-icon :name="$model->is_default ? 'heroicon-s-star' : 'heroicon-o-star'" class="w-4 h-4" />
+                                                                            </button>
                                                                             <button wire:click="openEditModel({{ $model->id }})" class="text-accent hover:bg-surface-subtle p-1 rounded" title="{{ __('Edit') }}">
                                                                                 <x-icon name="heroicon-o-pencil" class="w-4 h-4" />
                                                                             </button>

@@ -6,6 +6,7 @@
 namespace App\Modules\Core\AI\Services;
 
 use App\Modules\Core\AI\Models\AiProvider;
+use App\Modules\Core\AI\Models\AiProviderModel;
 use App\Modules\Core\Employee\Models\Employee;
 
 /**
@@ -131,6 +132,72 @@ class ConfigResolver
         }
 
         return $resolved;
+    }
+
+    /**
+     * Resolve the default LLM configuration for a company.
+     *
+     * Uses the highest-priority active provider (lowest priority number > 0)
+     * and its default model. Falls back to the first active provider if none
+     * are prioritized.
+     *
+     * Used for non-DW AI inferences (summarization, translation, etc.) and
+     * as fallback for DWs without workspace config.
+     *
+     * @param  int  $companyId  Company ID
+     * @return array{api_key: string, base_url: string, model: string, max_tokens: int, temperature: float, timeout: int, provider_name: string|null}|null
+     */
+    public function resolveDefault(int $companyId): ?array
+    {
+        // Try prioritized providers first (priority > 0, ordered ascending)
+        $provider = AiProvider::query()
+            ->forCompany($companyId)
+            ->active()
+            ->prioritized()
+            ->first();
+
+        // Fall back to any active provider
+        if ($provider === null) {
+            $provider = AiProvider::query()
+                ->forCompany($companyId)
+                ->active()
+                ->orderBy('display_name')
+                ->first();
+        }
+
+        if ($provider === null) {
+            return null;
+        }
+
+        $model = AiProviderModel::query()
+            ->where('ai_provider_id', $provider->id)
+            ->active()
+            ->default()
+            ->first();
+
+        if ($model === null) {
+            $model = AiProviderModel::query()
+                ->where('ai_provider_id', $provider->id)
+                ->active()
+                ->orderBy('display_name')
+                ->first();
+        }
+
+        if ($model === null) {
+            return null;
+        }
+
+        $defaults = $this->runtimeDefaults();
+
+        return [
+            'api_key' => $provider->api_key,
+            'base_url' => $provider->base_url,
+            'model' => $model->model_name,
+            'max_tokens' => $model->max_tokens ?? $defaults['max_tokens'],
+            'temperature' => $defaults['temperature'],
+            'timeout' => $defaults['timeout'],
+            'provider_name' => $provider->name,
+        ];
     }
 
     /**

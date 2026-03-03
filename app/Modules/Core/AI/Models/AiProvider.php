@@ -28,6 +28,7 @@ class AiProvider extends Model
         'base_url',
         'api_key',
         'is_active',
+        'priority',
         'created_by',
     ];
 
@@ -39,6 +40,7 @@ class AiProvider extends Model
         return [
             'api_key' => 'encrypted',
             'is_active' => 'boolean',
+            'priority' => 'integer',
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
         ];
@@ -77,6 +79,14 @@ class AiProvider extends Model
     }
 
     /**
+     * Scope to providers with priority set (priority > 0), ordered by priority ascending.
+     */
+    public function scopePrioritized($query): void
+    {
+        $query->where('priority', '>', 0)->orderBy('priority');
+    }
+
+    /**
      * Scope to providers belonging to a specific company.
      *
      * @param  int  $companyId  Company ID
@@ -84,5 +94,65 @@ class AiProvider extends Model
     public function scopeForCompany($query, int $companyId): void
     {
         $query->where('company_id', $companyId);
+    }
+
+    /**
+     * Assign the next available priority for this provider's company.
+     *
+     * Sets this provider to the lowest priority (highest number + 1).
+     * If it already has a priority, does nothing.
+     */
+    public function assignNextPriority(): void
+    {
+        if ($this->priority > 0) {
+            return;
+        }
+
+        $maxPriority = (int) self::query()
+            ->where('company_id', $this->company_id)
+            ->max('priority');
+
+        $this->update(['priority' => $maxPriority + 1]);
+    }
+
+    /**
+     * Set this provider as the top priority (1) for its company.
+     *
+     * Shifts all other prioritized providers down by 1.
+     */
+    public function setTopPriority(): void
+    {
+        if ($this->priority === 1) {
+            return;
+        }
+
+        // Shift existing priorities down to make room at 1
+        self::query()
+            ->where('company_id', $this->company_id)
+            ->where('priority', '>', 0)
+            ->where('id', '!=', $this->id)
+            ->increment('priority');
+
+        $this->update(['priority' => 1]);
+    }
+
+    /**
+     * Remove this provider from the priority ordering.
+     */
+    public function clearPriority(): void
+    {
+        $oldPriority = $this->priority;
+
+        if ($oldPriority === 0) {
+            return;
+        }
+
+        $this->update(['priority' => 0]);
+
+        // Close the gap in priority sequence
+        self::query()
+            ->where('company_id', $this->company_id)
+            ->where('priority', '>', $oldPriority)
+            ->decrement('priority');
     }
 }

@@ -26,6 +26,7 @@ class AiProviderModel extends Model
         'context_window',
         'max_tokens',
         'is_active',
+        'is_default',
         'cost_per_1m',
     ];
 
@@ -39,6 +40,7 @@ class AiProviderModel extends Model
             'context_window' => 'integer',
             'max_tokens' => 'integer',
             'is_active' => 'boolean',
+            'is_default' => 'boolean',
             'cost_per_1m' => 'array',
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
@@ -75,5 +77,35 @@ class AiProviderModel extends Model
     public function scopeActive($query): void
     {
         $query->where('is_active', true);
+    }
+
+    /**
+     * Scope to the default model.
+     */
+    public function scopeDefault($query): void
+    {
+        $query->where('is_default', true);
+    }
+
+    /**
+     * Set this model as the default for its provider, unsetting any previous default.
+     */
+    public function setAsDefault(): void
+    {
+        self::query()
+            ->where('ai_provider_id', $this->ai_provider_id)
+            ->where('is_default', true)
+            ->where('id', '!=', $this->id)
+            ->update(['is_default' => false]);
+
+        $this->update(['is_default' => true]);
+    }
+
+    /**
+     * Unset this model as default.
+     */
+    public function unsetDefault(): void
+    {
+        $this->update(['is_default' => false]);
     }
 }
