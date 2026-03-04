@@ -17,6 +17,19 @@ use Illuminate\Support\Facades\Http;
 class LlmClient
 {
     /**
+     * Copilot-required headers for IDE auth.
+     *
+     * GitHub Copilot's API rejects requests without these headers.
+     * Values mirror those used by VS Code Copilot Chat.
+     */
+    private const COPILOT_HEADERS = [
+        'User-Agent' => 'GitHubCopilotChat/0.35.0',
+        'Editor-Version' => 'vscode/1.107.0',
+        'Editor-Plugin-Version' => 'copilot-chat/0.35.0',
+        'Copilot-Integration-Id' => 'vscode-chat',
+    ];
+
+    /**
      * Execute a chat completion against any OpenAI-compatible endpoint.
      *
      * @param  string  $baseUrl  Provider base URL (e.g., 'https://api.openai.com/v1')
@@ -26,6 +39,7 @@ class LlmClient
      * @param  int  $maxTokens  Maximum tokens in response
      * @param  float  $temperature  Sampling temperature
      * @param  int  $timeout  HTTP timeout in seconds
+     * @param  string|null  $providerName  Provider name (used for provider-specific headers)
      * @return array{content?: string, usage?: array<string, int|null>, latency_ms: int, error?: string, error_type?: string}
      */
     public function chat(
@@ -36,18 +50,24 @@ class LlmClient
         int $maxTokens = 2048,
         float $temperature = 0.7,
         int $timeout = 60,
+        ?string $providerName = null,
     ): array {
         $startTime = hrtime(true);
 
         try {
-            $response = Http::withToken($apiKey)
-                ->timeout($timeout)
-                ->post(rtrim($baseUrl, '/').'/chat/completions', [
-                    'model' => $model,
-                    'messages' => $messages,
-                    'max_tokens' => $maxTokens,
-                    'temperature' => $temperature,
-                ]);
+            $request = Http::withToken($apiKey)
+                ->timeout($timeout);
+
+            if ($providerName === 'github-copilot') {
+                $request = $request->withHeaders(self::COPILOT_HEADERS);
+            }
+
+            $response = $request->post(rtrim($baseUrl, '/').'/chat/completions', [
+                'model' => $model,
+                'messages' => $messages,
+                'max_tokens' => $maxTokens,
+                'temperature' => $temperature,
+            ]);
         } catch (ConnectionException $e) {
             $latencyMs = $this->latencyMs($startTime);
 

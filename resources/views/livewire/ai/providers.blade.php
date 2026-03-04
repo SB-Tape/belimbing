@@ -36,6 +36,9 @@ new class extends Component
     /** @var array<int, array{status: string, user_code: string|null, verification_uri: string|null, error: string|null}>  Device flow state per connect form index */
     public array $deviceFlows = [];
 
+    /** @var array<int, string>  Per-card connection errors shown on the connect step */
+    public array $connectErrors = [];
+
     // --- Provider form (manual CRUD) ---
 
     public bool $showProviderForm = false;
@@ -202,7 +205,45 @@ new class extends Component
     {
         $this->cleanupAuthFlows();
         $this->deviceFlows = [];
+        $this->connectErrors = [];
         $this->wizardStep = 'catalog';
+    }
+
+    /**
+     * Remove a single provider from the connect forms.
+     *
+     * If no forms remain, returns to catalog. Cleans up any active
+     * device flow for the removed form and re-indexes arrays.
+     *
+     * @param  int  $index  Connect form index to remove
+     */
+    public function removeConnectForm(int $index): void
+    {
+        if (! isset($this->connectForms[$index])) {
+            return;
+        }
+
+        $companyId = $this->getCompanyId();
+        $key = $this->connectForms[$index]['key'];
+
+        // Clean up device flow cache if active
+        if ($companyId !== null && isset($this->deviceFlows[$index])) {
+            app(ProviderAuthFlowService::class)->cleanupFlows($companyId, [$index]);
+        }
+
+        // Remove from selectedTemplates so catalog reflects the change
+        $this->selectedTemplates = array_values(array_diff($this->selectedTemplates, [$key]));
+
+        // Remove form and re-index
+        array_splice($this->connectForms, $index, 1);
+        unset($this->deviceFlows[$index], $this->connectErrors[$index]);
+        $this->deviceFlows = array_values($this->deviceFlows);
+        $this->connectErrors = array_values($this->connectErrors);
+
+        // If no forms left, return to catalog
+        if (count($this->connectForms) === 0) {
+            $this->wizardStep = 'catalog';
+        }
     }
 
     // --- Auth Flow methods (dispatched to ProviderAuthFlowService) ---
@@ -269,8 +310,10 @@ new class extends Component
     /**
      * Create providers and import models for all connected forms.
      *
-     * Delegates model discovery to ModelDiscoveryService which handles both
-     * live API discovery and static template fallback.
+     * Processes each provider independently — failures on one provider do not
+     * block others. Errors are captured per-card in $connectErrors and shown
+     * inline. Successfully connected providers are removed from the form list.
+     * The wizard only exits when all providers succeed.
      */
     public function connectAll(): void
     {
@@ -308,51 +351,104 @@ new class extends Component
             'connectForms.*.cloudflare_gateway_id.required' => __('Gateway ID is required.'),
         ]);
 
+        $this->connectErrors = [];
         $discovery = app(ModelDiscoveryService::class);
+        $succeeded = [];
 
-        foreach ($this->connectForms as $form) {
-            $key = $form['key'];
+        foreach ($this->connectForms as $index => $form) {
+            try {
+                $key = $form['key'];
 
-            $existing = AiProvider::query()
-                ->forCompany($companyId)
-                ->where('name', $key)
-                ->first();
+                $existing = AiProvider::query()
+                    ->forCompany($companyId)
+                    ->where('name', $key)
+                    ->first();
 
-            if ($existing) {
-                continue;
+                if ($existing) {
+                    // Provider exists but has no models — retry model import
+                    if ($existing->models()->count() === 0) {
+                        $discovery->syncModels($existing);
+                    }
+
+                    $succeeded[] = $index;
+
+                    continue;
+                }
+
+                // Cloudflare: build base_url from Account ID + Gateway ID
+                $baseUrl = $form['base_url'];
+
+                if ($key === 'cloudflare-ai-gateway') {
+                    $accountId = trim($form['cloudflare_account_id'] ?? '');
+                    $gatewayId = trim($form['cloudflare_gateway_id'] ?? '');
+                    $baseUrl = "https://gateway.ai.cloudflare.com/v1/{$accountId}/{$gatewayId}/openai";
+                }
+
+                $provider = AiProvider::query()->create([
+                    'company_id' => $companyId,
+                    'name' => $key,
+                    'display_name' => $form['display_name'],
+                    'base_url' => $baseUrl,
+                    'api_key' => $form['api_key'] !== '' ? $form['api_key'] : 'not-required',
+                    'is_active' => true,
+                    'created_by' => auth()->user()->employee?->id,
+                ]);
+
+                // Auto-assign priority for each new provider
+                $provider->assignNextPriority();
+
+                // Discover and import models (falls back to template on failure)
+                $discovery->syncModels($provider);
+
+                $succeeded[] = $index;
+            } catch (\Illuminate\Http\Client\ConnectionException $e) {
+                $this->connectErrors[$index] = __('Could not connect to :url — is the server running?', [
+                    'url' => $form['base_url'],
+                ]);
+
+                \Illuminate\Support\Facades\Log::warning('Provider connect failed', [
+                    'provider' => $form['key'],
+                    'base_url' => $form['base_url'],
+                    'error' => $e->getMessage(),
+                ]);
+            } catch (\Exception $e) {
+                $this->connectErrors[$index] = __('Failed to connect: :message', [
+                    'message' => $e->getMessage(),
+                ]);
+
+                \Illuminate\Support\Facades\Log::warning('Provider connect failed', [
+                    'provider' => $form['key'],
+                    'error' => $e->getMessage(),
+                ]);
             }
-
-            // Cloudflare: build base_url from Account ID + Gateway ID
-            $baseUrl = $form['base_url'];
-
-            if ($key === 'cloudflare-ai-gateway') {
-                $accountId = trim($form['cloudflare_account_id'] ?? '');
-                $gatewayId = trim($form['cloudflare_gateway_id'] ?? '');
-                $baseUrl = "https://gateway.ai.cloudflare.com/v1/{$accountId}/{$gatewayId}/openai";
-            }
-
-            $provider = AiProvider::query()->create([
-                'company_id' => $companyId,
-                'name' => $key,
-                'display_name' => $form['display_name'],
-                'base_url' => $baseUrl,
-                'api_key' => $form['api_key'] !== '' ? $form['api_key'] : 'not-required',
-                'is_active' => true,
-                'created_by' => auth()->user()->employee?->id,
-            ]);
-
-            // Auto-assign priority for each new provider
-            $provider->assignNextPriority();
-
-            // Discover and import models (falls back to template on failure)
-            $discovery->syncModels($provider);
         }
 
-        $this->cleanupAuthFlows();
-        $this->wizardStep = null;
-        $this->selectedTemplates = [];
-        $this->connectForms = [];
-        $this->deviceFlows = [];
+        // Remove succeeded forms (iterate in reverse to preserve indices)
+        foreach (array_reverse($succeeded) as $index) {
+            $key = $this->connectForms[$index]['key'];
+            $this->selectedTemplates = array_values(array_diff($this->selectedTemplates, [$key]));
+            array_splice($this->connectForms, $index, 1);
+        }
+
+        // Re-index connectErrors to match new form indices
+        $newErrors = [];
+        $errorIndex = 0;
+        foreach ($this->connectErrors as $oldIndex => $error) {
+            // Count how many succeeded forms had indices <= oldIndex
+            $offset = count(array_filter($succeeded, fn (int $i): bool => $i < $oldIndex));
+            $newErrors[$oldIndex - $offset] = $error;
+        }
+        $this->connectErrors = $newErrors;
+
+        // All succeeded — exit wizard
+        if (count($this->connectForms) === 0) {
+            $this->cleanupAuthFlows();
+            $this->wizardStep = null;
+            $this->selectedTemplates = [];
+            $this->connectForms = [];
+            $this->deviceFlows = [];
+            $this->connectErrors = [];
+        }
     }
 
     /**
@@ -365,6 +461,7 @@ new class extends Component
         $this->selectedTemplates = [];
         $this->connectForms = [];
         $this->deviceFlows = [];
+        $this->connectErrors = [];
         $this->expandedCatalogProvider = null;
     }
 
@@ -412,8 +509,31 @@ new class extends Component
             return;
         }
 
-        $discovery = app(ModelDiscoveryService::class);
-        $result = $discovery->syncModels($provider);
+        try {
+            $discovery = app(ModelDiscoveryService::class);
+            $result = $discovery->syncModels($provider);
+        } catch (\Illuminate\Http\Client\ConnectionException $e) {
+            $this->syncMessage = __('Could not connect to :url — is the server running?', [
+                'url' => $provider->base_url,
+            ]);
+
+            \Illuminate\Support\Facades\Log::warning('Model sync failed', [
+                'provider' => $provider->name,
+                'base_url' => $provider->base_url,
+                'error' => $e->getMessage(),
+            ]);
+
+            return;
+        } catch (\Exception $e) {
+            $this->syncMessage = __('Sync failed: :message', ['message' => $e->getMessage()]);
+
+            \Illuminate\Support\Facades\Log::warning('Model sync failed', [
+                'provider' => $provider->name,
+                'error' => $e->getMessage(),
+            ]);
+
+            return;
+        }
 
         if ($result['added'] > 0 && $result['updated'] > 0) {
             $this->syncMessage = __('Added :added, updated :updated models.', [
@@ -899,9 +1019,11 @@ new class extends Component
                     </div>
                 </x-slot>
                 <x-slot name="actions">
-                    <x-ui.button variant="ghost" wire:click="cancelWizard">
-                        {{ __('Cancel') }}
-                    </x-ui.button>
+                    @if($providers->isNotEmpty())
+                        <x-ui.button variant="ghost" wire:click="cancelWizard">
+                            {{ __('Cancel') }}
+                        </x-ui.button>
+                    @endif
                     <x-ui.button
                         variant="primary"
                         wire:click="proceedToConnect"
@@ -1181,7 +1303,9 @@ new class extends Component
                         <div class="flex items-center justify-between mb-3">
                             <div>
                                 <h3 class="text-base font-medium tracking-tight text-ink">{{ $form['display_name'] }}</h3>
-                                @if($authType === 'local')
+                                @if($form['key'] === 'copilot-proxy')
+                                    <p class="text-xs text-muted mt-0.5">{{ __('Requires the Copilot Proxy extension running in VS Code — start the extension, then connect.') }}</p>
+                                @elseif($authType === 'local')
                                     <p class="text-xs text-muted mt-0.5">{{ __('Local server — API key is optional') }}</p>
                                 @elseif($authType === 'oauth')
                                     <p class="text-xs text-muted mt-0.5">{{ __('OAuth provider — paste API key if available, or configure after connecting') }}</p>
@@ -1193,27 +1317,35 @@ new class extends Component
                                     <p class="text-xs text-muted mt-0.5">{{ __('Requires GitHub device login — an active GitHub Copilot subscription is needed') }}</p>
                                 @endif
                             </div>
-                            @if($authType === 'device_flow')
-                                <button
-                                    type="button"
-                                    wire:click="backToCatalog"
-                                    class="p-1 rounded-md text-muted hover:text-ink hover:bg-surface-subtle transition-colors focus:ring-2 focus:ring-accent focus:ring-offset-2"
-                                    aria-label="{{ __('Cancel GitHub login') }}"
-                                >
-                                    <x-icon name="heroicon-o-x-mark" class="w-5 h-5" />
-                                </button>
-                            @elseif($form['api_key_url'])
-                                <a
-                                    href="{{ $form['api_key_url'] }}"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    class="text-sm text-accent hover:underline inline-flex items-center gap-1"
-                                >
-                                    {{ __('Get API Key') }}
-                                    <x-icon name="heroicon-o-arrow-top-right-on-square" class="w-3.5 h-3.5" />
-                                </a>
-                            @endif
+                            <div class="flex items-center gap-2">
+                                @if(!empty($form['api_key_url']))
+                                    <a
+                                        href="{{ $form['api_key_url'] }}"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        class="text-sm text-accent hover:underline inline-flex items-center gap-1"
+                                    >
+                                        {{ __('Get API Key') }}
+                                        <x-icon name="heroicon-o-arrow-top-right-on-square" class="w-3.5 h-3.5" />
+                                    </a>
+                                @endif
+                                    <button
+                                        type="button"
+                                        wire:click="removeConnectForm({{ $index }})"
+                                        class="p-1 rounded-md text-muted hover:text-ink hover:bg-surface-subtle transition-colors focus:ring-2 focus:ring-accent focus:ring-offset-2"
+                                        aria-label="{{ __('Remove :provider', ['provider' => $form['display_name']]) }}"
+                                    >
+                                        <x-icon name="heroicon-o-x-mark" class="w-5 h-5" />
+                                    </button>
+                            </div>
                         </div>
+
+                        {{-- Per-card connection error --}}
+                        @if(isset($connectErrors[$index]))
+                            <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3 mb-3">
+                                <p class="text-sm text-red-700 dark:text-red-400">{{ $connectErrors[$index] }}</p>
+                            </div>
+                        @endif
 
                         @if($authType === 'device_flow')
                             {{-- ── Device Flow UI (GitHub Copilot) ── --}}
@@ -1333,6 +1465,17 @@ new class extends Component
                                     :error="$errors->first('connectForms.'.$index.'.api_key')"
                                 />
                             </div>
+                            @if($form['key'] === 'copilot-proxy')
+                                <div class="bg-surface-subtle rounded-lg p-3 mt-3">
+                                    <p class="text-xs font-medium text-ink mb-1">{{ __('Setup instructions') }}</p>
+                                    <ol class="text-xs text-muted space-y-0.5 list-decimal list-inside">
+                                        <li>{{ __('Install the "Copilot Proxy" extension in VS Code.') }}</li>
+                                        <li>{{ __('Open VS Code and ensure you are signed in to GitHub Copilot.') }}</li>
+                                        <li>{{ __('Start the proxy via the extension (it listens on localhost:1337 by default).') }}</li>
+                                        <li>{{ __('Click "Connect All" above — BLB will discover available models from the proxy.') }}</li>
+                                    </ol>
+                                </div>
+                            @endif
                         @endif
                     </x-ui.card>
                 @endforeach

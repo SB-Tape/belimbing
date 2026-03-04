@@ -154,19 +154,23 @@ new class extends Component
         $models = $config['llm']['models'] ?? [];
 
         if (count($models) === 0) {
-            // Default entry from global config
+            // Seed from company's default provider + model
+            $user = auth()->user();
+            $companyId = $user?->employee?->company_id ? (int) $user->employee->company_id : null;
+            $default = $companyId ? $configResolver->resolveDefault($companyId) : null;
+
             $this->llmModels = [[
-                'provider' => '',
-                'model' => config('ai.llm.model'),
-                'max_tokens' => (int) config('ai.llm.max_tokens'),
-                'temperature' => (float) config('ai.llm.temperature'),
+                'provider' => $default['provider_name'] ?? '',
+                'model' => $default['model'] ?? '',
+                'max_tokens' => (int) ($default['max_tokens'] ?? config('ai.llm.max_tokens', 2048)),
+                'temperature' => (float) ($default['temperature'] ?? config('ai.llm.temperature', 0.7)),
             ]];
         } else {
             $this->llmModels = array_map(fn ($m) => [
                 'provider' => $m['provider'] ?? '',
                 'model' => $m['model'] ?? '',
-                'max_tokens' => (int) ($m['max_tokens'] ?? config('ai.llm.max_tokens')),
-                'temperature' => (float) ($m['temperature'] ?? config('ai.llm.temperature')),
+                'max_tokens' => (int) ($m['max_tokens'] ?? config('ai.llm.max_tokens', 2048)),
+                'temperature' => (float) ($m['temperature'] ?? config('ai.llm.temperature', 0.7)),
             ], $models);
         }
 
@@ -177,9 +181,9 @@ new class extends Component
     {
         $this->llmModels[] = [
             'provider' => '',
-            'model' => config('ai.llm.model'),
-            'max_tokens' => (int) config('ai.llm.max_tokens'),
-            'temperature' => (float) config('ai.llm.temperature'),
+            'model' => '',
+            'max_tokens' => (int) config('ai.llm.max_tokens', 2048),
+            'temperature' => (float) config('ai.llm.temperature', 0.7),
         ];
     }
 
@@ -206,11 +210,83 @@ new class extends Component
         $this->llmModels = array_values($this->llmModels);
     }
 
+    /**
+     * Auto-select the provider's default model when the provider dropdown changes.
+     *
+     * Livewire calls updated{Property} whenever a bound property changes.
+     * The key format is "llmModels.{index}.provider".
+     *
+     * @param  string  $value  New provider name
+     */
+    public function updatedLlmModels(mixed $value, string $key): void
+    {
+        if (! str_ends_with($key, '.provider')) {
+            return;
+        }
+
+        // Extract index from key like "0.provider"
+        $index = (int) explode('.', $key)[0];
+
+        if (! isset($this->llmModels[$index])) {
+            return;
+        }
+
+        $providerName = $this->llmModels[$index]['provider'] ?? '';
+
+        if ($providerName === '') {
+            $this->llmModels[$index]['model'] = '';
+
+            return;
+        }
+
+        // Find the provider's default model
+        $user = auth()->user();
+        $companyId = $user?->employee?->company_id ? (int) $user->employee->company_id : null;
+
+        if ($companyId === null) {
+            return;
+        }
+
+        $provider = \App\Modules\Core\AI\Models\AiProvider::query()
+            ->forCompany($companyId)
+            ->active()
+            ->where('name', $providerName)
+            ->first();
+
+        if (! $provider) {
+            return;
+        }
+
+        $defaultModel = \App\Modules\Core\AI\Models\AiProviderModel::query()
+            ->where('ai_provider_id', $provider->id)
+            ->active()
+            ->default()
+            ->first();
+
+        if (! $defaultModel) {
+            $defaultModel = \App\Modules\Core\AI\Models\AiProviderModel::query()
+                ->where('ai_provider_id', $provider->id)
+                ->active()
+                ->orderBy('model_id')
+                ->first();
+        }
+
+        $this->llmModels[$index]['model'] = $defaultModel?->model_id ?? '';
+    }
+
     public function saveLlmConfig(): void
     {
         if (! $this->selectedEmployeeId) {
             return;
         }
+
+        $this->validate([
+            'llmModels.*.provider' => ['required', 'string'],
+            'llmModels.*.model' => ['required', 'string'],
+        ], [
+            'llmModels.*.provider.required' => __('Provider is required.'),
+            'llmModels.*.model.required' => __('Model is required.'),
+        ]);
 
         $configResolver = app(ConfigResolver::class);
         $existingConfig = $configResolver->readWorkspaceConfig($this->selectedEmployeeId) ?? [];
@@ -245,6 +321,7 @@ new class extends Component
         $messages = [];
         $digitalWorkers = collect();
         $availableProviders = collect();
+        $providerModelsMap = [];
 
         $user = auth()->user();
 
@@ -265,6 +342,17 @@ new class extends Component
                     ->forCompany((int) $user->employee->company_id)
                     ->active()
                     ->get(['id', 'name', 'display_name']);
+
+                // Build provider → models map for the LLM config modal
+                $providerModelsMap = [];
+                foreach ($availableProviders as $p) {
+                    $providerModelsMap[$p->name] = \App\Modules\Core\AI\Models\AiProviderModel::query()
+                        ->where('ai_provider_id', $p->id)
+                        ->active()
+                        ->orderBy('model_id')
+                        ->pluck('model_id')
+                        ->all();
+                }
             }
         }
 
@@ -284,6 +372,7 @@ new class extends Component
             'sessions' => $sessions,
             'messages' => $messages,
             'availableProviders' => $availableProviders,
+            'providerModelsMap' => $providerModelsMap,
         ];
     }
 
@@ -386,12 +475,13 @@ new class extends Component
             </div>
 
             {{-- Main Panel: Chat --}}
-            <x-ui.card class="flex-1 flex flex-col overflow-hidden">
+            <div class="flex-1 flex flex-col overflow-hidden bg-surface-card border border-border-default rounded-2xl shadow-sm">
                 @if($selectedSessionId)
                     {{-- Messages --}}
                     <div
-                        class="flex-1 overflow-y-auto space-y-4 -mx-card-inner px-card-inner py-2"
+                        class="flex-1 overflow-y-auto min-h-0 space-y-4 px-card-inner py-2"
                         x-ref="chatScroll"
+                        x-init="$nextTick(() => $el.scrollTop = $el.scrollHeight)"
                         x-effect="$nextTick(() => $refs.chatScroll.scrollTop = $refs.chatScroll.scrollHeight)"
                     >
                         @forelse($messages as $message)
@@ -427,7 +517,7 @@ new class extends Component
                     </div>
 
                     {{-- Composer --}}
-                    <div class="border-t border-border-default pt-2 -mx-card-inner px-card-inner">
+                    <div class="border-t border-border-default pt-2 px-card-inner pb-card-inner">
                         <form wire:submit="sendMessage" class="flex gap-2 items-end">
                             <div class="flex-1 min-w-0">
                                 <x-ui.input
@@ -465,7 +555,7 @@ new class extends Component
                         </div>
                     </div>
                 @endif
-            </x-ui.card>
+            </div>
 
             {{-- Right Panel: Debug --}}
             <div class="w-56 flex-shrink-0">
@@ -558,20 +648,33 @@ new class extends Component
 
                         <div class="grid grid-cols-2 gap-3">
                             <x-ui.select
-                                wire:model="llmModels.{{ $index }}.provider"
+                                wire:model.live="llmModels.{{ $index }}.provider"
                                 label="{{ __('Provider') }}"
                             >
-                                <option value="">{{ __('Default') }}</option>
+                                <option value="">{{ __('Select provider') }}</option>
                                 @foreach($availableProviders as $provider)
                                     <option value="{{ $provider->name }}">{{ $provider->display_name }}</option>
                                 @endforeach
                             </x-ui.select>
 
-                            <x-ui.input
+                            @php
+                                $selectedProvider = $llmModel['provider'] ?? '';
+                                $modelOptions = $providerModelsMap[$selectedProvider] ?? [];
+                            @endphp
+                            <x-ui.select
                                 wire:model="llmModels.{{ $index }}.model"
                                 label="{{ __('Model') }}"
-                                placeholder="{{ __('e.g. gpt-4o') }}"
-                            />
+                                :disabled="$selectedProvider === ''"
+                            >
+                                @if($selectedProvider === '')
+                                    <option value="">{{ __('Select provider first') }}</option>
+                                @else
+                                    <option value="">{{ __('Select model') }}</option>
+                                    @foreach($modelOptions as $modelId)
+                                        <option value="{{ $modelId }}">{{ $modelId }}</option>
+                                    @endforeach
+                                @endif
+                            </x-ui.select>
 
                             <x-ui.input
                                 wire:model="llmModels.{{ $index }}.max_tokens"

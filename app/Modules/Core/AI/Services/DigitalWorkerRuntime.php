@@ -5,6 +5,7 @@
 
 namespace App\Modules\Core\AI\Services;
 
+use App\Base\AI\Services\GithubCopilotAuthService;
 use App\Base\AI\Services\LlmClient;
 use App\Modules\Core\AI\DTO\Message;
 use Illuminate\Support\Str;
@@ -21,13 +22,15 @@ class DigitalWorkerRuntime
     public function __construct(
         private readonly ConfigResolver $configResolver,
         private readonly LlmClient $llmClient,
+        private readonly GithubCopilotAuthService $githubCopilotAuth,
     ) {}
 
     /**
      * Run a conversation turn and return the assistant response with metadata.
      *
-     * Resolves LLM config for the given Digital Worker and tries models in
-     * priority order, falling back on transient failures.
+     * Resolves LLM config for the given Digital Worker (workspace config.json),
+     * falling back to the company's default provider+model when no workspace
+     * config exists. Tries models in priority order with fallback on transient failures.
      *
      * @param  list<Message>  $messages  Conversation history
      * @param  int  $employeeId  Digital Worker employee ID
@@ -38,6 +41,20 @@ class DigitalWorkerRuntime
     {
         $runId = 'run_'.Str::random(12);
         $configs = $this->configResolver->resolve($employeeId);
+
+        // Fall back to company default when no workspace config exists
+        if (count($configs) === 0) {
+            $employee = \App\Modules\Core\Employee\Models\Employee::query()->find($employeeId);
+            $companyId = $employee?->company_id ? (int) $employee->company_id : null;
+
+            if ($companyId !== null) {
+                $default = $this->configResolver->resolveDefault($companyId);
+
+                if ($default !== null) {
+                    $configs = [$default];
+                }
+            }
+        }
 
         $lastResult = null;
 
@@ -57,8 +74,9 @@ class DigitalWorkerRuntime
     /**
      * Try a single model configuration and return the result.
      *
-     * Delegates HTTP execution to the stateless Base LlmClient and wraps
-     * the response in the DW result format.
+     * For GitHub Copilot, exchanges the stored GitHub OAuth token for a
+     * short-lived Copilot API token before each request (cached by
+     * GithubCopilotAuthService until near expiry).
      *
      * @param  list<Message>  $messages  Conversation history
      * @param  string|null  $systemPrompt  Optional system prompt
@@ -82,16 +100,33 @@ class DigitalWorkerRuntime
             ]), 'config_error');
         }
 
+        $apiKey = $config['api_key'];
+        $baseUrl = $config['base_url'];
+
+        // GitHub Copilot: exchange stored GitHub token for short-lived Copilot API token
+        if ($config['provider_name'] === 'github-copilot') {
+            try {
+                $copilot = $this->githubCopilotAuth->exchangeForCopilotToken($apiKey);
+                $apiKey = $copilot['token'];
+                $baseUrl = $copilot['base_url'];
+            } catch (\RuntimeException $e) {
+                return $this->errorResult($runId, $model, 0, __('Copilot token exchange failed: :error', [
+                    'error' => $e->getMessage(),
+                ]), 'auth_error');
+            }
+        }
+
         $apiMessages = $this->buildApiMessages($messages, $systemPrompt);
 
         $result = $this->llmClient->chat(
-            baseUrl: $config['base_url'],
-            apiKey: $config['api_key'],
+            baseUrl: $baseUrl,
+            apiKey: $apiKey,
             model: $model,
             messages: $apiMessages,
             maxTokens: $config['max_tokens'],
             temperature: $config['temperature'],
             timeout: $config['timeout'],
+            providerName: $config['provider_name'],
         );
 
         if (isset($result['error'])) {
