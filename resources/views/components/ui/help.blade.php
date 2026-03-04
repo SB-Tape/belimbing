@@ -22,15 +22,24 @@
  */
 ?>
 
-@props([])
+@props(['size' => 'md'])
+
+@php
+    $sizeClasses = match($size) {
+        'sm' => 'w-3.5 h-3.5',
+        'md' => 'w-4 h-4',
+        'lg' => 'w-5 h-5',
+        default => 'w-4 h-4',
+    };
+@endphp
 
 <button
     type="button"
     {{ $attributes->class([
-        'inline-flex items-center justify-center text-muted hover:text-ink focus:text-accent transition-colors',
+        'inline-flex items-center justify-center text-muted hover:text-ink focus:text-ink transition-all',
         'focus:outline-none hover:bg-surface-subtle focus:bg-surface-subtle rounded-full p-0.5',
     ]) }}
     aria-label="{{ __('Help') }}"
 >
-    <x-icon name="heroicon-o-question-mark-circle" class="w-5 h-5" />
+    <x-icon name="heroicon-o-question-mark-circle" class="{{ $sizeClasses }}" />
 </button>
