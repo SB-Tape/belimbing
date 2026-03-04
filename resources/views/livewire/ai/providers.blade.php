@@ -627,31 +627,19 @@ new class extends Component
     }
 
     /**
-     * Promote a provider to top priority (priority 1).
+     * Reorder providers by dragging: assign sequential priorities from the given ID order.
+     *
+     * @param  array<int, int>  $orderedIds
      */
-    public function promoteProvider(int $providerId): void
+    public function reorderProviders(array $orderedIds): void
     {
-        $provider = AiProvider::query()->find($providerId);
+        $companyId = auth()->user()->employee?->company_id;
 
-        if (! $provider) {
+        if (! $companyId) {
             return;
         }
 
-        $provider->setTopPriority();
-    }
-
-    /**
-     * Remove a provider from the priority ordering.
-     */
-    public function deprioritizeProvider(int $providerId): void
-    {
-        $provider = AiProvider::query()->find($providerId);
-
-        if (! $provider) {
-            return;
-        }
-
-        $provider->clearPriority();
+        AiProvider::reorderByIds($companyId, $orderedIds);
     }
 
     /**
@@ -897,7 +885,7 @@ new class extends Component
                 });
             }
 
-            $providers = $query->orderBy('display_name')->get();
+            $providers = $query->orderBy('priority')->orderBy('display_name')->get();
 
             if ($this->expandedProviderId !== null) {
                 $expandedModels = AiProviderModel::query()
@@ -1711,18 +1699,60 @@ new class extends Component
                                 <th class="px-table-cell-x py-table-header-y text-right text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Actions') }}</th>
                             </tr>
                         </thead>
-                        <tbody class="bg-surface-card divide-y divide-border-default">
+                        <tbody
+                            x-data="{
+                                dragId: null,
+                                overId: null,
+                                overPos: null,
+                                start(id, event) {
+                                    if (!event.target.closest('.drag-handle')) { event.preventDefault(); return; }
+                                    this.dragId = id;
+                                    event.dataTransfer.effectAllowed = 'move';
+                                },
+                                over(id, event) {
+                                    if (!this.dragId) return;
+                                    event.preventDefault();
+                                    this.overId = id;
+                                    const rect = event.currentTarget.getBoundingClientRect();
+                                    this.overPos = event.clientY < rect.top + rect.height / 2 ? 'before' : 'after';
+                                },
+                                drop(id, event) {
+                                    event.preventDefault();
+                                    if (!this.dragId || this.dragId === id) { this.reset(); return; }
+                                    const rows = [...$el.querySelectorAll('[data-pid]')];
+                                    let ids = rows.map(r => +r.dataset.pid);
+                                    ids.splice(ids.indexOf(this.dragId), 1);
+                                    let to = ids.indexOf(id);
+                                    if (this.overPos === 'after') to++;
+                                    ids.splice(to, 0, this.dragId);
+                                    $wire.reorderProviders(ids);
+                                    this.reset();
+                                },
+                                end() { this.reset(); },
+                                reset() { this.dragId = null; this.overId = null; this.overPos = null; }
+                            }"
+                            @dragover.prevent
+                            class="bg-surface-card divide-y divide-border-default"
+                        >
                             @forelse($providers as $provider)
                                 <tr
+                                    data-pid="{{ $provider->id }}"
                                     wire:key="provider-{{ $provider->id }}"
+                                    draggable="true"
+                                    @dragstart="start({{ $provider->id }}, $event)"
+                                    @dragover="over({{ $provider->id }}, $event)"
+                                    @drop="drop({{ $provider->id }}, $event)"
+                                    @dragend="end()"
                                     wire:click="toggleProvider({{ $provider->id }})"
+                                    :class="{
+                                        'opacity-40': dragId === {{ $provider->id }},
+                                        'border-t-2 border-accent': overId === {{ $provider->id }} && overPos === 'before',
+                                        'border-b-2 border-accent': overId === {{ $provider->id }} && overPos === 'after',
+                                    }"
                                     class="hover:bg-surface-subtle/50 transition-colors cursor-pointer"
                                 >
-                                    <td class="px-table-cell-x py-table-cell-y">
-                                        <x-icon
-                                            :name="$expandedProviderId === $provider->id ? 'heroicon-m-chevron-down' : 'heroicon-m-chevron-right'"
-                                            class="w-4 h-4 text-muted"
-                                        />
+                                    <td class="drag-handle w-8 px-table-cell-x py-table-cell-y cursor-grab active:cursor-grabbing select-none" @click.stop>
+                                        <x-icon name="heroicon-o-bars-3" class="w-4 h-4 text-muted" />
                                     </td>
                                     <td class="hidden md:table-cell px-table-cell-x py-table-cell-y whitespace-nowrap text-sm font-medium text-ink">
                                         <div class="flex items-center gap-1">
@@ -1743,30 +1773,10 @@ new class extends Component
                                             @else
                                                 <x-ui.badge variant="default">{{ __('Inactive') }}</x-ui.badge>
                                             @endif
-                                            @if($provider->priority > 0)
-                                                <x-ui.badge variant="accent">{{ __('#:n', ['n' => $provider->priority]) }}</x-ui.badge>
-                                            @endif
                                         </div>
                                     </td>
                                     <td class="px-table-cell-x py-table-cell-y whitespace-nowrap text-right">
                                         <div class="flex items-center justify-end gap-1">
-                                            @if($provider->priority > 0)
-                                                <button
-                                                    wire:click.stop="deprioritizeProvider({{ $provider->id }})"
-                                                    class="text-accent hover:bg-surface-subtle p-1 rounded"
-                                                    title="{{ __('Remove priority') }}"
-                                                >
-                                                    <x-icon name="heroicon-s-star" class="w-4 h-4" />
-                                                </button>
-                                            @else
-                                                <button
-                                                    wire:click.stop="promoteProvider({{ $provider->id }})"
-                                                    class="text-muted hover:text-accent hover:bg-surface-subtle p-1 rounded"
-                                                    title="{{ __('Set as top priority') }}"
-                                                >
-                                                    <x-icon name="heroicon-o-star" class="w-4 h-4" />
-                                                </button>
-                                            @endif
                                             <button
                                                 wire:click.stop="openEditProvider({{ $provider->id }})"
                                                 class="text-accent hover:bg-surface-subtle p-1 rounded"

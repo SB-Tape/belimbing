@@ -155,4 +155,22 @@ class AiProvider extends Model
             ->where('priority', '>', $oldPriority)
             ->decrement('priority');
     }
+
+    /**
+     * Reorder providers for a company by assigning sequential priorities from an ordered ID list.
+     *
+     * Providers not included in the list retain their existing priority values.
+     *
+     * @param  int  $companyId
+     * @param  array<int, int>  $orderedIds  Provider IDs in desired priority order (first = highest priority)
+     */
+    public static function reorderByIds(int $companyId, array $orderedIds): void
+    {
+        foreach ($orderedIds as $position => $id) {
+            self::query()
+                ->where('id', $id)
+                ->where('company_id', $companyId)
+                ->update(['priority' => $position + 1]);
+        }
+    }
 }

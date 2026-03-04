@@ -11,7 +11,7 @@
             <div class="flex items-center gap-2">
                 <h1 class="text-xl font-medium tracking-tight text-ink">{{ $title }}</h1>
                 @if($help)
-                    <x-ui.help @click="helpOpen = !helpOpen" ::aria-expanded="helpOpen" />
+                    <x-ui.help size="lg" @click="helpOpen = !helpOpen" ::aria-expanded="helpOpen" />
                 @endif
             </div>
             @if($subtitle)
