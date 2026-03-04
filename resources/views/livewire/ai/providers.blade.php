@@ -1721,10 +1721,10 @@ new class extends Component
                                 <th class="px-table-cell-x py-table-header-y w-8"></th>
                                 <th class="hidden md:table-cell px-table-cell-x py-table-header-y text-left text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Name') }}</th>
                                 <th class="px-table-cell-x py-table-header-y text-left text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Display Name') }}</th>
+                                <th class="px-table-cell-x py-table-header-y text-center text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Priority') }}</th>
                                 <th class="hidden md:table-cell px-table-cell-x py-table-header-y text-left text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Base URL') }}</th>
                                 <th class="px-table-cell-x py-table-header-y text-left text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Models') }}</th>
                                 <th class="px-table-cell-x py-table-header-y text-left text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Status') }}</th>
-                                <th class="px-table-cell-x py-table-header-y text-center text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Priority') }}</th>
                                 <th class="px-table-cell-x py-table-header-y text-right text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Actions') }}</th>
                             </tr>
                         </thead>
@@ -1751,17 +1751,6 @@ new class extends Component
                                         </div>
                                     </td>
                                     <td class="px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted">{{ $provider->display_name }}</td>
-                                    <td class="hidden md:table-cell px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted font-mono text-xs truncate max-w-[200px]">{{ $provider->base_url }}</td>
-                                    <td class="px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted tabular-nums">{{ $provider->models_count }}</td>
-                                    <td class="px-table-cell-x py-table-cell-y whitespace-nowrap">
-                                        <div class="flex items-center gap-1.5">
-                                            @if($provider->is_active)
-                                                <x-ui.badge variant="success">{{ __('Active') }}</x-ui.badge>
-                                            @else
-                                                <x-ui.badge variant="default">{{ __('Inactive') }}</x-ui.badge>
-                                            @endif
-                                        </div>
-                                    </td>
                                     <td class="px-table-cell-x py-table-cell-y whitespace-nowrap text-center" @click.stop>
                                         <div class="inline-flex items-center gap-1">
                                             <span class="text-xs text-muted tabular-nums">{{ $provider->priority }}</span>
@@ -1773,6 +1762,17 @@ new class extends Component
                                                 >
                                                     <x-icon name="heroicon-m-arrow-up" class="w-3.5 h-3.5" />
                                                 </button>
+                                            @endif
+                                        </div>
+                                    </td>
+                                    <td class="hidden md:table-cell px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted font-mono text-xs truncate max-w-[200px]">{{ $provider->base_url }}</td>
+                                    <td class="px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted tabular-nums">{{ $provider->models_count }}</td>
+                                    <td class="px-table-cell-x py-table-cell-y whitespace-nowrap">
+                                        <div class="flex items-center gap-1.5">
+                                            @if($provider->is_active)
+                                                <x-ui.badge variant="success">{{ __('Active') }}</x-ui.badge>
+                                            @else
+                                                <x-ui.badge variant="default">{{ __('Inactive') }}</x-ui.badge>
                                             @endif
                                         </div>
                                     </td>
