@@ -5,6 +5,7 @@
 
 namespace App\Modules\Core\AI\Services;
 
+use App\Base\AI\Services\GithubCopilotAuthService;
 use Illuminate\Cache\Repository as CacheRepository;
 
 /**

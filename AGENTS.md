@@ -259,6 +259,40 @@ $filtered = $collection->filter(fn($item) => $item > 1);
 
 **Rationale:** Direct method calls provide better IDE autocomplete, "Go to Definition" support, type checking, and static analysis. This improves code clarity, reduces the need for `@method` PHPDoc annotations, and makes refactoring safer. While Laravel's magic methods are convenient, they come at the cost of developer experience and tooling support.
 
+### Console Commands
+
+**BLB framework commands must use the `blb:` prefix** to distinguish them from Laravel built-ins and third-party packages.
+
+#### Command Naming Convention
+
+```php
+// ✅ Good - BLB-specific command with blb: prefix
+#[AsCommand(name: 'blb:ai:catalog:sync')]
+class AiCatalogSyncCommand extends Command
+{
+    protected $signature = 'blb:ai:catalog:sync
+                            {--force : Force re-download}';
+    // ...
+}
+
+// ✅ Good - Intentional Laravel override (no prefix)
+#[AsCommand(name: 'migrate')]
+class MigrateCommand extends \Illuminate\Database\Console\Migrations\MigrateCommand
+{
+    // Extends Laravel's migrate with module awareness
+}
+
+// ❌ Avoid - No prefix on new BLB command
+#[AsCommand(name: 'ai:catalog:sync')]  // Could clash with packages
+```
+
+**Rules:**
+- **New BLB commands:** Always use `blb:` prefix (e.g., `blb:ai:catalog:sync`, `blb:module:scaffold`)
+- **Laravel overrides:** No prefix when intentionally replacing Laravel built-ins (e.g., `migrate`, `db:seed`)
+- **Discoverability:** Users can run `php artisan list blb` to see all framework commands grouped together
+
+**Rationale:** The `blb:` namespace prevents command name collisions with Laravel core and third-party packages, signals framework ownership, and improves command discoverability. BLB is a framework, not an application — its commands should be clearly identifiable as framework infrastructure.
+
 ## 6. Nested AGENTS.md Files
 This project uses nested AGENTS.md files for specialized guidance. Agents should read the nearest AGENTS.md in the directory tree for context-specific instructions:
 

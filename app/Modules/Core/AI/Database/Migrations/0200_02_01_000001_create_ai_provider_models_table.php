@@ -17,15 +17,13 @@ return new class extends Migration
         Schema::create('ai_provider_models', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('ai_provider_id')->constrained('ai_providers')->cascadeOnDelete();
-            $table->string('model_name');
-            $table->string('display_name');
-            $table->json('capability_tags')->nullable();
+            $table->string('model_id');
             $table->boolean('is_active')->default(true);
             $table->boolean('is_default')->default(false);
-            $table->json('cost_per_1m')->nullable();
+            $table->json('cost_override')->nullable();
             $table->timestamps();
 
-            $table->unique(['ai_provider_id', 'model_name']);
+            $table->unique(['ai_provider_id', 'model_id']);
         });
     }
 

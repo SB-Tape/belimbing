@@ -5,23 +5,22 @@
 
 namespace App\Modules\Core\AI\Services;
 
+use App\Base\AI\Services\LlmClient;
 use App\Modules\Core\AI\DTO\Message;
-use Illuminate\Http\Client\ConnectionException;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 
 /**
  * Stage 0 Digital Worker runtime adapter.
  *
- * Calls an OpenAI-compatible chat completions API using Laravel's HTTP client.
- * Supports per-DW LLM configuration with ordered fallback: tries each configured
- * model in priority order, falling back on transient failures (connection error,
- * HTTP 429, 5xx).
+ * Delegates LLM execution to the stateless Base LlmClient. Handles per-DW
+ * configuration resolution, message building, and ordered fallback on
+ * transient failures (connection error, HTTP 429, 5xx).
  */
 class DigitalWorkerRuntime
 {
     public function __construct(
         private readonly ConfigResolver $configResolver,
+        private readonly LlmClient $llmClient,
     ) {}
 
     /**
@@ -58,6 +57,9 @@ class DigitalWorkerRuntime
     /**
      * Try a single model configuration and return the result.
      *
+     * Delegates HTTP execution to the stateless Base LlmClient and wraps
+     * the response in the DW result format.
+     *
      * @param  list<Message>  $messages  Conversation history
      * @param  string|null  $systemPrompt  Optional system prompt
      * @param  array{api_key: string, base_url: string, model: string, max_tokens: int, temperature: float, timeout: int, provider_name: string|null}  $config
@@ -67,70 +69,48 @@ class DigitalWorkerRuntime
     private function tryModel(array $messages, ?string $systemPrompt, array $config, string $runId): array
     {
         $model = $config['model'];
-        $apiKey = $config['api_key'];
-        $baseUrl = $config['base_url'];
 
-        if (empty($apiKey)) {
+        if (empty($config['api_key'])) {
             return $this->errorResult($runId, $model, 0, __('API key is not configured for provider :provider.', [
                 'provider' => $config['provider_name'] ?? 'default',
             ]), 'config_error');
         }
 
-        if (empty($baseUrl)) {
+        if (empty($config['base_url'])) {
             return $this->errorResult($runId, $model, 0, __('Base URL is not configured for provider :provider.', [
                 'provider' => $config['provider_name'] ?? 'default',
             ]), 'config_error');
         }
 
-        $startTime = hrtime(true);
         $apiMessages = $this->buildApiMessages($messages, $systemPrompt);
 
-        try {
-            $response = Http::withToken($apiKey)
-                ->timeout($config['timeout'])
-                ->post($baseUrl.'/chat/completions', [
-                    'model' => $model,
-                    'messages' => $apiMessages,
-                    'max_tokens' => $config['max_tokens'],
-                    'temperature' => $config['temperature'],
-                ]);
-        } catch (ConnectionException $e) {
-            $latencyMs = (int) ((hrtime(true) - $startTime) / 1_000_000);
+        $result = $this->llmClient->chat(
+            baseUrl: $config['base_url'],
+            apiKey: $config['api_key'],
+            model: $model,
+            messages: $apiMessages,
+            maxTokens: $config['max_tokens'],
+            temperature: $config['temperature'],
+            timeout: $config['timeout'],
+        );
 
-            return $this->errorResult($runId, $model, $latencyMs, $e->getMessage(), 'connection_error');
+        if (isset($result['error'])) {
+            return $this->errorResult(
+                $runId, $model, $result['latency_ms'],
+                $result['error'], $result['error_type'] ?? 'unknown',
+            );
         }
-
-        $latencyMs = (int) ((hrtime(true) - $startTime) / 1_000_000);
-
-        if ($response->failed()) {
-            $body = $response->json();
-            $errorDetail = $body['error']['message']
-                ?? $body['error']['code']
-                ?? $response->body();
-
-            $errorType = match (true) {
-                $response->status() === 429 => 'rate_limit',
-                $response->status() >= 500 => 'server_error',
-                default => 'client_error',
-            };
-
-            return $this->errorResult($runId, $model, $latencyMs, "HTTP {$response->status()}: {$errorDetail}", $errorType);
-        }
-
-        $data = $response->json();
-        $content = $data['choices'][0]['message']['content'] ?? '';
-        $usage = $data['usage'] ?? [];
 
         return [
-            'content' => $content,
+            'content' => $result['content'] ?? '',
             'run_id' => $runId,
             'meta' => [
                 'model' => $model,
                 'provider_name' => $config['provider_name'],
-                'latency_ms' => $latencyMs,
+                'latency_ms' => $result['latency_ms'],
                 'tokens' => [
-                    'prompt' => $usage['prompt_tokens'] ?? null,
-                    'completion' => $usage['completion_tokens'] ?? null,
+                    'prompt' => $result['usage']['prompt_tokens'] ?? null,
+                    'completion' => $result['usage']['completion_tokens'] ?? null,
                 ],
             ],
         ];

@@ -179,7 +179,7 @@ class ConfigResolver
             $model = AiProviderModel::query()
                 ->where('ai_provider_id', $provider->id)
                 ->active()
-                ->orderBy('display_name')
+                ->orderBy('model_id')
                 ->first();
         }
 
@@ -192,8 +192,8 @@ class ConfigResolver
         return [
             'api_key' => $provider->api_key,
             'base_url' => $provider->base_url,
-            'model' => $model->model_name,
-            'max_tokens' => $model->max_tokens ?? $defaults['max_tokens'],
+            'model' => $model->model_id,
+            'max_tokens' => $defaults['max_tokens'],
             'temperature' => $defaults['temperature'],
             'timeout' => $defaults['timeout'],
             'provider_name' => $provider->name,

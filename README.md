@@ -59,4 +59,4 @@ All contributors must agree to the [CLA](./CLA.md).
 
 ## License
 
-[GNU Affero General Public License v3.0 (AGPL-3.0)](./LICENSE) — see [LICENSE](./LICENSE) and [NOTICE](./NOTICE) for details.
+[GNU Affero General Public License v3.0 (AGPL-3.0)](./LICENSE) — see [LICENSE](./LICENSE) for license terms and [NOTICE](./NOTICE) for third-party attributions.

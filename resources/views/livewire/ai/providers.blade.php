@@ -6,6 +6,7 @@
 // Provider catalog and onboarding flow inspired by OpenClaw
 // (github.com/nicepkg/openclaw). Adapted for BLB's GUI context.
 
+use App\Base\AI\Services\ModelCatalogService;
 use App\Modules\Core\AI\Models\AiProvider;
 use App\Modules\Core\AI\Models\AiProviderModel;
 use App\Modules\Core\AI\Services\ModelDiscoveryService;
@@ -72,10 +73,6 @@ new class extends Component
     public ?int $modelProviderId = null;
 
     public string $modelModelName = '';
-
-    public string $modelDisplayName = '';
-
-    public string $modelCapabilityTags = '';
 
     public bool $modelIsActive = true;
 
@@ -160,7 +157,7 @@ new class extends Component
             return;
         }
 
-        $templates = config('ai.provider_templates', []);
+        $templates = app(ModelCatalogService::class)->getProviders();
         $this->connectForms = [];
 
         foreach ($this->selectedTemplates as $key) {
@@ -391,7 +388,7 @@ new class extends Component
             return;
         }
 
-        $template = config('ai.provider_templates.'.$templateKey);
+        $template = app(ModelCatalogService::class)->getProvider($templateKey);
 
         if ($template === null) {
             return;
@@ -604,11 +601,9 @@ new class extends Component
         $this->isEditingModel = true;
         $this->editingModelId = $modelId;
         $this->modelProviderId = $model->ai_provider_id;
-        $this->modelModelName = $model->model_name;
-        $this->modelDisplayName = $model->display_name ?? '';
-        $this->modelCapabilityTags = is_array($model->capability_tags) ? implode(', ', $model->capability_tags) : '';
+        $this->modelModelName = $model->model_id;
         $this->modelIsActive = $model->is_active;
-        $cost = $model->cost_per_1m ?? [];
+        $cost = $model->cost_override ?? [];
         $this->modelCostInput = $cost['input'] ?? '0.000000';
         $this->modelCostOutput = $cost['output'] ?? '0.000000';
         $this->modelCostCacheRead = $cost['cache_read'] ?? '0.000000';
@@ -624,8 +619,6 @@ new class extends Component
 
         $this->validate([
             'modelModelName' => ['required', 'string', 'max:255'],
-            'modelDisplayName' => ['nullable', 'string', 'max:255'],
-            'modelCapabilityTags' => ['nullable', 'string'],
             'modelIsActive' => ['boolean'],
             'modelCostInput' => ['nullable', 'numeric', 'min:0'],
             'modelCostOutput' => ['nullable', 'numeric', 'min:0'],
@@ -633,25 +626,19 @@ new class extends Component
             'modelCostCacheWrite' => ['nullable', 'numeric', 'min:0'],
         ]);
 
-        $tags = $this->modelCapabilityTags !== ''
-            ? array_map('trim', explode(',', $this->modelCapabilityTags))
-            : [];
-
-        $costPer1m = [
+        $costOverride = [
             'input' => $this->modelCostInput ?: null,
             'output' => $this->modelCostOutput ?: null,
             'cache_read' => $this->modelCostCacheRead ?: null,
             'cache_write' => $this->modelCostCacheWrite ?: null,
         ];
-        $hasAnyCost = array_filter($costPer1m, fn ($v) => $v !== null && $v !== '') !== [];
+        $hasAnyCost = array_filter($costOverride, fn ($v) => $v !== null && $v !== '') !== [];
 
         $data = [
             'ai_provider_id' => $this->modelProviderId,
-            'model_name' => $this->modelModelName,
-            'display_name' => $this->modelDisplayName ?: $this->modelModelName,
-            'capability_tags' => array_values(array_filter($tags)),
+            'model_id' => $this->modelModelName,
             'is_active' => $this->modelIsActive,
-            'cost_per_1m' => $hasAnyCost ? $costPer1m : null,
+            'cost_override' => $hasAnyCost ? $costOverride : null,
         ];
 
         if ($this->isEditingModel && $this->editingModelId) {
@@ -677,7 +664,7 @@ new class extends Component
         }
 
         $this->deletingModelId = $modelId;
-        $this->deletingModelName = $model->display_name ?? $model->model_name;
+        $this->deletingModelName = $model->model_id;
         $this->showDeleteModel = true;
     }
 
@@ -718,27 +705,30 @@ new class extends Component
             if ($this->expandedProviderId !== null) {
                 $expandedModels = AiProviderModel::query()
                     ->where('ai_provider_id', $this->expandedProviderId)
-                    ->orderBy('display_name')
+                    ->orderBy('model_id')
                     ->get();
             }
         }
 
-        $templates = collect(config('ai.provider_templates', []))
+        $catalogService = app(ModelCatalogService::class);
+        $allProviders = $catalogService->getProviders();
+
+        $templates = collect($allProviders)
             ->map(fn ($t, $key) => ['value' => $key, 'label' => $t['display_name'] ?? $key])
             ->values()
             ->all();
 
         $connectedNames = $providers->pluck('name')->all();
 
-        $catalog = collect(config('ai.provider_templates', []))
+        $catalog = collect($allProviders)
             ->map(function ($tpl, $key) use ($connectedNames) {
-                $models = $tpl['models'] ?? [];
+                $models = is_array($tpl['models'] ?? null) ? $tpl['models'] : [];
                 $allCosts = [];
 
-                foreach ($models as $m) {
-                    $costPer1m = $m['cost_per_1m'] ?? [];
-                    foreach (['input', 'output', 'cache_read', 'cache_write'] as $dim) {
-                        $c = $costPer1m[$dim] ?? null;
+                foreach ($models as $modelId => $m) {
+                    $cost = $m['cost'] ?? [];
+                    foreach (['input', 'output'] as $dim) {
+                        $c = $cost[$dim] ?? null;
                         if ($c !== null && $c !== '') {
                             $allCosts[] = (float) $c;
                         }
@@ -759,20 +749,35 @@ new class extends Component
                     'base_url' => $tpl['base_url'] ?? '',
                     'api_key_url' => $tpl['api_key_url'] ?? null,
                     'auth_type' => $tpl['auth_type'] ?? 'api_key',
+                    'category' => $tpl['category'] ?? ['specialized'],
+                    'region' => $tpl['region'] ?? ['global'],
                     'model_count' => count($models),
                     'cost_range' => $costRange,
-                    'models' => $models,
+                    'models' => collect($models)->map(fn ($m, $id) => [
+                        'model_id' => is_string($id) ? $id : ($m['id'] ?? ''),
+                        'display_name' => $m['name'] ?? $m['id'] ?? $id,
+                        'context_window' => $m['limit']['context'] ?? null,
+                        'max_tokens' => $m['limit']['output'] ?? null,
+                        'cost' => $m['cost'] ?? [],
+                    ])->values()->all(),
                     'connected' => in_array($key, $connectedNames, true),
                 ];
             })
+            ->sortBy('display_name', SORT_NATURAL | SORT_FLAG_CASE)
             ->values()
             ->all();
+
+        $catalogCollection = collect($catalog);
+        $categoryOptions = $catalogCollection->pluck('category')->flatten()->unique()->sort()->values()->all();
+        $regionOptions = $catalogCollection->pluck('region')->flatten()->unique()->sort()->values()->all();
 
         return [
             'providers' => $providers,
             'expandedModels' => $expandedModels,
             'templateOptions' => $templates,
             'catalog' => $catalog,
+            'categoryOptions' => $categoryOptions,
+            'regionOptions' => $regionOptions,
         ];
     }
 
@@ -851,8 +856,6 @@ new class extends Component
         $this->editingModelId = null;
         $this->modelProviderId = null;
         $this->modelModelName = '';
-        $this->modelDisplayName = '';
-        $this->modelCapabilityTags = '';
         $this->modelIsActive = true;
         $this->modelCostInput = '0.000000';
         $this->modelCostOutput = '0.000000';
@@ -910,7 +913,128 @@ new class extends Component
                 </x-slot>
             </x-ui.page-header>
 
-            <x-ui.card>
+            <x-ui.card x-data="{
+                catalogSearch: '',
+                selectedCategories: [],
+                selectedRegions: [],
+                categoryOpen: false,
+                regionOpen: false,
+                toggleCategory(cat) {
+                    const idx = this.selectedCategories.indexOf(cat);
+                    idx === -1 ? this.selectedCategories.push(cat) : this.selectedCategories.splice(idx, 1);
+                },
+                toggleRegion(reg) {
+                    const idx = this.selectedRegions.indexOf(reg);
+                    idx === -1 ? this.selectedRegions.push(reg) : this.selectedRegions.splice(idx, 1);
+                },
+                matchesFilters(categories, regions) {
+                    const catMatch = this.selectedCategories.length === 0 || categories.some(c => this.selectedCategories.includes(c));
+                    const regMatch = this.selectedRegions.length === 0 || regions.some(r => this.selectedRegions.includes(r));
+                    return catMatch && regMatch;
+                },
+                matchesSearch(text) {
+                    return this.catalogSearch === '' || text.includes(this.catalogSearch.toLowerCase());
+                },
+                categoryLabels: {
+                    'cloud-provider': '{{ __('Cloud Provider') }}',
+                    'developer-tool': '{{ __('Developer Tool') }}',
+                    'gateway': '{{ __('Gateway') }}',
+                    'inference-platform': '{{ __('Inference Platform') }}',
+                    'leading-lab': '{{ __('Leading Lab') }}',
+                    'local': '{{ __('Local') }}',
+                    'specialized': '{{ __('Specialized') }}',
+                },
+                regionLabels: {
+                    'china': '{{ __('China') }}',
+                    'europe': '{{ __('Europe') }}',
+                    'global': '{{ __('Global') }}',
+                },
+            }">
+                <div class="mb-2 flex flex-col sm:flex-row gap-2">
+                    <div class="flex-1">
+                        <x-ui.search-input
+                            x-model.debounce.200ms="catalogSearch"
+                            placeholder="{{ __('Search providers...') }}"
+                        />
+                    </div>
+
+                    {{-- Category filter --}}
+                    <div class="relative" @click.outside="categoryOpen = false">
+                        <button
+                            type="button"
+                            @click="categoryOpen = !categoryOpen"
+                            class="inline-flex items-center gap-1.5 px-3 py-input-y text-sm border border-border-input rounded-2xl bg-surface-card text-ink hover:bg-surface-subtle/50 transition-colors whitespace-nowrap"
+                        >
+                            <x-icon name="heroicon-m-funnel" class="w-4 h-4 text-muted" />
+                            {{ __('Category') }}
+                            <template x-if="selectedCategories.length > 0">
+                                <span class="inline-flex items-center justify-center w-5 h-5 text-[10px] font-bold rounded-full bg-accent text-on-accent" x-text="selectedCategories.length"></span>
+                            </template>
+                            <x-icon name="heroicon-m-chevron-down" class="w-3.5 h-3.5 text-muted" />
+                        </button>
+                        <div
+                            x-show="categoryOpen"
+                            x-transition:enter="transition ease-out duration-100"
+                            x-transition:enter-start="opacity-0 scale-95"
+                            x-transition:enter-end="opacity-100 scale-100"
+                            x-transition:leave="transition ease-in duration-75"
+                            x-transition:leave-start="opacity-100 scale-100"
+                            x-transition:leave-end="opacity-0 scale-95"
+                            class="absolute z-20 mt-1 w-56 rounded-xl border border-border-default bg-surface-card shadow-lg py-1"
+                        >
+                            @foreach($categoryOptions as $cat)
+                                <label class="flex items-center gap-2 px-3 py-1.5 text-sm text-ink hover:bg-surface-subtle/50 cursor-pointer">
+                                    <input type="checkbox" :checked="selectedCategories.includes('{{ $cat }}')" @click="toggleCategory('{{ $cat }}')" class="w-4 h-4 rounded border border-border-input accent-accent" />
+                                    <span x-text="categoryLabels['{{ $cat }}'] || '{{ $cat }}'"></span>
+                                </label>
+                            @endforeach
+                            <template x-if="selectedCategories.length > 0">
+                                <div class="border-t border-border-default mt-1 pt-1 px-3 pb-1">
+                                    <button type="button" @click="selectedCategories = []" class="text-xs text-accent hover:text-accent/80">{{ __('Clear') }}</button>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+
+                    {{-- Region filter --}}
+                    <div class="relative" @click.outside="regionOpen = false">
+                        <button
+                            type="button"
+                            @click="regionOpen = !regionOpen"
+                            class="inline-flex items-center gap-1.5 px-3 py-input-y text-sm border border-border-input rounded-2xl bg-surface-card text-ink hover:bg-surface-subtle/50 transition-colors whitespace-nowrap"
+                        >
+                            <x-icon name="heroicon-m-globe-alt" class="w-4 h-4 text-muted" />
+                            {{ __('Region') }}
+                            <template x-if="selectedRegions.length > 0">
+                                <span class="inline-flex items-center justify-center w-5 h-5 text-[10px] font-bold rounded-full bg-accent text-on-accent" x-text="selectedRegions.length"></span>
+                            </template>
+                            <x-icon name="heroicon-m-chevron-down" class="w-3.5 h-3.5 text-muted" />
+                        </button>
+                        <div
+                            x-show="regionOpen"
+                            x-transition:enter="transition ease-out duration-100"
+                            x-transition:enter-start="opacity-0 scale-95"
+                            x-transition:enter-end="opacity-100 scale-100"
+                            x-transition:leave="transition ease-in duration-75"
+                            x-transition:leave-start="opacity-100 scale-100"
+                            x-transition:leave-end="opacity-0 scale-95"
+                            class="absolute z-20 mt-1 w-44 rounded-xl border border-border-default bg-surface-card shadow-lg py-1"
+                        >
+                            @foreach($regionOptions as $reg)
+                                <label class="flex items-center gap-2 px-3 py-1.5 text-sm text-ink hover:bg-surface-subtle/50 cursor-pointer">
+                                    <input type="checkbox" :checked="selectedRegions.includes('{{ $reg }}')" @click="toggleRegion('{{ $reg }}')" class="w-4 h-4 rounded border border-border-input accent-accent" />
+                                    <span x-text="regionLabels['{{ $reg }}'] || '{{ $reg }}'"></span>
+                                </label>
+                            @endforeach
+                            <template x-if="selectedRegions.length > 0">
+                                <div class="border-t border-border-default mt-1 pt-1 px-3 pb-1">
+                                    <button type="button" @click="selectedRegions = []" class="text-xs text-accent hover:text-accent/80">{{ __('Clear') }}</button>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="overflow-x-auto -mx-card-inner px-card-inner">
                     <table class="min-w-full divide-y divide-border-default text-sm">
                         <thead class="bg-surface-subtle/80">
@@ -930,6 +1054,7 @@ new class extends Component
                                     wire:key="catalog-{{ $entry['key'] }}"
                                     wire:click="toggleCatalogProvider('{{ $entry['key'] }}')"
                                     class="hover:bg-surface-subtle/50 transition-colors cursor-pointer"
+                                    x-show="matchesSearch('{{ mb_strtolower($entry['key'].' '.$entry['display_name'].' '.($entry['description'] ?? '')) }}') && matchesFilters({{ json_encode($entry['category']) }}, {{ json_encode($entry['region']) }})"
                                 >
                                     <td class="px-table-cell-x py-table-cell-y" wire:click.stop>
                                         @if($entry['connected'])
@@ -972,7 +1097,9 @@ new class extends Component
 
                                 {{-- Expanded model catalog --}}
                                 @if($expandedCatalogProvider === $entry['key'] && count($entry['models']) > 0)
-                                    <tr wire:key="catalog-{{ $entry['key'] }}-models">
+                                    <tr wire:key="catalog-{{ $entry['key'] }}-models"
+                                        x-show="matchesSearch('{{ mb_strtolower($entry['key'].' '.$entry['display_name'].' '.($entry['description'] ?? '')) }}') && matchesFilters({{ json_encode($entry['category']) }}, {{ json_encode($entry['region']) }})"
+                                    >
                                         <td colspan="7" class="p-0">
                                             <div class="bg-surface-subtle/30 border-t border-border-default px-8 py-3">
                                                 <span class="text-[11px] uppercase tracking-wider font-semibold text-muted mb-2 block">{{ __('Model Catalog') }}</span>
@@ -980,37 +1107,21 @@ new class extends Component
                                                     <thead class="bg-surface-subtle/80">
                                                         <tr>
                                                             <th class="px-table-cell-x py-table-header-y text-left text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Model') }}</th>
-                                                            <th class="px-table-cell-x py-table-header-y text-left text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Tags') }}</th>
                                                             <th class="px-table-cell-x py-table-header-y text-right text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Context') }}</th>
                                                             <th class="px-table-cell-x py-table-header-y text-right text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Max Output') }}</th>
                                                             <th class="hidden lg:table-cell px-table-cell-x py-table-header-y text-right text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Input $/1M') }}</th>
                                                             <th class="hidden lg:table-cell px-table-cell-x py-table-header-y text-right text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Output $/1M') }}</th>
-                                                            <th class="hidden lg:table-cell px-table-cell-x py-table-header-y text-right text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Cache Read $/1M') }}</th>
-                                                            <th class="hidden lg:table-cell px-table-cell-x py-table-header-y text-right text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Cache Write $/1M') }}</th>
                                                             </tr>
                                                             </thead>
                                                             <tbody class="bg-surface-card divide-y divide-border-default">
                                                             @foreach($entry['models'] as $catModel)
                                                             <tr class="hover:bg-surface-subtle/50 transition-colors">
                                                                 <td class="px-table-cell-x py-table-cell-y whitespace-nowrap text-sm font-medium text-ink">{{ $catModel['display_name'] }}</td>
-                                                                <td class="px-table-cell-x py-table-cell-y whitespace-nowrap">
-                                                                    @if(!empty($catModel['capability_tags']))
-                                                                        <div class="flex gap-1 flex-wrap">
-                                                                            @foreach($catModel['capability_tags'] as $tag)
-                                                                                <x-ui.badge>{{ $tag }}</x-ui.badge>
-                                                                            @endforeach
-                                                                        </div>
-                                                                    @else
-                                                                        <span class="text-muted">—</span>
-                                                                    @endif
-                                                                </td>
                                                                 <td class="px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted tabular-nums text-right">{{ $this->formatTokenCount($catModel['context_window'] ?? null) }}</td>
                                                                 <td class="px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted tabular-nums text-right">{{ $this->formatTokenCount($catModel['max_tokens'] ?? null) }}</td>
-                                                                @php $cost = $catModel['cost_per_1m'] ?? []; @endphp
+                                                                @php $cost = $catModel['cost'] ?? []; @endphp
                                                                 <td class="hidden lg:table-cell px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted tabular-nums text-right">{{ $this->formatCost($cost['input'] ?? null) }}</td>
                                                                 <td class="hidden lg:table-cell px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted tabular-nums text-right">{{ $this->formatCost($cost['output'] ?? null) }}</td>
-                                                                <td class="hidden lg:table-cell px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted tabular-nums text-right">{{ $this->formatCost($cost['cache_read'] ?? null) }}</td>
-                                                                <td class="hidden lg:table-cell px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted tabular-nums text-right">{{ $this->formatCost($cost['cache_write'] ?? null) }}</td>
                                                                 </tr>
                                                                 @endforeach
                                                                 </tbody>
@@ -1393,15 +1504,11 @@ new class extends Component
 
                                                 @if($expandedModels->count() > 0)
                                                     <table class="min-w-full divide-y divide-border-default text-sm">
-                                                        <thead class="bg-surface-subtle/80">
+                                                         <thead class="bg-surface-subtle/80">
                                                             <tr>
-                                                                <th class="px-table-cell-x py-table-header-y text-left text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Model Name') }}</th>
-                                                                <th class="px-table-cell-x py-table-header-y text-left text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Display Name') }}</th>
-                                                                <th class="px-table-cell-x py-table-header-y text-left text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Tags') }}</th>
-                                                                <th class="px-table-cell-x py-table-header-y text-right text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Context') }}</th>
-                                                                <th class="px-table-cell-x py-table-header-y text-right text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Max Output') }}</th>
-                                                                <th class="hidden lg:table-cell px-table-cell-x py-table-header-y text-right text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Input $/1M') }}</th>
-                                                                <th class="hidden lg:table-cell px-table-cell-x py-table-header-y text-right text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Output $/1M') }}</th>
+                                                                <th class="px-table-cell-x py-table-header-y text-left text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Model ID') }}</th>
+                                                                <th class="hidden lg:table-cell px-table-cell-x py-table-header-y text-right text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Cost Override Input $/1M') }}</th>
+                                                                <th class="hidden lg:table-cell px-table-cell-x py-table-header-y text-right text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Cost Override Output $/1M') }}</th>
                                                                 <th class="hidden lg:table-cell px-table-cell-x py-table-header-y text-right text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Cache Read $/1M') }}</th>
                                                                 <th class="hidden lg:table-cell px-table-cell-x py-table-header-y text-right text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Cache Write $/1M') }}</th>
                                                                 <th class="px-table-cell-x py-table-header-y text-left text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Status') }}</th>
@@ -1411,22 +1518,8 @@ new class extends Component
                                                         <tbody class="bg-surface-card divide-y divide-border-default">
                                                             @foreach($expandedModels as $model)
                                                                 <tr wire:key="model-{{ $model->id }}" class="hover:bg-surface-subtle/50 transition-colors">
-                                                                    <td class="px-table-cell-x py-table-cell-y whitespace-nowrap text-sm font-medium text-ink font-mono">{{ $model->model_name }}</td>
-                                                                    <td class="px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted">{{ $model->display_name }}</td>
-                                                                    <td class="px-table-cell-x py-table-cell-y whitespace-nowrap">
-                                                                        @if(is_array($model->capability_tags) && count($model->capability_tags) > 0)
-                                                                            <div class="flex gap-1 flex-wrap">
-                                                                                @foreach($model->capability_tags as $tag)
-                                                                                    <x-ui.badge>{{ $tag }}</x-ui.badge>
-                                                                                @endforeach
-                                                                            </div>
-                                                                        @else
-                                                                            <span class="text-muted">—</span>
-                                                                        @endif
-                                                                    </td>
-                                                                    <td class="px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted tabular-nums text-right">{{ $this->formatTokenCount($model->context_window) }}</td>
-                                                                    <td class="px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted tabular-nums text-right">{{ $this->formatTokenCount($model->max_tokens) }}</td>
-                                                                    @php $cost = $model->cost_per_1m ?? []; @endphp
+                                                                    <td class="px-table-cell-x py-table-cell-y whitespace-nowrap text-sm font-medium text-ink font-mono">{{ $model->model_id }}</td>
+                                                                    @php $cost = $model->cost_override ?? []; @endphp
                                                                     <td class="hidden lg:table-cell px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted tabular-nums text-right">{{ $this->formatCost($cost['input'] ?? null) }}</td>
                                                                     <td class="hidden lg:table-cell px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted tabular-nums text-right">{{ $this->formatCost($cost['output'] ?? null) }}</td>
                                                                     <td class="hidden lg:table-cell px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted tabular-nums text-right">{{ $this->formatCost($cost['cache_read'] ?? null) }}</td>
@@ -1591,28 +1684,11 @@ new class extends Component
             <form wire:submit="saveModel" class="space-y-4">
                 <x-ui.input
                     wire:model="modelModelName"
-                    label="{{ __('Model Name') }}"
+                    label="{{ __('Model ID') }}"
                     required
                     placeholder="{{ __('e.g. gpt-4o') }}"
                     :error="$errors->first('modelModelName')"
                 />
-
-                <x-ui.input
-                    wire:model="modelDisplayName"
-                    label="{{ __('Display Name') }}"
-                    placeholder="{{ __('e.g. GPT-4o') }}"
-                    :error="$errors->first('modelDisplayName')"
-                />
-
-                <div>
-                    <x-ui.input
-                        wire:model="modelCapabilityTags"
-                        label="{{ __('Capability Tags') }}"
-                        placeholder="{{ __('e.g. chat, code, vision') }}"
-                        :error="$errors->first('modelCapabilityTags')"
-                    />
-                    <p class="text-xs text-muted mt-1">{{ __('Comma-separated tags.') }}</p>
-                </div>
 
                 <div class="grid grid-cols-2 gap-4">
                     <x-ui.input

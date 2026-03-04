@@ -6,3 +6,14 @@ SPDX-License-Identifier: AGPL-3.0-only
 This project is licensed under the GNU Affero General Public License v3.0 only. See the LICENSE file at the repository root for the full license text.
 
 This NOTICE file is for informational purposes only and does not modify the terms of the LICENSE.
+
+---
+
+This product includes data from models.dev (https://models.dev),
+Copyright (c) models.dev contributors, licensed under MIT.
+See https://github.com/anomalyco/models.dev/blob/main/LICENSE for terms.
+
+This product includes data from GeoNames (https://www.geonames.org/),
+licensed under the Creative Commons Attribution 4.0 License (CC BY 4.0).
+See https://creativecommons.org/licenses/by/4.0/ and
+https://download.geonames.org/export/dump/readme.txt for terms.

@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // (c) Ng Kiat Siong <kiatsiong.ng@gmail.com>
 
-namespace App\Modules\Core\AI\Services;
+namespace App\Base\AI\Services;
 
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -12,9 +12,9 @@ use RuntimeException;
 /**
  * GitHub Copilot OAuth device flow and token exchange.
  *
- * Mirrors OpenClaw's `github-copilot-auth.ts` and `github-copilot-token.ts`.
- * Uses the GitHub OAuth device flow to obtain a GitHub token, then exchanges
- * it for a short-lived Copilot API token at runtime.
+ * Stateless authentication helper — no knowledge of companies, employees,
+ * or provider records. Handles the GitHub OAuth device flow to obtain a
+ * GitHub token, then exchanges it for a short-lived Copilot API token.
  *
  * Flow:
  *   1. requestDeviceCode() — get device_code + user_code

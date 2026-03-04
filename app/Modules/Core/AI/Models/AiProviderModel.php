@@ -20,14 +20,10 @@ class AiProviderModel extends Model
      */
     protected $fillable = [
         'ai_provider_id',
-        'model_name',
-        'display_name',
-        'capability_tags',
-        'context_window',
-        'max_tokens',
+        'model_id',
         'is_active',
         'is_default',
-        'cost_per_1m',
+        'cost_override',
     ];
 
     /**
@@ -36,31 +32,33 @@ class AiProviderModel extends Model
     protected function casts(): array
     {
         return [
-            'capability_tags' => 'array',
-            'context_window' => 'integer',
-            'max_tokens' => 'integer',
             'is_active' => 'boolean',
             'is_default' => 'boolean',
-            'cost_per_1m' => 'array',
+            'cost_override' => 'array',
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
         ];
     }
 
     /**
-     * Get cost per 1M tokens for a given dimension (input, output, cache_read, cache_write).
+     * Get cost for a given dimension, preferring admin override over catalog data.
      *
      * @param  string  $key  One of: input, output, cache_read, cache_write
+     * @param  array<string, mixed>|null  $catalogCost  Cost data from models.dev catalog
      */
-    public function getCostPer1m(string $key): ?string
+    public function getCost(string $key, ?array $catalogCost = null): ?string
     {
-        $cost = $this->cost_per_1m;
+        $override = $this->cost_override;
 
-        if (! is_array($cost) || ! isset($cost[$key])) {
-            return null;
+        if (is_array($override) && isset($override[$key]) && $override[$key] !== null && $override[$key] !== '') {
+            return (string) $override[$key];
         }
 
-        return $cost[$key] !== null && $cost[$key] !== '' ? (string) $cost[$key] : null;
+        if (is_array($catalogCost) && isset($catalogCost[$key]) && $catalogCost[$key] !== null) {
+            return (string) $catalogCost[$key];
+        }
+
+        return null;
     }
 
     /**

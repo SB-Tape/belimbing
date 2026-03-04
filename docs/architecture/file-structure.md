@@ -37,6 +37,7 @@ app/{Layer0}/{Layer1}/{Module}/...     # For Modules (deeper)
 |----------------|-------|----------|
 | `app/Base` | Layer0 | Framework infrastructure |
 | `app/Modules` | Layer0 | Business process modules |
+| `app/Base/AI` | Module | `Layer0/Module` |
 | `app/Base/Database` | Module | `Layer0/Module` |
 | `app/Base/Events` | Module | `Layer0/Module` |
 | `app/Modules/Core` | Layer1 | Core module category |
@@ -217,6 +218,12 @@ app/Base/
 │   ├── StatusManager.php
 │   ├── TransitionValidator.php
 │   └── Hooks/               # Workflow hooks (before/after transitions)
+│
+├── AI/                      # AI infrastructure (stateless)
+│   ├── Config/ai.php        # LLM defaults, provider overlay
+│   ├── Services/            # ModelCatalogService, LlmClient, ProviderDiscoveryService
+│   ├── Console/Commands/    # blb:ai:catalog:sync
+│   └── DTO/                 # Value objects
 │
 ├── Database/                # Database abstraction
 │   ├── MigrationManager.php
