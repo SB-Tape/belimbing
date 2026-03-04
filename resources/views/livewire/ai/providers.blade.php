@@ -718,6 +718,9 @@ new class extends Component
             $provider = AiProvider::query()->find($this->editingProviderId);
 
             if ($provider) {
+                // Name is immutable after creation — omit from update data
+                unset($data['name']);
+
                 if ($this->providerApiKey !== '') {
                     $data['api_key'] = $this->providerApiKey;
                 }
@@ -2010,6 +2013,7 @@ new class extends Component
                     label="{{ __('Name') }}"
                     required
                     placeholder="{{ __('e.g. openai') }}"
+                    :disabled="$isEditingProvider"
                     :error="$errors->first('providerName')"
                 />
 
