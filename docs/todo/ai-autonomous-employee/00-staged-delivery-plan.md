@@ -1,8 +1,8 @@
 # AI Digital Worker - Staged Delivery Plan
 
-**Status:** Planning
+**Status:** Active — Stage 0 implemented
 **Source Context:** `docs/architecture/ai-digital-worker.md`
-**Last Updated:** 2026-02-26
+**Last Updated:** 2026-03-04
 **Prerequisite:** `docs/architecture/authorization.md`, `docs/todo/authorization/00-prd.md`
 
 ## 1. Problem Essence
@@ -48,16 +48,17 @@ Establish a safe, testable end-to-end loop: web chat UI -> Digital Worker runtim
 
 **UI You Can Use**
 1. `Digital Worker Playground` page (per authenticated user)
-2. Chat panel with message input + streaming/final response rendering
+2. Chat panel with message input + loading indicator + final response rendering
 3. Session sidebar (create/switch session)
 4. Debug panel (latency, token usage, model, run id)
 
 **What Is Implemented**
 1. Digital Worker as employee: `employees` with `employee_type` and `job_description`; file-based sessions (JSONL per session + `.meta.json`) in per-Digital Worker workspace directories (see [01-stage-0 §3.2](01-stage-0-digital-worker-playground.md))
-2. Per-DW LLM configuration: company-level provider credentials (`ai_providers` table, encrypted keys), per-DW model selection via workspace `config.json`, config resolution cascade (DW → company provider → global defaults). See `docs/architecture/ai-digital-worker.md` §15.
-3. Basic runtime orchestration with no high-risk tools (per-DW model-aware)
+2. Per-DW LLM configuration: company-level provider credentials (`ai_providers` table, encrypted keys), per-DW model selection via workspace `config.json` (multi-model with ordered fallback), config resolution cascade (DW → company provider → global defaults). See `docs/architecture/ai-digital-worker.md` §15.
+3. Basic runtime orchestration with no high-risk tools (per-DW model-aware) and **fallback attempt trace metadata** (OpenClaw-style: provider, model, error, error_type, latency_ms per attempt). See `docs/architecture/ai-digital-worker.md` §15.5.
 4. Persistence for all user/assistant messages (append-only JSONL files with `LOCK_EX`)
-5. DW onboarding UI: guided setup flow for identity, LLM config, and authorization. See `docs/architecture/ai-digital-worker.md` §16.
+5. Provider management page (`LLM Providers`) with catalog/manual add, model sync, default model, and provider priority controls.
+6. Debug panel in playground surfaces runtime metadata including collapsible fallback attempt trace.
 
 **Manual Test Script**
 1. Open playground page as a user
@@ -86,7 +87,7 @@ Move from “chat only” to “chat + useful operations” with explicit UI fee
 3. “Dry run” toggle to preview operations before execution
 4. Simple result visualizations (table/list for lookups)
 
-**What Is Implemented**
+**Target Deliverables**
 1. Tool registry v1 with 5-10 low/medium-risk tools (lookup, reporting, leave draft)
 2. Structured tool call logging (`ae_tool_calls`)
 3. Policy layer v1 (allow/deny by role/company)
@@ -115,7 +116,7 @@ Add safe write operations with explicit approval UX.
 3. One-click actions: `Approve`, `Reject`, `Request Clarification`
 4. Chat timeline shows approval state transitions in real time
 
-**What Is Implemented**
+**Target Deliverables**
 1. Approval workflow engine for designated tools/actions
 2. Request state machine: `draft -> pending_approval -> approved/rejected -> executed`
 3. Audit log entries for every decision
@@ -144,7 +145,7 @@ Prove channel abstraction with a production-relevant messaging channel.
 2. Unified conversation viewer showing source channel tags
 3. Channel delivery status indicators (`sent`, `delivered`, `failed`)
 
-**What Is Implemented**
+**Target Deliverables**
 1. Channel adapter framework
 2. First external adapter (recommend start with Telegram or WhatsApp)
 3. Channel routing + retry policy + dead-letter queue for failures
@@ -172,7 +173,7 @@ Enable visible orchestration between digital workers (employee/manager/finance/e
 2. Node-level detail: sender Digital Worker, recipient Digital Worker, payload summary, status
 3. Replay view for debugging failed orchestrations
 
-**What Is Implemented**
+**Target Deliverables**
 1. Digital Worker-to-Digital Worker messaging contract
 2. Queue-based orchestration for multi-step workflows
 3. Correlation IDs across all agent/tool/approval events
@@ -203,7 +204,7 @@ Convert interaction data into operational insight and measurable business value.
 2. `Work History` report UI (per user/team/date range)
 3. Export actions for audit/performance review
 
-**What Is Implemented**
+**Target Deliverables**
 1. Aggregation pipeline for interaction + action history
 2. Report API endpoints for user/team/company scopes
 3. Data retention and redaction rules
@@ -262,6 +263,23 @@ Convert interaction data into operational insight and measurable business value.
    - automated happy-path tests + failure-path tests
 3. Do not start next stage until current stage exit criteria are met
 
-## 8. Immediate Next Step
+## 8. Immediate Next Steps (Post Stage 0)
 
-Start Stage 0 by building the Digital Worker Playground web UI and minimal message/session persistence, then run the Stage 0 manual test script as the first acceptance gate. See [01-stage-0-digital-worker-playground.md](01-stage-0-digital-worker-playground.md) for the implementation checklist.
+Stage 0 core is operational. The following features should be built next, in priority order:
+
+### 8.1 Stage 0 Hardening (Before Stage 1)
+
+1. **Automated Pest tests for Stage 0 feature paths** — Auth user access, session CRUD, message persistence, session isolation. Currently only unit tests for `DigitalWorkerRuntime` exist.
+2. **Streaming response support** — Replace synchronous LLM call with SSE/chunked streaming. Improves perceived latency for long responses. Requires `LlmClient::chatStream()` and Livewire wire:stream integration.
+3. **Session export / clear** — Allow users to export session JSONL and clear old sessions. Workspace hygiene.
+
+### 8.2 Stage 0→1 Bridge Features
+
+4. **System prompt workspace files** — Load system prompt from workspace `IDENTITY.md` / `SOUL.md` instead of `job_description` field. Aligns with OpenClaw workspace pattern (§4.5, §13).
+5. **Runtime cost tracking** — Track per-run token costs using the models.dev catalog cost data. Surface in debug panel and store in session metadata for future analytics (Stage 5).
+6. **Retry with backoff for transient failures** — Currently fallback tries next model immediately. Add configurable delay between fallback attempts for rate-limit recovery.
+
+### 8.3 Stage 1 Readiness
+
+7. **Tool registry v1** — Define tool interface, register 3–5 read-only tools (employee lookup, company info, leave balance). Required for Stage 1 entry.
+8. **Structured tool call logging** — Persist tool calls alongside messages in session JSONL for audit trail.

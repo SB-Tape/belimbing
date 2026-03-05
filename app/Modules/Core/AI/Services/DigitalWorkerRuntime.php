@@ -32,6 +32,10 @@ class DigitalWorkerRuntime
      * falling back to the company's default provider+model when no workspace
      * config exists. Tries models in priority order with fallback on transient failures.
      *
+     * Collects structured fallback attempt entries (OpenClaw-style) when multiple
+     * models are tried. Each attempt records provider, model, error, error_type,
+     * and latency_ms. The attempts array is included in meta['fallback_attempts'].
+     *
      * @param  list<Message>  $messages  Conversation history
      * @param  int  $employeeId  Digital Worker employee ID
      * @param  string|null  $systemPrompt  Optional system prompt for the Digital Worker
@@ -56,19 +60,47 @@ class DigitalWorkerRuntime
             }
         }
 
+        if (count($configs) === 0) {
+            $result = $this->errorResult($runId, 'unknown', 0, __('No LLM configuration available.'));
+            $result['meta']['fallback_attempts'] = [];
+
+            return $result;
+        }
+
         $lastResult = null;
+        $fallbackAttempts = [];
 
         foreach ($configs as $config) {
             $result = $this->tryModel($messages, $systemPrompt, $config, $runId);
 
             if (! $this->shouldFallback($result)) {
+                $result['meta']['fallback_attempts'] = $fallbackAttempts;
+
                 return $result;
             }
+
+            // Record failed attempt trace entry (OpenClaw-style)
+            $fallbackAttempts[] = [
+                'provider' => $config['provider_name'] ?? 'unknown',
+                'model' => $config['model'] ?? 'unknown',
+                'error' => $result['meta']['error'] ?? 'Unknown error',
+                'error_type' => $result['meta']['error_type'] ?? 'unknown',
+                'latency_ms' => $result['meta']['latency_ms'] ?? 0,
+            ];
 
             $lastResult = $result;
         }
 
-        return $lastResult ?? $this->errorResult($runId, 'unknown', 0, __('No LLM configuration available.'));
+        if ($lastResult === null) {
+            $result = $this->errorResult($runId, 'unknown', 0, __('No LLM configuration available.'));
+            $result['meta']['fallback_attempts'] = [];
+
+            return $result;
+        }
+
+        $lastResult['meta']['fallback_attempts'] = $fallbackAttempts;
+
+        return $lastResult;
     }
 
     /**

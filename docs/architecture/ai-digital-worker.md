@@ -1,8 +1,8 @@
 # AI Digital Worker Architecture
 
 **Document Type:** Architecture Specification
-**Status:** Planning
-**Last Updated:** 2026-02-26
+**Status:** Active (Stage 0 core implemented; Stage 1+ planned)
+**Last Updated:** 2026-03-04
 **Related:** `docs/architecture/user-employee-company.md`, `docs/architecture/authorization.md`, `docs/architecture/database.md`
 
 ---
@@ -495,20 +495,31 @@ workspace/{employee_id}/
 └── memory.db                  # (future)
 ```
 
-**`config.json` structure:**
+**`config.json` structure (multi-model with ordered fallback):**
 
 ```json
 {
     "llm": {
-        "provider": "anthropic",
-        "model": "claude-sonnet-4-20250514",
-        "max_tokens": 4096,
-        "temperature": 0.5
+        "models": [
+            {
+                "provider": "anthropic",
+                "model": "claude-sonnet-4-20250514",
+                "max_tokens": 4096,
+                "temperature": 0.5
+            },
+            {
+                "provider": "openai",
+                "model": "gpt-4o-mini",
+                "max_tokens": 2048,
+                "temperature": 0.7
+            }
+        ]
     }
 }
 ```
 
-- `provider`: references `ai_providers.name` within the DW's company. If the provider is not found or inactive, the runtime falls back to the global default.
+- `models`: ordered list of model configurations. First entry is primary; subsequent entries are fallbacks tried on transient failures (connection error, HTTP 429, 5xx).
+- `provider`: references `ai_providers.name` within the DW's company.
 - `model`: the specific model within that provider.
 - `max_tokens`, `temperature`: optional per-DW overrides; fall back to global `config('ai.llm.*')` defaults.
 
@@ -518,12 +529,12 @@ The runtime resolves LLM configuration with a cascade:
 
 1. **DW workspace `config.json`** — per-DW overrides (provider, model, temperature, max_tokens)
 2. **Company provider credentials** — `ai_providers` row matching the provider name + company_id (supplies `base_url` and `api_key`)
-3. **Global defaults** — `config('ai.llm.*')` from `app/Base/AI/Config/ai.php` / `.env` (fallback when no workspace config or provider exists)
+3. **Global defaults** — `config('ai.llm.*')` from `app/Base/AI/Config/ai.php` / `.env` (fallback runtime parameters like `max_tokens`, `temperature`, `timeout`)
 
 **Resolution rules:**
 - If `config.json` specifies a provider → look up `ai_providers` by `(company_id, name)` → use that row's `base_url` and `api_key`, merged with per-DW model/params.
-- If `config.json` has no provider or the provider is not found → fall back to global `config('ai.llm.*')`.
-- If `config.json` does not exist → use global defaults entirely (backward-compatible with Stage 0 initial implementation).
+- If workspace config is missing (or `llm.models[]` is empty) → resolve company default provider+model (`ConfigResolver::resolveDefault()`), then apply runtime defaults for parameters.
+- If a configured provider cannot be resolved (inactive/not found) or has missing credentials → runtime returns `config_error` for that model (non-transient), and fallback stops at that point.
 
 ### 15.4 Authorization for Provider Management
 
@@ -533,6 +544,33 @@ The runtime resolves LLM configuration with a cascade:
 | `ai.provider.view` | DW supervisors | See available providers (but not raw API keys) when configuring DWs |
 
 Provider management is a company-level operation, separate from DW onboarding. Only users with `ai.provider.manage` can create or edit provider entries. DW supervisors can see the list of available providers (name, display_name, is_active) but never the raw API key.
+
+> Stage 0 implementation note: routes currently use `auth` middleware; capability-specific middleware for `ai.provider.manage` / `ai.provider.view` is planned hardening work.
+
+### 15.5 Fallback Attempt Trace (Runtime Observability)
+
+Inspired by OpenClaw's `FallbackAttempt` type (`openclaw/src/agents/model-fallback.ts`), the Digital Worker runtime captures structured trace metadata for every model attempted during a conversation turn.
+
+**Trace entry structure (per attempt):**
+
+```json
+{
+    "provider": "anthropic",
+    "model": "claude-sonnet-4-20250514",
+    "error": "HTTP 500: Internal Server Error",
+    "error_type": "server_error",
+    "latency_ms": 150
+}
+```
+
+**Behavior:**
+- On success (first or fallback model), `meta.fallback_attempts` is an empty array (no failures to report) or contains entries for each prior failed model.
+- On total failure (all models exhausted), `meta.fallback_attempts` contains entries for every attempted model, and the final result carries the last model's error.
+- Non-transient errors (`client_error`, `config_error`) halt the fallback chain immediately; the attempts array will be empty since no fallback was tried.
+- The playground debug panel shows a collapsible "Fallback Attempts" section when `fallback_attempts` is non-empty, displaying provider, model, error, error_type, and latency for each attempt.
+
+**Fallback-worthy error types:** `connection_error`, `rate_limit`, `server_error`
+**Non-fallback error types:** `client_error`, `config_error`, `auth_error`
 
 ---
 
@@ -591,3 +629,5 @@ This separation means:
 | 0.3 | 2026-02-27 | AI + Kiat | Renamed §3.3 operations to Digital Worker; added §14.4 hybrid search strategy (vector 70% + BM25 30%); added §14.5 compaction workflow |
 | 0.4 | 2026-02-27 | AI + Kiat | Added §8 Implementation Dependencies, §9 Workspace Configuration; renumbered §8–12 → §10–14 |
 | 0.5 | 2026-02-28 | AI + Kiat | Added §15 Per-DW LLM Configuration (provider credentials, workspace config.json, config resolution); §16 Digital Worker Onboarding (flow, authorization, separation of concerns) |
+| 0.6 | 2026-02-28 | AI + Kiat | Updated §15.2 config.json to multi-model format (`llm.models[]`); added §15.5 Fallback Attempt Trace (OpenClaw-inspired runtime observability) |
+| 0.7 | 2026-03-04 | AI + Kiat | Refined §15.3 to match current resolver/runtime behavior and added Stage 0 hardening notes for capability middleware |

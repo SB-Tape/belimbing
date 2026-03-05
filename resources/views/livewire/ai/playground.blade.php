@@ -590,6 +590,23 @@ new class extends Component
                                     <dd class="text-status-danger">{{ $lastRunMeta['error'] }}</dd>
                                 </div>
                             @endif
+                            @if(!empty($lastRunMeta['fallback_attempts']))
+                                <div x-data="{ open: false }" class="pt-1 border-t border-border-default">
+                                    <button @click="open = !open" class="flex items-center gap-1 text-muted hover:text-ink transition-colors w-full text-left">
+                                        <span class="text-[10px]" x-text="open ? '▾' : '▸'"></span>
+                                        <dt class="text-muted">{{ __('Fallback Attempts') }} ({{ count($lastRunMeta['fallback_attempts']) }})</dt>
+                                    </button>
+                                    <div x-show="open" x-cloak class="mt-1 space-y-1.5">
+                                        @foreach($lastRunMeta['fallback_attempts'] as $i => $attempt)
+                                            <div class="rounded-lg bg-surface-overlay p-1.5 text-[11px]">
+                                                <div class="text-muted">#{{ $i + 1 }} {{ $attempt['provider'] ?? '-' }} / {{ $attempt['model'] ?? '-' }}</div>
+                                                <div class="text-status-danger">{{ $attempt['error'] ?? '-' }}</div>
+                                                <div class="text-muted tabular-nums">{{ $attempt['error_type'] ?? '-' }} · {{ ($attempt['latency_ms'] ?? 0) }}ms</div>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @endif
                         </dl>
                     @else
                         <p class="mt-2 text-xs text-muted">{{ __('Send a message to see runtime metadata.') }}</p>
