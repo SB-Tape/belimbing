@@ -15,6 +15,7 @@ class LaraOrchestrationService
         private readonly LaraKnowledgeNavigator $knowledgeNavigator,
         private readonly LaraCapabilityMatcher $capabilityMatcher,
         private readonly LaraTaskDispatcher $taskDispatcher,
+        private readonly LaraNavigationRouter $navigationRouter,
     ) {}
 
     /**
@@ -34,9 +35,12 @@ class LaraOrchestrationService
      */
     public function dispatchFromMessage(string $message): ?array
     {
-        $navigationTarget = $this->extractNavigationTarget($message);
-        if ($navigationTarget !== null) {
-            return $this->dispatchNavigationCommand($navigationTarget);
+        $navigation = $this->navigationRouter->resolve($message);
+        if ($navigation !== null) {
+            return $this->response(
+                $navigation['message'],
+                $navigation,
+            );
         }
 
         $modelExpression = $this->extractModelExpression($message);
@@ -254,73 +258,6 @@ class LaraOrchestrationService
                 'status' => 'model_query',
                 'filter' => $expression,
                 'matches' => $matches,
-            ],
-        );
-    }
-
-    private function extractNavigationTarget(string $message): ?string
-    {
-        $trimmed = trim($message);
-
-        if (! str_starts_with($trimmed, '/go')) {
-            return null;
-        }
-
-        return trim((string) substr($trimmed, strlen('/go')));
-    }
-
-    /**
-     * @return array<string, array{route: string, label: string}>
-     */
-    private function navigationTargets(): array
-    {
-        return [
-            'dashboard' => ['route' => 'dashboard', 'label' => __('Dashboard')],
-            'providers' => ['route' => 'admin.ai.providers', 'label' => __('AI Providers')],
-            'models' => ['route' => 'admin.ai.providers', 'label' => __('AI Providers')],
-            'playground' => ['route' => 'admin.ai.playground', 'label' => __('AI Playground')],
-            'setup-lara' => ['route' => 'admin.setup.lara', 'label' => __('Lara Setup')],
-        ];
-    }
-
-    private function dispatchNavigationCommand(string $target): array
-    {
-        if ($target === '') {
-            return $this->response(
-                __('Use "/go <target>", e.g. "/go providers", "/go playground", or "/go setup-lara".'),
-                ['status' => 'invalid_navigation_command'],
-            );
-        }
-
-        $normalizedTarget = mb_strtolower($target);
-        $config = $this->navigationTargets()[$normalizedTarget] ?? null;
-
-        if (! is_array($config)) {
-            return $this->response(
-                __('Unknown navigation target ":target". Available targets: :targets', [
-                    'target' => $target,
-                    'targets' => implode(', ', array_keys($this->navigationTargets())),
-                ]),
-                [
-                    'status' => 'unknown_navigation_target',
-                    'target' => $target,
-                ],
-            );
-        }
-
-        $url = route($config['route'], [], false);
-        $navigation = [
-            'strategy' => 'js_go_to_url',
-            'url' => $url,
-            'label' => $config['label'],
-            'target' => $normalizedTarget,
-        ];
-
-        return $this->response(
-            __('Navigating to :label (:url).', ['label' => $config['label'], 'url' => $url]),
-            [
-                'status' => 'navigation',
-                'navigation' => $navigation,
             ],
         );
     }

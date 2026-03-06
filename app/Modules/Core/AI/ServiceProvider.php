@@ -11,6 +11,7 @@ use App\Modules\Core\AI\Services\LaraCapabilityMatcher;
 use App\Modules\Core\AI\Services\LaraContextProvider;
 use App\Modules\Core\AI\Services\LaraKnowledgeNavigator;
 use App\Modules\Core\AI\Services\LaraModelCatalogQueryService;
+use App\Modules\Core\AI\Services\LaraNavigationRouter;
 use App\Modules\Core\AI\Services\LaraOrchestrationService;
 use App\Modules\Core\AI\Services\LaraPromptFactory;
 use App\Modules\Core\AI\Services\LaraTaskDispatcher;
@@ -41,6 +42,7 @@ class ServiceProvider extends BaseServiceProvider
         $this->app->singleton(LaraModelCatalogQueryService::class);
         $this->app->singleton(LaraCapabilityMatcher::class);
         $this->app->singleton(LaraTaskDispatcher::class);
+        $this->app->singleton(LaraNavigationRouter::class);
         $this->app->singleton(LaraOrchestrationService::class);
         $this->app->singleton(LaraPromptFactory::class);
     }
