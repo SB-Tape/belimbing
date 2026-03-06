@@ -6,7 +6,7 @@
     if ($laraExists && $licenseeExists) {
         $resolver = app(\App\Modules\Core\AI\Services\ConfigResolver::class);
         $configs = $resolver->resolve(\App\Modules\Core\Employee\Models\Employee::LARA_ID);
-        if (count($configs) === 0) {
+        if ($configs === []) {
             $default = $resolver->resolveDefault(\App\Modules\Core\Company\Models\Company::LICENSEE_ID);
             $laraActivated = $default !== null;
         } else {

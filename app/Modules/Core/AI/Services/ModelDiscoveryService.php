@@ -77,7 +77,7 @@ class ModelDiscoveryService
             return $this->importFromCatalog($provider);
         }
 
-        if (count($discovered) === 0) {
+        if ($discovered === []) {
             return $this->importFromCatalog($provider);
         }
 
@@ -124,7 +124,7 @@ class ModelDiscoveryService
     {
         $catalogModels = $this->modelCatalog->getModels($provider->name);
 
-        if (count($catalogModels) === 0) {
+        if ($catalogModels === []) {
             return ['added' => 0, 'updated' => 0, 'total' => 0];
         }
 

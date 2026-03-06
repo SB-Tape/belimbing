@@ -48,7 +48,7 @@ new class extends Component
     #[On('wizard-proceed-to-connect')]
     public function onProceedToConnect(array $templates): void
     {
-        if (count($templates) === 0) {
+        if ($templates === []) {
             return;
         }
 

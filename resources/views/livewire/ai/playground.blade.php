@@ -158,7 +158,7 @@ new class extends Component
         $config = $configResolver->readWorkspaceConfig($this->selectedEmployeeId);
         $models = $config['llm']['models'] ?? [];
 
-        if (count($models) === 0) {
+        if ($models === []) {
             // Seed from company's default provider + model
             $user = auth()->user();
             $companyId = $user?->employee?->company_id ? (int) $user->employee->company_id : null;

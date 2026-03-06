@@ -39,7 +39,7 @@ class ConfigResolver
 
         $modelConfigs = $workspaceConfig['llm']['models'] ?? [];
 
-        if (count($modelConfigs) === 0) {
+        if ($modelConfigs === []) {
             return [];
         }
 

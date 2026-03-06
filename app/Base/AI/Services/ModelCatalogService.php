@@ -76,7 +76,7 @@ class ModelCatalogService
 
         $data = $response->json();
 
-        if (! is_array($data) || count($data) === 0) {
+        if (! is_array($data) || $data === []) {
             throw new RuntimeException('Catalog sync returned empty or invalid data');
         }
 

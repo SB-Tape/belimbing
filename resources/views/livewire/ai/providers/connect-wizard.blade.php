@@ -124,7 +124,7 @@ new class extends Component
         $this->connectErrors = array_values($this->connectErrors);
 
         // If no forms left, go back to catalog
-        if (count($this->connectForms) === 0) {
+        if ($this->connectForms === []) {
             $this->dispatch('wizard-back-to-catalog');
         }
     }
@@ -260,7 +260,7 @@ new class extends Component
         $this->connectErrors = $newErrors;
 
         // All succeeded — wizard completed
-        if (count($this->connectForms) === 0) {
+        if ($this->connectForms === []) {
             $this->cleanupAuthFlows();
             $this->connectForms = [];
             $this->deviceFlows = [];
@@ -315,7 +315,7 @@ new class extends Component
     {
         $companyId = $this->getCompanyId();
 
-        if ($companyId === null || count($this->deviceFlows) === 0) {
+        if ($companyId === null || $this->deviceFlows === []) {
             return;
         }
 

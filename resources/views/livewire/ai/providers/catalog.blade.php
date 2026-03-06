@@ -97,7 +97,7 @@ new class extends Component
      */
     public function proceedToConnect(): void
     {
-        if (count($this->selectedTemplates) === 0) {
+        if ($this->selectedTemplates === []) {
             return;
         }
 
@@ -140,13 +140,13 @@ new class extends Component
         if ($count >= 1000000) {
             $value = $count / 1000000;
 
-            return ($value == (int) $value ? (int) $value : number_format($value, 1)).'M';
+            return rtrim(rtrim(number_format($value, 1), '0'), '.').'M';
         }
 
         if ($count >= 1000) {
             $value = $count / 1000;
 
-            return ($value == (int) $value ? (int) $value : number_format($value, 1)).'K';
+            return rtrim(rtrim(number_format($value, 1), '0'), '.').'K';
         }
 
         return (string) $count;
@@ -265,10 +265,10 @@ new class extends Component
             <x-ui.button
                 variant="primary"
                 wire:click="proceedToConnect"
-                :disabled="count($selectedTemplates) === 0"
+                :disabled="$selectedTemplates === []"
             >
                 <x-icon name="heroicon-m-sparkles" class="w-4 h-4" />
-                {{ count($selectedTemplates) === 0 ? __('Connect Providers') : __('Connect Providers (:count)', ['count' => count($selectedTemplates)]) }}
+                {{ $selectedTemplates === [] ? __('Connect Providers') : __('Connect Providers (:count)', ['count' => count($selectedTemplates)]) }}
             </x-ui.button>
         </x-slot>
     </x-ui.page-header>

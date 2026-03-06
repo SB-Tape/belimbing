@@ -47,7 +47,7 @@ class DigitalWorkerRuntime
         $configs = $this->configResolver->resolve($employeeId);
 
         // Fall back to company default when no workspace config exists
-        if (count($configs) === 0) {
+        if ($configs === []) {
             $employee = \App\Modules\Core\Employee\Models\Employee::query()->find($employeeId);
             $companyId = $employee?->company_id ? (int) $employee->company_id : null;
 
@@ -61,7 +61,7 @@ class DigitalWorkerRuntime
         }
 
         if (count($configs) === 0) {
-            $result = $this->errorResult($runId, 'unknown', 'unknown', 0, __('No LLM configuration available.'));
+            $result = $this->errorResult($runId, 'unknown', 0, __('No LLM configuration available.'));
             $result['meta']['fallback_attempts'] = [];
 
             return $result;
@@ -92,7 +92,7 @@ class DigitalWorkerRuntime
         }
 
         if ($lastResult === null) {
-            $result = $this->errorResult($runId, 'unknown', 'unknown', 0, __('No LLM configuration available.'));
+            $result = $this->errorResult($runId, 'unknown', 0, __('No LLM configuration available.'));
             $result['meta']['fallback_attempts'] = [];
 
             return $result;
@@ -101,6 +101,19 @@ class DigitalWorkerRuntime
         $lastResult['meta']['fallback_attempts'] = $fallbackAttempts;
 
         return $lastResult;
+    }
+
+    /**
+     * Build a consistent error result for the "no configuration available" state.
+     *
+     * @return array{content: string, run_id: string, meta: array<string, mixed>}
+     */
+    private function noLlmConfigResult(string $runId): array
+    {
+        $result = $this->errorResult($runId, 'unknown', 'unknown', 0, __('No LLM configuration available.'));
+        $result['meta']['fallback_attempts'] = [];
+
+        return $result;
     }
 
     /**
