@@ -40,6 +40,13 @@
             if (this.laraChatOpen) {
                 this.$nextTick(() => window.dispatchEvent(new CustomEvent('lara-chat-opened')));
             }
+        },
+        navigateLara(url) {
+            if (typeof url !== 'string' || !url.startsWith('/')) {
+                return;
+            }
+
+            window.location.assign(url);
         }
     }"
     @toggle-sidebar.window="
@@ -52,6 +59,7 @@
     "
     @open-lara-chat.window="openLaraChat()"
     @close-lara-chat.window="laraChatOpen = false"
+    @lara-navigate.window="navigateLara($event.detail?.url ?? '')"
     @keydown.ctrl.k.window.prevent="toggleLaraChat($event)"
     @keydown.meta.k.window.prevent="toggleLaraChat($event)"
     @keydown.escape.window="sidebarOpen = false; laraChatOpen = false"

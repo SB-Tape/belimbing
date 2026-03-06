@@ -39,7 +39,7 @@ function makeMessage(string $role, string $content): Message
     return new Message(
         role: $role,
         content: $content,
-        timestamp: new DateTimeImmutable(),
+        timestamp: new DateTimeImmutable,
     );
 }
 
@@ -61,7 +61,10 @@ it('returns empty fallback_attempts on first model success', function (): void {
 
     expect($result['content'])->toBe('Hello!')
         ->and($result['meta']['fallback_attempts'])->toBeArray()->toBeEmpty()
-        ->and($result['meta']['model'])->toBe('gpt-4o');
+        ->and($result['meta']['model'])->toBe('gpt-4o')
+        ->and($result['meta']['provider_name'])->toBe('openai')
+        ->and($result['meta']['llm']['provider'])->toBe('openai')
+        ->and($result['meta']['llm']['model'])->toBe('gpt-4o');
 });
 
 it('collects fallback attempt entries on transient failures before success', function (): void {
@@ -184,5 +187,8 @@ it('records config_error in result without fallback since not transient', functi
 
     // config_error is NOT in the shouldFallback transient list, so no fallback
     expect($result['meta']['error'])->toContain('API key is not configured')
+        ->and($result['meta']['provider_name'])->toBe('broken')
+        ->and($result['meta']['llm']['provider'])->toBe('broken')
+        ->and($result['meta']['llm']['model'])->toBe('model-a')
         ->and($result['meta']['fallback_attempts'])->toBeEmpty();
 });

@@ -119,7 +119,7 @@ new class extends Component
             ];
         } else {
             $runtime = app(DigitalWorkerRuntime::class);
-            $systemPrompt = app(LaraPromptFactory::class)->buildForCurrentUser();
+            $systemPrompt = app(LaraPromptFactory::class)->buildForCurrentUser($content);
             $result = $runtime->run($messages, Employee::LARA_ID, $systemPrompt);
         }
 
@@ -135,6 +135,11 @@ new class extends Component
             'run_id' => $result['run_id'],
             ...$result['meta'],
         ];
+
+        $navigationUrl = $result['meta']['orchestration']['navigation']['url'] ?? null;
+        if (is_string($navigationUrl) && str_starts_with($navigationUrl, '/')) {
+            $this->dispatch('lara-navigate', url: $navigationUrl);
+        }
 
         $session = $sessionManager->get(Employee::LARA_ID, $this->selectedSessionId);
         if ($session && $session->title === null) {
@@ -314,7 +319,7 @@ new class extends Component
                                     <x-ui.input
                                         x-ref="laraComposer"
                                         wire:model="messageInput"
-                                        placeholder="{{ __('Ask Lara anything about BLB, or use /delegate <task>...') }}"
+                                        placeholder="{{ __('Ask Lara about BLB, use /go <target>, /models <filter>, /guide <topic>, or /delegate <task>...') }}"
                                         autocomplete="off"
                                         :disabled="$isLoading"
                                     />

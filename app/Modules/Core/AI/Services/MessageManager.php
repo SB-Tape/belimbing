@@ -61,7 +61,7 @@ class MessageManager
      * @param  string  $sessionId  Session UUID
      * @param  string  $content  Message content
      * @param  string|null  $runId  Runtime run ID
-     * @param  array<string, mixed>  $meta  Runtime metadata (model, latency, tokens)
+     * @param  array<string, mixed>  $meta  Runtime metadata (provider, model, latency, tokens)
      */
     public function appendAssistantMessage(
         int $employeeId,
@@ -70,17 +70,29 @@ class MessageManager
         ?string $runId = null,
         array $meta = [],
     ): Message {
-        $message = new Message(
+        $timestamp = new DateTimeImmutable;
+
+        $persistedMessage = new Message(
             role: 'assistant',
             content: $content,
-            timestamp: new DateTimeImmutable,
+            timestamp: $timestamp,
+            runId: $runId,
+            meta: [],
+        );
+
+        $this->append($employeeId, $sessionId, $persistedMessage);
+
+        if (is_string($runId) && $runId !== '' && $meta !== []) {
+            $this->sessionManager->storeRunMeta($employeeId, $sessionId, $runId, $meta);
+        }
+
+        return new Message(
+            role: 'assistant',
+            content: $content,
+            timestamp: $timestamp,
             runId: $runId,
             meta: $meta,
         );
-
-        $this->append($employeeId, $sessionId, $message);
-
-        return $message;
     }
 
     /**
@@ -100,11 +112,22 @@ class MessageManager
 
         $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
         $messages = [];
+        $runMetadata = $this->sessionManager->runMetadata($employeeId, $sessionId);
 
         foreach ($lines as $line) {
             $data = json_decode($line, true);
 
-            if ($data !== null) {
+            if (is_array($data)) {
+                $runId = $data['run_id'] ?? null;
+                $lineMeta = $data['meta'] ?? null;
+                if (($lineMeta === null || $lineMeta === []) && is_string($runId)) {
+                    $storedRun = $runMetadata[$runId] ?? null;
+                    $storedMeta = is_array($storedRun) ? ($storedRun['meta'] ?? null) : null;
+                    if (is_array($storedMeta)) {
+                        $data['meta'] = $storedMeta;
+                    }
+                }
+
                 $messages[] = Message::fromJsonLine($data);
             }
         }

@@ -241,6 +241,12 @@ Lara's system prompt is **framework-managed** (not editable via workspace files)
 2. Contextual information about the current BLB instance (installed modules, configured providers, environment).
 3. Optional Licensee extension text (append-only), loaded from a configured file path. This extension can add local guidance (tone, company specifics) but cannot replace or relax core BLB/Lara policy.
 
+Lara exposes explicit command affordances for power workflows:
+- `/go <target>` for BLB page navigation (same-origin, framework-approved targets),
+- `/guide <topic>` for architecture/module references,
+- `/models <filter>` for advanced model queries with boolean filtering,
+- `/delegate <task>` for Digital Worker delegation.
+
 This differs from regular DWs whose identity comes from workspace files. Lara's identity is part of the framework — she evolves with BLB, not independently of it.
 
 ### 9.4 LLM Model Recommendation
@@ -355,3 +361,4 @@ Lara is a critical-path component — unlike a regular DW (where downtime only a
 | 0.1 | 2026-03-05 | AI + Kiat | Initial draft — identity model, provisioning, status bar, access model, scope |
 | 0.2 | 2026-03-05 | AI + Kiat | Added explicit session ownership/path matrix and TODO to extend SessionManager/MessageManager for Lara user-scoped sessions |
 | 0.3 | 2026-03-06 | AI + Kiat | Finalized prompt extension contract and Lara UI identity policy; narrowed remaining open question to rate limiting |
+| 0.4 | 2026-03-06 | AI + Kiat | Added Lara command affordances (`/go`, `/guide`, `/models`, `/delegate`) and documented navigation/query behavior |

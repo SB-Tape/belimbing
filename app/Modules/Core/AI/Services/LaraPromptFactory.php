@@ -19,11 +19,16 @@ class LaraPromptFactory
     /**
      * Build Lara's framework-managed system prompt.
      */
-    public function buildForCurrentUser(): string
+    public function buildForCurrentUser(?string $latestUserMessage = null): string
     {
-        $context = $this->contextProvider->contextForCurrentUser();
+        $context = $this->contextProvider->contextForCurrentUser($latestUserMessage);
         $context['delegation'] = [
-            'command' => '/delegate <task>',
+            'commands' => [
+                'go' => '/go <target>',
+                'models' => '/models <filter>',
+                'delegate' => '/delegate <task>',
+                'guide' => '/guide <topic>',
+            ],
             'available_workers' => $this->capabilityMatcher->discoverDelegableWorkersForCurrentUser(),
         ];
 

@@ -5,29 +5,50 @@
 
 namespace App\Modules\Core\AI\Services;
 
+use App\Base\Foundation\Exceptions\BlbDataContractException;
 use Illuminate\Support\Str;
 
 class LaraOrchestrationService
 {
     public function __construct(
+        private readonly LaraModelCatalogQueryService $modelCatalogQuery,
+        private readonly LaraKnowledgeNavigator $knowledgeNavigator,
         private readonly LaraCapabilityMatcher $capabilityMatcher,
         private readonly LaraTaskDispatcher $taskDispatcher,
     ) {}
 
     /**
-     * Parse and process a delegation message.
+     * Parse and process Lara orchestration commands.
      *
      * Contract:
-     * - Returns null when message is not a delegation command.
+     * - Returns null when message is not a supported orchestration command.
      * - Returns orchestration response payload when command is handled.
      *
-     * Supported command format:
+     * Supported command formats:
+     *   /go <target>
+     *   /models <filter expression>
+     *   /guide <topic>
      *   /delegate <task description>
      *
      * @return array{assistant_content: string, run_id: string, meta: array<string, mixed>}|null
      */
     public function dispatchFromMessage(string $message): ?array
     {
+        $navigationTarget = $this->extractNavigationTarget($message);
+        if ($navigationTarget !== null) {
+            return $this->dispatchNavigationCommand($navigationTarget);
+        }
+
+        $modelExpression = $this->extractModelExpression($message);
+        if ($modelExpression !== null) {
+            return $this->dispatchModelQuery($modelExpression);
+        }
+
+        $guideTopic = $this->extractGuideTopic($message);
+        if ($guideTopic !== null) {
+            return $this->dispatchGuideReferences($guideTopic);
+        }
+
         $task = $this->extractDelegationTask($message);
 
         if ($task === null) {
@@ -36,7 +57,7 @@ class LaraOrchestrationService
 
         if ($task === '') {
             return $this->response(
-                __('Use "/delegate <task>" to delegate work to a Digital Worker.'),
+                __('Use "/go <target>", "/models <filter>", "/guide <topic>", or "/delegate <task>".'),
                 ['status' => 'invalid_command'],
             );
         }
@@ -87,5 +108,220 @@ class LaraOrchestrationService
         }
 
         return trim((string) substr($trimmed, strlen('/delegate')));
+    }
+
+    /**
+     * @return list<array{title: string, path: string, summary: string}>
+     */
+    private function guideReferences(string $topic): array
+    {
+        return $this->knowledgeNavigator->search($topic);
+    }
+
+    /**
+     * @param  list<array{title: string, path: string, summary: string}>  $references
+     */
+    private function guideResponseContent(string $topic, array $references): string
+    {
+        $lines = [__('Here are the most relevant BLB references for ":topic":', ['topic' => $topic])];
+
+        foreach ($references as $reference) {
+            $lines[] = '- '.$reference['title'].' ('.$reference['path'].'): '.$reference['summary'];
+        }
+
+        return implode("\n", $lines);
+    }
+
+    private function dispatchGuideReferences(string $topic): array
+    {
+        if ($topic === '') {
+            return $this->response(
+                __('Use "/guide <topic>" to find relevant BLB architecture and module references.'),
+                ['status' => 'invalid_guide_command'],
+            );
+        }
+
+        $references = $this->guideReferences($topic);
+        if (count($references) === 0) {
+            return $this->response(
+                __('No BLB references matched ":topic". Try a broader topic such as "authorization", "database", or "Lara".', [
+                    'topic' => $topic,
+                ]),
+                [
+                    'status' => 'no_guide_matches',
+                    'topic' => $topic,
+                ],
+            );
+        }
+
+        return $this->response(
+            $this->guideResponseContent($topic, $references),
+            [
+                'status' => 'guide_references',
+                'topic' => $topic,
+                'references' => $references,
+            ],
+        );
+    }
+
+    private function extractGuideTopic(string $message): ?string
+    {
+        $trimmed = trim($message);
+
+        if (! str_starts_with($trimmed, '/guide')) {
+            return null;
+        }
+
+        return trim((string) substr($trimmed, strlen('/guide')));
+    }
+
+    private function extractModelExpression(string $message): ?string
+    {
+        $trimmed = trim($message);
+
+        if (! str_starts_with($trimmed, '/models')) {
+            return null;
+        }
+
+        return trim((string) substr($trimmed, strlen('/models')));
+    }
+
+    /**
+     * @return list<array{provider: string, provider_display_name: string, model: string, name: string, family: string, reasoning: bool, tools: bool, open_weights: bool, input: list<string>, output: list<string>, category: list<string>, region: list<string>}>
+     */
+    private function modelMatches(string $expression): array
+    {
+        return $this->modelCatalogQuery->query($expression);
+    }
+
+    /**
+     * @param  list<array{provider: string, provider_display_name: string, model: string, name: string, family: string, reasoning: bool, tools: bool, open_weights: bool, input: list<string>, output: list<string>, category: list<string>, region: list<string>}>  $matches
+     */
+    private function modelQueryResponseContent(string $expression, array $matches): string
+    {
+        $lines = [__('Found :count model(s) for filter ":filter":', [
+            'count' => count($matches),
+            'filter' => $expression,
+        ])];
+
+        foreach ($matches as $match) {
+            $lines[] = '- ['.$match['provider'].'] '.$match['model']
+                .' | family='.$match['family']
+                .' | reasoning='.($match['reasoning'] ? 'yes' : 'no')
+                .' | tools='.($match['tools'] ? 'yes' : 'no')
+                .' | input='.implode(',', $match['input'])
+                .' | output='.implode(',', $match['output']);
+        }
+
+        return implode("\n", $lines);
+    }
+
+    private function dispatchModelQuery(string $expression): array
+    {
+        if ($expression === '') {
+            return $this->response(
+                __('Use "/models <filter>" with boolean operators, e.g. "/models reasoning:true AND (family:gpt OR family:claude)".'),
+                ['status' => 'invalid_models_command'],
+            );
+        }
+
+        try {
+            $matches = $this->modelMatches($expression);
+        } catch (BlbDataContractException $exception) {
+            return $this->response(
+                $exception->getMessage(),
+                [
+                    'status' => 'invalid_models_filter',
+                    'filter' => $expression,
+                    'context' => $exception->context,
+                ],
+            );
+        }
+
+        if (count($matches) === 0) {
+            return $this->response(
+                __('No models matched ":filter".', ['filter' => $expression]),
+                [
+                    'status' => 'no_model_matches',
+                    'filter' => $expression,
+                ],
+            );
+        }
+
+        return $this->response(
+            $this->modelQueryResponseContent($expression, $matches),
+            [
+                'status' => 'model_query',
+                'filter' => $expression,
+                'matches' => $matches,
+            ],
+        );
+    }
+
+    private function extractNavigationTarget(string $message): ?string
+    {
+        $trimmed = trim($message);
+
+        if (! str_starts_with($trimmed, '/go')) {
+            return null;
+        }
+
+        return trim((string) substr($trimmed, strlen('/go')));
+    }
+
+    /**
+     * @return array<string, array{route: string, label: string}>
+     */
+    private function navigationTargets(): array
+    {
+        return [
+            'dashboard' => ['route' => 'dashboard', 'label' => __('Dashboard')],
+            'providers' => ['route' => 'admin.ai.providers', 'label' => __('AI Providers')],
+            'models' => ['route' => 'admin.ai.providers', 'label' => __('AI Providers')],
+            'playground' => ['route' => 'admin.ai.playground', 'label' => __('AI Playground')],
+            'setup-lara' => ['route' => 'admin.setup.lara', 'label' => __('Lara Setup')],
+        ];
+    }
+
+    private function dispatchNavigationCommand(string $target): array
+    {
+        if ($target === '') {
+            return $this->response(
+                __('Use "/go <target>", e.g. "/go providers", "/go playground", or "/go setup-lara".'),
+                ['status' => 'invalid_navigation_command'],
+            );
+        }
+
+        $normalizedTarget = mb_strtolower($target);
+        $config = $this->navigationTargets()[$normalizedTarget] ?? null;
+
+        if (! is_array($config)) {
+            return $this->response(
+                __('Unknown navigation target ":target". Available targets: :targets', [
+                    'target' => $target,
+                    'targets' => implode(', ', array_keys($this->navigationTargets())),
+                ]),
+                [
+                    'status' => 'unknown_navigation_target',
+                    'target' => $target,
+                ],
+            );
+        }
+
+        $url = route($config['route'], [], false);
+        $navigation = [
+            'strategy' => 'js_go_to_url',
+            'url' => $url,
+            'label' => $config['label'],
+            'target' => $normalizedTarget,
+        ];
+
+        return $this->response(
+            __('Navigating to :label (:url).', ['label' => $config['label'], 'url' => $url]),
+            [
+                'status' => 'navigation',
+                'navigation' => $navigation,
+            ],
+        );
     }
 }

@@ -10,12 +10,16 @@ use App\Modules\Core\AI\Models\AiProvider;
 
 class LaraContextProvider
 {
+    public function __construct(
+        private readonly LaraKnowledgeNavigator $knowledgeNavigator,
+    ) {}
+
     /**
      * Build runtime context for Lara based on the authenticated user's scope.
      *
      * @return array<string, mixed>
      */
-    public function contextForCurrentUser(): array
+    public function contextForCurrentUser(?string $query = null): array
     {
         $companyId = $this->authenticatedCompanyId();
 
@@ -30,6 +34,7 @@ class LaraContextProvider
             ],
             'modules' => $this->installedModules(),
             'providers' => $this->configuredProviders($companyId),
+            'knowledge' => $this->knowledgeContext($query),
         ];
     }
 
@@ -91,5 +96,24 @@ class LaraContextProvider
         $id = auth()->id();
 
         return is_int($id) ? $id : null;
+    }
+
+    /**
+     * @return array{commands: array{go: string, models: string, guide: string, delegate: string}, default_references: list<array{title: string, path: string, summary: string}>, query_references: list<array{title: string, path: string, summary: string}>}
+     */
+    private function knowledgeContext(?string $query): array
+    {
+        return [
+            'commands' => [
+                'go' => '/go <target>',
+                'models' => '/models <filter>',
+                'guide' => '/guide <topic>',
+                'delegate' => '/delegate <task>',
+            ],
+            'default_references' => $this->knowledgeNavigator->defaultReferences(),
+            'query_references' => is_string($query)
+                ? $this->knowledgeNavigator->search($query)
+                : [],
+        ];
     }
 }

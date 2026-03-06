@@ -16,6 +16,10 @@ final readonly class Session
         public ?string $title,
         public DateTimeImmutable $createdAt,
         public DateTimeImmutable $lastActivityAt,
+        /** @var array<string, array{meta: array<string, mixed>, recorded_at: string}> */
+        public array $runs = [],
+        /** @var array{strategy: string, provider_name: string, model: string, resolved_at: string, last_changed_at: string}|null */
+        public ?array $llm = null,
     ) {}
 
     /**
@@ -32,6 +36,8 @@ final readonly class Session
             title: $data['title'] ?? null,
             createdAt: new DateTimeImmutable($data['created_at']),
             lastActivityAt: new DateTimeImmutable($data['last_activity_at']),
+            runs: is_array($data['runs'] ?? null) ? $data['runs'] : [],
+            llm: is_array($data['llm'] ?? null) ? $data['llm'] : null,
         );
     }
 
@@ -42,7 +48,7 @@ final readonly class Session
      */
     public function toMeta(): array
     {
-        return [
+        $meta = [
             'id' => $this->id,
             'employee_id' => $this->employeeId,
             'channel_type' => $this->channelType,
@@ -50,5 +56,15 @@ final readonly class Session
             'created_at' => $this->createdAt->format('c'),
             'last_activity_at' => $this->lastActivityAt->format('c'),
         ];
+
+        if ($this->runs !== []) {
+            $meta['runs'] = $this->runs;
+        }
+
+        if (is_array($this->llm)) {
+            $meta['llm'] = $this->llm;
+        }
+
+        return $meta;
     }
 }

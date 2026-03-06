@@ -76,8 +76,11 @@ it('builds Lara prompt with runtime context and delegation metadata', function (
     expect($prompt)->toContain('You are Lara Belimbing')
         ->and($prompt)->toContain('"modules"')
         ->and($prompt)->toContain('"providers"')
+        ->and($prompt)->toContain('"knowledge"')
         ->and($prompt)->toContain('OpenAI')
-        ->and($prompt)->toContain('"command": "/delegate <task>"')
+        ->and($prompt)->toContain('"/go <target>"')
+        ->and($prompt)->toContain('"/models <filter>"')
+        ->and($prompt)->toContain('"/guide <topic>"')
         ->and($prompt)->toContain('Code Worker');
 });
 
@@ -117,6 +120,66 @@ it('returns null when message is not a delegation command', function (): void {
     $service = app(LaraOrchestrationService::class);
 
     expect($service->dispatchFromMessage('Hello Lara'))->toBeNull();
+});
+
+it('returns BLB references when user asks for a guide command', function (): void {
+    $fixture = createLaraOrchestrationFixture();
+    $this->actingAs($fixture['user']);
+
+    $service = app(LaraOrchestrationService::class);
+    $result = $service->dispatchFromMessage('/guide authorization');
+
+    expect($result)->not->toBeNull()
+        ->and($result['meta']['orchestration']['status'])->toBe('guide_references')
+        ->and($result['meta']['orchestration']['topic'])->toBe('authorization')
+        ->and($result['assistant_content'])->toContain('docs/architecture/authorization.md');
+});
+
+it('returns usage guidance for empty models command', function (): void {
+    $fixture = createLaraOrchestrationFixture();
+    $this->actingAs($fixture['user']);
+
+    $service = app(LaraOrchestrationService::class);
+    $result = $service->dispatchFromMessage('/models');
+
+    expect($result)->not->toBeNull()
+        ->and($result['meta']['orchestration']['status'])->toBe('invalid_models_command')
+        ->and($result['assistant_content'])->toContain('/models <filter>');
+});
+
+it('returns filter error for invalid models command syntax', function (): void {
+    $fixture = createLaraOrchestrationFixture();
+    $this->actingAs($fixture['user']);
+
+    $service = app(LaraOrchestrationService::class);
+    $result = $service->dispatchFromMessage('/models reasoning:true AND ???');
+
+    expect($result)->not->toBeNull()
+        ->and($result['meta']['orchestration']['status'])->toBe('invalid_models_filter');
+});
+
+it('returns navigation metadata for /go command', function (): void {
+    $fixture = createLaraOrchestrationFixture();
+    $this->actingAs($fixture['user']);
+
+    $service = app(LaraOrchestrationService::class);
+    $result = $service->dispatchFromMessage('/go providers');
+
+    expect($result)->not->toBeNull()
+        ->and($result['meta']['orchestration']['status'])->toBe('navigation')
+        ->and($result['meta']['orchestration']['navigation']['strategy'])->toBe('js_go_to_url')
+        ->and($result['meta']['orchestration']['navigation']['url'])->toBe('/admin/ai/providers');
+});
+
+it('returns unknown target status for unsupported /go target', function (): void {
+    $fixture = createLaraOrchestrationFixture();
+    $this->actingAs($fixture['user']);
+
+    $service = app(LaraOrchestrationService::class);
+    $result = $service->dispatchFromMessage('/go unknown-page');
+
+    expect($result)->not->toBeNull()
+        ->and($result['meta']['orchestration']['status'])->toBe('unknown_navigation_target');
 });
 
 it('queues delegation to the best matched worker', function (): void {

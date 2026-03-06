@@ -9,6 +9,8 @@ use App\Modules\Core\AI\Services\ConfigResolver;
 use App\Modules\Core\AI\Services\DigitalWorkerRuntime;
 use App\Modules\Core\AI\Services\LaraCapabilityMatcher;
 use App\Modules\Core\AI\Services\LaraContextProvider;
+use App\Modules\Core\AI\Services\LaraKnowledgeNavigator;
+use App\Modules\Core\AI\Services\LaraModelCatalogQueryService;
 use App\Modules\Core\AI\Services\LaraOrchestrationService;
 use App\Modules\Core\AI\Services\LaraPromptFactory;
 use App\Modules\Core\AI\Services\LaraTaskDispatcher;
@@ -35,6 +37,8 @@ class ServiceProvider extends BaseServiceProvider
         $this->app->singleton(DigitalWorkerRuntime::class);
         $this->app->singleton(ProviderAuthFlowService::class);
         $this->app->singleton(LaraContextProvider::class);
+        $this->app->singleton(LaraKnowledgeNavigator::class);
+        $this->app->singleton(LaraModelCatalogQueryService::class);
         $this->app->singleton(LaraCapabilityMatcher::class);
         $this->app->singleton(LaraTaskDispatcher::class);
         $this->app->singleton(LaraOrchestrationService::class);

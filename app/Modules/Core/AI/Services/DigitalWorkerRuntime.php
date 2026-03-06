@@ -61,7 +61,7 @@ class DigitalWorkerRuntime
         }
 
         if (count($configs) === 0) {
-            $result = $this->errorResult($runId, 'unknown', 0, __('No LLM configuration available.'));
+            $result = $this->errorResult($runId, 'unknown', 'unknown', 0, __('No LLM configuration available.'));
             $result['meta']['fallback_attempts'] = [];
 
             return $result;
@@ -92,7 +92,7 @@ class DigitalWorkerRuntime
         }
 
         if ($lastResult === null) {
-            $result = $this->errorResult($runId, 'unknown', 0, __('No LLM configuration available.'));
+            $result = $this->errorResult($runId, 'unknown', 'unknown', 0, __('No LLM configuration available.'));
             $result['meta']['fallback_attempts'] = [];
 
             return $result;
@@ -121,13 +121,13 @@ class DigitalWorkerRuntime
         $model = $config['model'];
 
         if (empty($config['api_key'])) {
-            return $this->errorResult($runId, $model, 0, __('API key is not configured for provider :provider.', [
+            return $this->errorResult($runId, $model, (string) ($config['provider_name'] ?? 'unknown'), 0, __('API key is not configured for provider :provider.', [
                 'provider' => $config['provider_name'] ?? 'default',
             ]), 'config_error');
         }
 
         if (empty($config['base_url'])) {
-            return $this->errorResult($runId, $model, 0, __('Base URL is not configured for provider :provider.', [
+            return $this->errorResult($runId, $model, (string) ($config['provider_name'] ?? 'unknown'), 0, __('Base URL is not configured for provider :provider.', [
                 'provider' => $config['provider_name'] ?? 'default',
             ]), 'config_error');
         }
@@ -142,7 +142,7 @@ class DigitalWorkerRuntime
                 $apiKey = $copilot['token'];
                 $baseUrl = $copilot['base_url'];
             } catch (\RuntimeException $e) {
-                return $this->errorResult($runId, $model, 0, __('Copilot token exchange failed: :error', [
+                return $this->errorResult($runId, $model, (string) ($config['provider_name'] ?? 'unknown'), 0, __('Copilot token exchange failed: :error', [
                     'error' => $e->getMessage(),
                 ]), 'auth_error');
             }
@@ -163,7 +163,7 @@ class DigitalWorkerRuntime
 
         if (isset($result['error'])) {
             return $this->errorResult(
-                $runId, $model, $result['latency_ms'],
+                $runId, $model, (string) ($config['provider_name'] ?? 'unknown'), $result['latency_ms'],
                 $result['error'], $result['error_type'] ?? 'unknown',
             );
         }
@@ -174,6 +174,10 @@ class DigitalWorkerRuntime
             'meta' => [
                 'model' => $model,
                 'provider_name' => $config['provider_name'],
+                'llm' => [
+                    'provider' => (string) ($config['provider_name'] ?? 'unknown'),
+                    'model' => $model,
+                ],
                 'latency_ms' => $result['latency_ms'],
                 'tokens' => [
                     'prompt' => $result['usage']['prompt_tokens'] ?? null,
@@ -203,13 +207,24 @@ class DigitalWorkerRuntime
      *
      * @return array{content: string, run_id: string, meta: array<string, mixed>}
      */
-    private function errorResult(string $runId, string $model, int $latencyMs, string $detail, string $errorType = 'unknown'): array
-    {
+    private function errorResult(
+        string $runId,
+        string $model,
+        string $providerName,
+        int $latencyMs,
+        string $detail,
+        string $errorType = 'unknown'
+    ): array {
         return [
             'content' => __('⚠ :detail', ['detail' => $detail]),
             'run_id' => $runId,
             'meta' => [
                 'model' => $model,
+                'provider_name' => $providerName,
+                'llm' => [
+                    'provider' => $providerName,
+                    'model' => $model,
+                ],
                 'latency_ms' => $latencyMs,
                 'error' => $detail,
                 'error_type' => $errorType,

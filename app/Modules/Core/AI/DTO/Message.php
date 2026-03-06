@@ -42,12 +42,20 @@ final readonly class Message
      */
     public function toJsonLine(): string
     {
-        return json_encode([
+        $payload = [
             'role' => $this->role,
             'content' => $this->content,
             'timestamp' => $this->timestamp->format('c'),
-            'run_id' => $this->runId,
-            'meta' => $this->meta,
-        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        ];
+
+        if (is_string($this->runId)) {
+            $payload['run_id'] = $this->runId;
+        }
+
+        if ($this->meta !== []) {
+            $payload['meta'] = $this->meta;
+        }
+
+        return json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     }
 }
