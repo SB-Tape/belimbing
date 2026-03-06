@@ -157,39 +157,16 @@ new class extends Component
      */
     public function with(): array
     {
-        $catalogService = app(ModelCatalogService::class);
-        $allProviders = $catalogService->getProviders();
+        $allProviders = app(ModelCatalogService::class)->getProviders();
 
         $companyId = auth()->user()?->employee?->company_id;
         $connectedNames = $companyId
             ? AiProvider::query()->forCompany((int) $companyId)->pluck('name')->all()
             : [];
 
-        $hasProviders = $companyId
-            ? AiProvider::query()->forCompany((int) $companyId)->exists()
-            : false;
-
         $catalog = collect($allProviders)
             ->map(function ($tpl, $key) use ($connectedNames) {
                 $models = is_array($tpl['models'] ?? null) ? $tpl['models'] : [];
-                $allCosts = [];
-
-                foreach ($models as $modelId => $m) {
-                    $cost = $m['cost'] ?? [];
-                    foreach (['input', 'output'] as $dim) {
-                        $c = $cost[$dim] ?? null;
-                        if ($c !== null && $c !== '') {
-                            $allCosts[] = (float) $c;
-                        }
-                    }
-                }
-
-                $minCost = $allCosts !== [] ? min($allCosts) : null;
-                $maxCost = $allCosts !== [] ? max($allCosts) : null;
-                $costRange = null;
-                if ($minCost !== null && $maxCost !== null) {
-                    $costRange = $minCost === $maxCost ? $minCost : ['min' => $minCost, 'max' => $maxCost];
-                }
 
                 return [
                     'key' => $key,
@@ -201,7 +178,7 @@ new class extends Component
                     'category' => $tpl['category'] ?? ['specialized'],
                     'region' => $tpl['region'] ?? ['global'],
                     'model_count' => count($models),
-                    'cost_range' => $costRange,
+                    'cost_range' => $this->extractCostRange($models),
                     'models' => collect($models)->map(fn ($m, $id) => [
                         'model_id' => is_string($id) ? $id : ($m['id'] ?? ''),
                         'display_name' => $m['name'] ?? $m['id'] ?? $id,
@@ -213,20 +190,48 @@ new class extends Component
                 ];
             })
             ->sortBy('display_name', SORT_NATURAL | SORT_FLAG_CASE)
-            ->values()
-            ->all();
-
-        $catalogCollection = collect($catalog);
-        $categoryOptions = $catalogCollection->pluck('category')->flatten()->unique()->sort()->values()->all();
-        $regionOptions = $catalogCollection->pluck('region')->flatten()->unique()->sort()->values()->all();
+            ->values();
 
         return [
-            'catalog' => $catalog,
-            'categoryOptions' => $categoryOptions,
-            'regionOptions' => $regionOptions,
+            'catalog' => $catalog->all(),
+            'categoryOptions' => $catalog->pluck('category')->flatten()->unique()->sort()->values()->all(),
+            'regionOptions' => $catalog->pluck('region')->flatten()->unique()->sort()->values()->all(),
             'connectedProviderNames' => $connectedNames,
-            'hasProviders' => $hasProviders,
+            'hasProviders' => $connectedNames !== [],
         ];
+    }
+
+    /**
+     * Extract a min/max cost range from a provider's model list.
+     *
+     * Scans input and output costs across all models. Returns null when no
+     * costs are available, a single float when min equals max, or an
+     * associative array with 'min' and 'max' keys.
+     *
+     * @param  array<array-key, array<string, mixed>>  $models  Raw model data from catalog
+     * @return float|array{min: float, max: float}|null
+     */
+    private function extractCostRange(array $models): float|array|null
+    {
+        $costs = [];
+
+        foreach ($models as $m) {
+            foreach (['input', 'output'] as $dim) {
+                $c = $m['cost'][$dim] ?? null;
+                if ($c !== null && $c !== '') {
+                    $costs[] = (float) $c;
+                }
+            }
+        }
+
+        if ($costs === []) {
+            return null;
+        }
+
+        $min = min($costs);
+        $max = max($costs);
+
+        return $min === $max ? $min : ['min' => $min, 'max' => $max];
     }
 }; ?>
 
@@ -345,7 +350,7 @@ new class extends Component
                     @foreach($categoryOptions as $cat)
                         <label class="flex items-center gap-2 px-3 py-1.5 text-sm text-ink hover:bg-surface-subtle/50 cursor-pointer">
                             <input type="checkbox" :checked="selectedCategories.includes('{{ $cat }}')" @click="toggleCategory('{{ $cat }}')" class="w-4 h-4 rounded border border-border-input accent-accent" />
-                            <span x-text="categoryLabels['{{ $cat }}'] || '{{ $cat }}'"></span>
+                            <span x-text="categoryLabels['{{ $cat }}'] || '{{ $cat }}'">{{ $cat }}</span>
                         </label>
                     @endforeach
                     <template x-if="selectedCategories.length > 0">
@@ -383,7 +388,7 @@ new class extends Component
                     @foreach($regionOptions as $reg)
                         <label class="flex items-center gap-2 px-3 py-1.5 text-sm text-ink hover:bg-surface-subtle/50 cursor-pointer">
                             <input type="checkbox" :checked="selectedRegions.includes('{{ $reg }}')" @click="toggleRegion('{{ $reg }}')" class="w-4 h-4 rounded border border-border-input accent-accent" />
-                            <span x-text="regionLabels['{{ $reg }}'] || '{{ $reg }}'"></span>
+                            <span x-text="regionLabels['{{ $reg }}'] || '{{ $reg }}'">{{ $reg }}</span>
                         </label>
                     @endforeach
                     <template x-if="selectedRegions.length > 0">

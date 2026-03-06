@@ -110,7 +110,6 @@ new class extends Component
         }
 
         $companyId = $this->getCompanyId();
-        $key = $this->connectForms[$index]['key'];
 
         // Clean up device flow cache if active
         if ($companyId !== null && isset($this->deviceFlows[$index])) {
@@ -149,10 +148,8 @@ new class extends Component
 
         foreach ($this->connectForms as $index => $form) {
             $authType = $form['auth_type'] ?? 'api_key';
-            $key = $form['key'];
 
-            // Cloudflare uses Account ID + Gateway ID instead of base_url input
-            if ($key === 'cloudflare-ai-gateway') {
+            if ($form['key'] === 'cloudflare-ai-gateway') {
                 $rules["connectForms.{$index}.cloudflare_account_id"] = ['required', 'string', 'max:255'];
                 $rules["connectForms.{$index}.cloudflare_gateway_id"] = ['required', 'string', 'max:255'];
             } else {
@@ -179,49 +176,7 @@ new class extends Component
 
         foreach ($this->connectForms as $index => $form) {
             try {
-                $key = $form['key'];
-
-                $existing = AiProvider::query()
-                    ->forCompany($companyId)
-                    ->where('name', $key)
-                    ->first();
-
-                if ($existing) {
-                    // Provider exists but has no models — retry model import
-                    if ($existing->models()->count() === 0) {
-                        $discovery->syncModels($existing);
-                    }
-
-                    $succeeded[] = $index;
-
-                    continue;
-                }
-
-                // Cloudflare: build base_url from Account ID + Gateway ID
-                $baseUrl = $form['base_url'];
-
-                if ($key === 'cloudflare-ai-gateway') {
-                    $accountId = trim($form['cloudflare_account_id'] ?? '');
-                    $gatewayId = trim($form['cloudflare_gateway_id'] ?? '');
-                    $baseUrl = "https://gateway.ai.cloudflare.com/v1/{$accountId}/{$gatewayId}/openai";
-                }
-
-                $provider = AiProvider::query()->create([
-                    'company_id' => $companyId,
-                    'name' => $key,
-                    'display_name' => $form['display_name'],
-                    'base_url' => $baseUrl,
-                    'api_key' => $form['api_key'] !== '' ? $form['api_key'] : 'not-required',
-                    'is_active' => true,
-                    'created_by' => auth()->user()->employee?->id,
-                ]);
-
-                // Auto-assign priority for each new provider
-                $provider->assignNextPriority();
-
-                // Discover and import models (falls back to template on failure)
-                $discovery->syncModels($provider);
-
+                $this->connectProvider($companyId, $form, $discovery);
                 $succeeded[] = $index;
             } catch (\Illuminate\Http\Client\ConnectionException $e) {
                 $this->connectErrors[$index] = __('Could not connect to :url — is the server running?', [
@@ -245,28 +200,97 @@ new class extends Component
             }
         }
 
-        // Remove succeeded forms (iterate in reverse to preserve indices)
-        foreach (array_reverse($succeeded) as $index) {
-            array_splice($this->connectForms, $index, 1);
-        }
+        $this->removeSucceededForms($succeeded);
 
-        // Re-index connectErrors to match new form indices
-        $newErrors = [];
-        foreach ($this->connectErrors as $oldIndex => $error) {
-            // Count how many succeeded forms had indices < oldIndex
-            $offset = count(array_filter($succeeded, fn (int $i): bool => $i < $oldIndex));
-            $newErrors[$oldIndex - $offset] = $error;
-        }
-        $this->connectErrors = $newErrors;
-
-        // All succeeded — wizard completed
         if ($this->connectForms === []) {
             $this->cleanupAuthFlows();
-            $this->connectForms = [];
             $this->deviceFlows = [];
             $this->connectErrors = [];
             $this->dispatch('wizard-completed');
         }
+    }
+
+    /**
+     * Connect or re-sync a single provider for the given company.
+     *
+     * If the provider already exists, triggers model re-import when none are
+     * present. Otherwise creates the provider, assigns priority, and runs
+     * initial model discovery.
+     *
+     * @param  array{key: string, display_name: string, base_url: string, api_key: string, auth_type: string, cloudflare_account_id?: string, cloudflare_gateway_id?: string}  $form
+     */
+    private function connectProvider(int $companyId, array $form, ModelDiscoveryService $discovery): void
+    {
+        $key = $form['key'];
+
+        $existing = AiProvider::query()
+            ->forCompany($companyId)
+            ->where('name', $key)
+            ->first();
+
+        if ($existing) {
+            if (! $existing->models()->exists()) {
+                $discovery->syncModels($existing);
+            }
+
+            return;
+        }
+
+        $provider = AiProvider::query()->create([
+            'company_id' => $companyId,
+            'name' => $key,
+            'display_name' => $form['display_name'],
+            'base_url' => $this->resolveBaseUrl($form),
+            'api_key' => $form['api_key'] !== '' ? $form['api_key'] : 'not-required',
+            'is_active' => true,
+            'created_by' => auth()->user()->employee?->id,
+        ]);
+
+        $provider->assignNextPriority();
+        $discovery->syncModels($provider);
+    }
+
+    /**
+     * Build the provider base URL, handling Cloudflare's Account+Gateway ID pattern.
+     *
+     * @param  array{key: string, base_url: string, cloudflare_account_id?: string, cloudflare_gateway_id?: string}  $form
+     */
+    private function resolveBaseUrl(array $form): string
+    {
+        if ($form['key'] !== 'cloudflare-ai-gateway') {
+            return $form['base_url'];
+        }
+
+        $accountId = trim($form['cloudflare_account_id'] ?? '');
+        $gatewayId = trim($form['cloudflare_gateway_id'] ?? '');
+
+        return "https://gateway.ai.cloudflare.com/v1/{$accountId}/{$gatewayId}/openai";
+    }
+
+    /**
+     * Remove succeeded forms and re-index errors in a single forward pass.
+     *
+     * @param  list<int>  $succeeded  Indices of forms that connected successfully
+     */
+    private function removeSucceededForms(array $succeeded): void
+    {
+        $remaining = [];
+        $reindexedErrors = [];
+
+        foreach ($this->connectForms as $index => $form) {
+            if (in_array($index, $succeeded, true)) {
+                continue;
+            }
+
+            if (isset($this->connectErrors[$index])) {
+                $reindexedErrors[count($remaining)] = $this->connectErrors[$index];
+            }
+
+            $remaining[] = $form;
+        }
+
+        $this->connectForms = $remaining;
+        $this->connectErrors = $reindexedErrors;
     }
 
     /**
