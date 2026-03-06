@@ -5,6 +5,7 @@
 
 namespace App\Base\Database\Seeders;
 
+use App\Base\Database\Exceptions\DevSeederProductionEnvironmentException;
 use Illuminate\Database\Seeder;
 
 abstract class DevSeeder extends Seeder
@@ -41,9 +42,7 @@ abstract class DevSeeder extends Seeder
     protected function guardAgainstProduction(): void
     {
         if (! app()->environment('local')) {
-            throw new \RuntimeException(
-                'Dev seeders may only run when APP_ENV=local. Current: '.app()->environment()
-            );
+            throw DevSeederProductionEnvironmentException::forEnvironment(app()->environment());
         }
     }
 }

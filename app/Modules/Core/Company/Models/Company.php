@@ -8,6 +8,7 @@ namespace App\Modules\Core\Company\Models;
 use App\Modules\Core\Address\Models\Address;
 use App\Modules\Core\Address\Models\Addressable;
 use App\Modules\Core\Company\Database\Factories\CompanyFactory;
+use App\Modules\Core\Company\Exceptions\LicenseeCompanyDeletionException;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -93,7 +94,7 @@ class Company extends Model
 
         static::deleting(function ($company): void {
             if ($company->id === self::LICENSEE_ID) {
-                throw new \LogicException('The licensee company (id=1) cannot be deleted.');
+                throw new LicenseeCompanyDeletionException();
             }
         });
     }

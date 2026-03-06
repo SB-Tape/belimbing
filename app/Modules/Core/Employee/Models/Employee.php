@@ -10,6 +10,7 @@ use App\Modules\Core\Address\Models\Addressable;
 use App\Modules\Core\Company\Models\Company;
 use App\Modules\Core\Company\Models\Department;
 use App\Modules\Core\Employee\Database\Factories\EmployeeFactory;
+use App\Modules\Core\Employee\Exceptions\SystemEmployeeDeletionException;
 use App\Modules\Core\User\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -49,7 +50,7 @@ class Employee extends Model
 
         static::deleting(function (Employee $employee): void {
             if ($employee->isLara()) {
-                throw new \LogicException('Lara (the system Digital Worker) cannot be deleted.');
+                throw new SystemEmployeeDeletionException();
             }
         });
     }

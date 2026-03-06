@@ -6,6 +6,7 @@
 namespace App\Base\Database\Console\Commands;
 
 use App\Base\Database\Concerns\InteractsWithModuleMigrations;
+use App\Base\Database\Exceptions\CircularSeederDependencyException;
 use App\Base\Database\Models\SeederRegistry;
 use App\Base\Database\Seeders\DevSeeder;
 use App\Modules\Core\Company\Models\Company;
@@ -235,7 +236,7 @@ class MigrateCommand extends IlluminateMigrateCommand
      *
      * @return array<int, class-string<DevSeeder>>
      *
-     * @throws \RuntimeException If a circular dependency is detected.
+     * @throws \App\Base\Database\Exceptions\CircularSeederDependencyException If a circular dependency is detected.
      */
     private function discoverDevSeeders(): array
     {
@@ -267,7 +268,7 @@ class MigrateCommand extends IlluminateMigrateCommand
      * @param  array<int, class-string<DevSeeder>>  $classes
      * @return array<int, class-string<DevSeeder>>
      *
-     * @throws \RuntimeException If a circular dependency is detected.
+     * @throws \App\Base\Database\Exceptions\CircularSeederDependencyException If a circular dependency is detected.
      */
     private function topologicalSort(array $classes): array
     {
@@ -316,9 +317,7 @@ class MigrateCommand extends IlluminateMigrateCommand
 
         if (count($sorted) !== count($classes)) {
             $stuck = array_diff($classes, $sorted);
-            throw new \RuntimeException(
-                'Circular dependency detected among dev seeders: '.implode(', ', $stuck)
-            );
+            throw CircularSeederDependencyException::forClasses(array_values($stuck));
         }
 
         return $sorted;
