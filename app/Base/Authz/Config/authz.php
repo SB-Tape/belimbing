@@ -30,6 +30,7 @@ return [
         'ai.tool_artisan.execute',
         'ai.tool_bash.execute',
         'ai.tool_navigate.execute',
+        'ai.tool_query_data.execute',
         'ai.tool_write_js.execute',
         'admin.user.impersonate',
         'admin.role.list',
@@ -125,11 +126,12 @@ return [
         ],
         'digital_worker_operator' => [
             'name' => 'Digital Worker Operator',
-            'description' => 'View and execute Digital Workers without broader admin rights.',
+            'description' => 'View and execute Digital Workers with basic tool access.',
             'capabilities' => [
                 'ai.digital_worker.view',
                 'ai.digital_worker.execute',
                 'ai.tool_navigate.execute',
+                'ai.tool_query_data.execute',
             ],
         ],
         'dw_power_user' => [
@@ -141,6 +143,7 @@ return [
                 'ai.tool_artisan.execute',
                 'ai.tool_bash.execute',
                 'ai.tool_navigate.execute',
+                'ai.tool_query_data.execute',
                 'ai.tool_write_js.execute',
             ],
         ],

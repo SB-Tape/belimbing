@@ -24,6 +24,7 @@ use App\Modules\Core\AI\Services\SessionManager;
 use App\Modules\Core\AI\Tools\ArtisanTool;
 use App\Modules\Core\AI\Tools\BashTool;
 use App\Modules\Core\AI\Tools\NavigateTool;
+use App\Modules\Core\AI\Tools\QueryDataTool;
 use Illuminate\Support\ServiceProvider as BaseServiceProvider;
 
 class ServiceProvider extends BaseServiceProvider
@@ -59,6 +60,7 @@ class ServiceProvider extends BaseServiceProvider
             $registry->register(new ArtisanTool);
             $registry->register(new BashTool);
             $registry->register(new NavigateTool);
+            $registry->register(new QueryDataTool);
 
             return $registry;
         });
