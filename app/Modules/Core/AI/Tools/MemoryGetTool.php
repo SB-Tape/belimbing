@@ -1,0 +1,216 @@
+<?php
+
+// SPDX-License-Identifier: AGPL-3.0-only
+// (c) Ng Kiat Siong <kiatsiong.ng@gmail.com>
+
+namespace App\Modules\Core\AI\Tools;
+
+use App\Modules\Core\AI\Contracts\DigitalWorkerTool;
+use App\Modules\Core\Employee\Models\Employee;
+
+/**
+ * Workspace and documentation file reading tool for Digital Workers.
+ *
+ * Allows a DW to read files from two scopes:
+ * - `docs`: The BLB project documentation directory (base_path('docs/'))
+ * - `workspace`: Lara's workspace directory (config('ai.workspace_path')/LARA_ID/)
+ *
+ * Safety: Path traversal is blocked, absolute paths are rejected, binary
+ * files are detected, and output is capped at 500 lines.
+ *
+ * Gated by `ai.tool_memory_get.execute` authz capability.
+ */
+class MemoryGetTool implements DigitalWorkerTool
+{
+    private const MAX_LINES = 500;
+
+    private const BINARY_CHECK_BYTES = 1024;
+
+    public function name(): string
+    {
+        return 'memory_get';
+    }
+
+    public function description(): string
+    {
+        return 'Read a file from the project documentation or Lara\'s workspace. '
+            .'Use scope "docs" to read architecture specs, blueprints, and guides (e.g., "architecture/database.md"). '
+            .'Use scope "workspace" to read Lara\'s workspace files (e.g., "MEMORY.md", "notes/meeting-2026-03-06.md"). '
+            .'Supports optional line range selection for large files.';
+    }
+
+    public function parametersSchema(): array
+    {
+        return [
+            'type' => 'object',
+            'properties' => [
+                'path' => [
+                    'type' => 'string',
+                    'description' => 'Relative file path within the chosen scope '
+                        .'(e.g., "MEMORY.md", "architecture/database.md").',
+                ],
+                'scope' => [
+                    'type' => 'string',
+                    'enum' => ['docs', 'workspace'],
+                    'description' => 'Where to read from: "docs" for project documentation (default), '
+                        .'"workspace" for Lara\'s workspace files.',
+                ],
+                'from' => [
+                    'type' => 'integer',
+                    'description' => 'Start reading from this line number (1-indexed, default: 1).',
+                ],
+                'lines' => [
+                    'type' => 'integer',
+                    'description' => 'Maximum number of lines to return (default: all, capped at 500).',
+                ],
+            ],
+            'required' => ['path'],
+        ];
+    }
+
+    public function requiredCapability(): ?string
+    {
+        return 'ai.tool_memory_get.execute';
+    }
+
+    public function execute(array $arguments): string
+    {
+        $path = $arguments['path'] ?? '';
+
+        if (! is_string($path) || trim($path) === '') {
+            return 'Error: No path provided.';
+        }
+
+        $path = trim($path);
+
+        $pathError = $this->validatePath($path);
+        if ($pathError !== null) {
+            return $pathError;
+        }
+
+        $scope = 'docs';
+        if (isset($arguments['scope']) && in_array($arguments['scope'], ['docs', 'workspace'], true)) {
+            $scope = $arguments['scope'];
+        }
+
+        $from = 1;
+        if (isset($arguments['from']) && is_int($arguments['from']) && $arguments['from'] >= 1) {
+            $from = $arguments['from'];
+        }
+
+        $maxLines = self::MAX_LINES;
+        if (isset($arguments['lines']) && is_int($arguments['lines']) && $arguments['lines'] >= 1) {
+            $maxLines = min($arguments['lines'], self::MAX_LINES);
+        }
+
+        $basePath = $this->resolveBasePath($scope);
+        $fullPath = $basePath.'/'.ltrim($path, '/');
+        $realBase = realpath($basePath);
+        $realFull = realpath($fullPath);
+
+        if ($realBase === false) {
+            return 'Error: Scope directory does not exist.';
+        }
+
+        if ($realFull === false || ! is_file($realFull)) {
+            return 'Error: File not found: '.$path;
+        }
+
+        // Ensure resolved path is within the scope directory
+        if (! str_starts_with($realFull, $realBase.'/')) {
+            return 'Error: Invalid path: directory traversal is not allowed.';
+        }
+
+        if ($this->isBinary($realFull)) {
+            return 'Error: Cannot read binary file: '.$path;
+        }
+
+        $allLines = file($realFull, FILE_IGNORE_NEW_LINES);
+
+        if ($allLines === false) {
+            return 'Error: Unable to read file: '.$path;
+        }
+
+        $totalLines = count($allLines);
+
+        if ($from > $totalLines) {
+            return 'Error: Start line '.$from.' exceeds file length ('.$totalLines.' lines).';
+        }
+
+        $selectedLines = array_slice($allLines, $from - 1, $maxLines);
+        $content = implode("\n", $selectedLines);
+        $returnedCount = count($selectedLines);
+
+        $footer = $returnedCount.' lines';
+        if ($from > 1 || $returnedCount < $totalLines) {
+            $endLine = $from + $returnedCount - 1;
+            $footer .= ' (lines '.$from.'-'.$endLine.' of '.$totalLines.')';
+        }
+        $footer .= ' from '.$scope.':'.$path;
+
+        return '# '.basename($path)."\n\n".$content."\n\n---\n".$footer;
+    }
+
+    /**
+     * Validate the relative path for safety.
+     *
+     * Rejects absolute paths, directory traversal sequences, and null bytes.
+     *
+     * @param  string  $path  The relative path to validate
+     * @return string|null Error message if invalid, null if valid
+     */
+    private function validatePath(string $path): ?string
+    {
+        if (str_starts_with($path, '/')) {
+            return 'Error: Invalid path: absolute paths are not allowed.';
+        }
+
+        if (str_contains($path, '..')) {
+            return 'Error: Invalid path: directory traversal is not allowed.';
+        }
+
+        if (str_contains($path, "\0")) {
+            return 'Error: Invalid path: null bytes are not allowed.';
+        }
+
+        return null;
+    }
+
+    /**
+     * Resolve the base directory path for the given scope.
+     *
+     * @param  string  $scope  Either 'docs' or 'workspace'
+     * @return string Absolute path to the scope's base directory
+     */
+    private function resolveBasePath(string $scope): string
+    {
+        if ($scope === 'workspace') {
+            return config('ai.workspace_path').'/'.Employee::LARA_ID;
+        }
+
+        return base_path('docs');
+    }
+
+    /**
+     * Check whether the file appears to be binary by scanning for null bytes.
+     *
+     * @param  string  $filePath  Absolute path to the file
+     */
+    private function isBinary(string $filePath): bool
+    {
+        $handle = fopen($filePath, 'r');
+
+        if ($handle === false) {
+            return false;
+        }
+
+        $chunk = fread($handle, self::BINARY_CHECK_BYTES);
+        fclose($handle);
+
+        if ($chunk === false || $chunk === '') {
+            return false;
+        }
+
+        return str_contains($chunk, "\0");
+    }
+}
