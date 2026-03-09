@@ -83,13 +83,16 @@ test('role index displays roles with search', function (): void {
     $this->actingAs($user);
 
     Livewire::test('admin.roles.index')
-        ->assertSee('Core Administrator')
-        ->assertSee('User Viewer')
-        ->assertSee('User Editor');
+        ->assertSee('Core Administrator');
 
     Livewire::test('admin.roles.index')
-        ->set('search', 'viewer')
+        ->set('search', 'user viewer')
         ->assertSee('User Viewer')
+        ->assertDontSee('Core Administrator');
+
+    Livewire::test('admin.roles.index')
+        ->set('search', 'user editor')
+        ->assertSee('User Editor')
         ->assertDontSee('Core Administrator');
 });
 

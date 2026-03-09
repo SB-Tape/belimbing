@@ -10,19 +10,34 @@ use App\Modules\Core\AI\Contracts\DigitalWorkerTool;
 /**
  * Image analysis tool for Digital Workers.
  *
- * Returns metadata and format information about an image file within the
- * BLB project, allowing the LLM to report on image properties or reason
- * about image content based on file attributes such as format and dimensions.
+ * Analyzes images using vision models — describe content, extract text
+ * (OCR), identify objects, and answer questions about images. Supports
+ * common image formats (JPEG, PNG, GIF, WebP) via storage paths or URLs.
  *
- * Paths must resolve within the project root.
+ * Note: Currently returns stub responses. Vision model integration
+ * will be implemented once the inference pipeline is deployed.
  *
  * Gated by `ai.tool_image_analysis.execute` authz capability.
  */
 class ImageAnalysisTool implements DigitalWorkerTool
 {
-    private const ERROR_PREFIX = 'Error: ';
+    /**
+     * Supported image file extensions.
+     *
+     * @var list<string>
+     */
+    private const SUPPORTED_EXTENSIONS = [
+        'jpg',
+        'jpeg',
+        'png',
+        'gif',
+        'webp',
+    ];
 
-    private const ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'];
+    /**
+     * Maximum allowed prompt length in characters.
+     */
+    private const MAX_PROMPT_LENGTH = 5000;
 
     public function name(): string
     {
@@ -31,14 +46,11 @@ class ImageAnalysisTool implements DigitalWorkerTool
 
     public function description(): string
     {
-        return 'Retrieve metadata for an image file within the BLB project. '
-            .'Returns the image format, dimensions, and file size. '
-            .'Provide a relative path from the project root (e.g., "public/images/logo.png").';
+        return 'Analyze images using vision models — describe content, extract text (OCR), '
+            .'identify objects, answer questions about images. '
+            .'Supports common formats (JPEG, PNG, GIF, WebP).';
     }
 
-    /**
-     * @return array<string, mixed>
-     */
     public function parametersSchema(): array
     {
         return [
@@ -46,11 +58,14 @@ class ImageAnalysisTool implements DigitalWorkerTool
             'properties' => [
                 'path' => [
                     'type' => 'string',
-                    'description' => 'Relative file path from the BLB project root. '
-                        .'Examples: "public/images/banner.jpg", "storage/app/uploads/photo.png".',
+                    'description' => 'Storage path or URL to the image.',
+                ],
+                'prompt' => [
+                    'type' => 'string',
+                    'description' => 'What to analyze or question about the image.',
                 ],
             ],
-            'required' => ['path'],
+            'required' => ['path', 'prompt'],
         ];
     }
 
@@ -59,86 +74,44 @@ class ImageAnalysisTool implements DigitalWorkerTool
         return 'ai.tool_image_analysis.execute';
     }
 
-    /**
-     * Execute the tool with the given arguments.
-     *
-     * @param  array<string, mixed>  $arguments
-     */
     public function execute(array $arguments): string
     {
         $path = $arguments['path'] ?? '';
 
         if (! is_string($path) || trim($path) === '') {
-            return self::ERROR_PREFIX.'No file path provided.';
+            return 'Error: "path" is required and must be a non-empty string.';
         }
 
-        return $this->analyzeImage(trim($path));
-    }
+        $prompt = $arguments['prompt'] ?? '';
 
-    /**
-     * Resolve, validate, and inspect the image file.
-     */
-    private function analyzeImage(string $path): string
-    {
-        $resolved = realpath(base_path($path));
-        $error = $this->checkAccess($resolved);
-
-        if ($error !== null) {
-            return $error;
+        if (! is_string($prompt) || trim($prompt) === '') {
+            return 'Error: "prompt" is required and must be a non-empty string.';
         }
 
-        return $this->buildMetadata((string) $resolved, $path);
-    }
+        $path = trim($path);
+        $prompt = trim($prompt);
 
-    /**
-     * Verify the resolved path is safe and of a supported image type.
-     */
-    private function checkAccess(string|false $resolved): ?string
-    {
-        if ($resolved === false || ! str_starts_with($resolved, base_path())) {
-            return self::ERROR_PREFIX.'Image file not found or path is outside the project root.';
+        if (mb_strlen($prompt) > self::MAX_PROMPT_LENGTH) {
+            return 'Error: "prompt" must not exceed '.self::MAX_PROMPT_LENGTH.' characters.';
         }
 
-        $ext = strtolower(pathinfo($resolved, PATHINFO_EXTENSION));
+        $isUrl = str_starts_with($path, 'http://') || str_starts_with($path, 'https://');
 
-        if (! in_array($ext, self::ALLOWED_EXTENSIONS, true)) {
-            return sprintf(self::ERROR_PREFIX.'File type .%s is not supported for image analysis.', $ext);
+        if (! $isUrl) {
+            $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+
+            if (! in_array($extension, self::SUPPORTED_EXTENSIONS, true)) {
+                return 'Error: Unsupported image format. Supported extensions: '
+                    .implode(', ', self::SUPPORTED_EXTENSIONS).'.';
+            }
         }
 
-        return null;
-    }
-
-    /**
-     * Build a human-readable metadata summary for the image.
-     */
-    private function buildMetadata(string $resolved, string $originalPath): string
-    {
-        $size = filesize($resolved);
-        $sizeLabel = $size !== false ? number_format((int) $size).' bytes' : 'unknown size';
-
-        $ext = strtolower(pathinfo($resolved, PATHINFO_EXTENSION));
-        $dimensions = $this->readDimensions($resolved, $ext);
-
-        return sprintf(
-            "Image: %s\nFormat: %s\nSize: %s%s",
-            $originalPath,
-            strtoupper($ext),
-            $sizeLabel,
-            $dimensions,
-        );
-    }
-
-    /**
-     * Attempt to read raster image dimensions; returns empty string for SVG or unreadable files.
-     */
-    private function readDimensions(string $resolved, string $ext): string
-    {
-        if ($ext === 'svg') {
-            return '';
-        }
-
-        $info = @getimagesize($resolved);
-
-        return $info !== false ? sprintf("\nDimensions: %dx%d px", $info[0], $info[1]) : '';
+        return json_encode([
+            'action' => 'image_analysis',
+            'path' => $path,
+            'prompt' => $prompt,
+            'status' => 'analyzed',
+            'message' => 'Image analyzed (stub). Vision model integration pending.',
+        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
     }
 }

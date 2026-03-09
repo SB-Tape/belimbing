@@ -18,9 +18,15 @@ class AuthzRoleCapabilitySeeder extends Seeder
      *
      * Maps role capability keys from config. Uses string keys
      * directly — no capabilities table dependency.
+     *
+     * Ensures all config-defined roles exist (via AuthzRoleSeeder) before
+     * mapping capabilities, so running this seeder alone after config
+     * changes is sufficient.
      */
     public function run(): void
     {
+        $this->call(AuthzRoleSeeder::class);
+
         /** @var array<string, array{name: string, description: string|null, grant_all?: bool, capabilities?: array<int, string>}> $roles */
         $roles = config('authz.roles', []);
 

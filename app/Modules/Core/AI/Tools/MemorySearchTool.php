@@ -29,8 +29,6 @@ use RecursiveIteratorIterator;
  */
 class MemorySearchTool implements DigitalWorkerTool
 {
-    private const ERROR_PREFIX = 'Error: ';
-
     private const MAX_RESULTS_LIMIT = 50;
 
     private const DEFAULT_MAX_RESULTS = 10;
@@ -110,17 +108,12 @@ class MemorySearchTool implements DigitalWorkerTool
         return 'ai.tool_memory_search.execute';
     }
 
-    /**
-     * Execute the search: validate query, run search, format results.
-     *
-     * Overrides the contract method to add query validation before searching.
-     */
     public function execute(array $arguments): string
     {
         $query = $arguments['query'] ?? '';
 
         if (! is_string($query) || trim($query) === '') {
-            return self::ERROR_PREFIX.'No search query provided.';
+            return 'Error: No search query provided.';
         }
 
         $query = trim($query);

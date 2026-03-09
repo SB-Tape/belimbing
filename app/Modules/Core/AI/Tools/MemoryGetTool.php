@@ -22,8 +22,6 @@ use App\Modules\Core\Employee\Models\Employee;
  */
 class MemoryGetTool implements DigitalWorkerTool
 {
-    private const ERROR_PREFIX = 'Error: ';
-
     private const MAX_LINES = 500;
 
     private const BINARY_CHECK_BYTES = 1024;
@@ -75,121 +73,73 @@ class MemoryGetTool implements DigitalWorkerTool
         return 'ai.tool_memory_get.execute';
     }
 
-    /**
-     * Execute the tool: validate the path, then delegate to file reading.
-     *
-     * Overrides the contract method to add path validation before reading.
-     */
     public function execute(array $arguments): string
     {
         $path = $arguments['path'] ?? '';
 
         if (! is_string($path) || trim($path) === '') {
-            return self::ERROR_PREFIX.'No path provided.';
+            return 'Error: No path provided.';
         }
 
         $path = trim($path);
+
         $pathError = $this->validatePath($path);
-
-        return $pathError ?? $this->readFile($path, $arguments);
-    }
-
-    /**
-     * Resolve the filesystem path, guard against binary content, then read lines.
-     *
-     * @param  string  $path  Validated relative path
-     * @param  array<string, mixed>  $arguments  Raw tool arguments
-     */
-    private function readFile(string $path, array $arguments): string
-    {
-        $scope = $this->resolveScope($arguments);
-        $from = $this->resolveFrom($arguments);
-        $maxLines = $this->resolveMaxLines($arguments);
-
-        [$error, $realFull] = $this->resolveFilePath($path, $scope);
-
-        if ($error !== null) {
-            return $error;
+        if ($pathError !== null) {
+            return $pathError;
         }
 
-        return $this->isBinary($realFull)
-            ? self::ERROR_PREFIX.'Cannot read binary file: '.$path
-            : $this->readLines($realFull, $path, $scope, $from, $maxLines);
-    }
+        $scope = 'docs';
+        if (isset($arguments['scope']) && in_array($arguments['scope'], ['docs', 'workspace'], true)) {
+            $scope = $arguments['scope'];
+        }
 
-    /**
-     * Resolve and validate the absolute filesystem path for the given scope.
-     *
-     * Returns a two-element array: [error|null, resolvedPath|''].
-     * When error is non-null, resolvedPath is an empty string.
-     *
-     * @param  string  $path  Validated relative path
-     * @param  string  $scope  Resolved scope ('docs' or 'workspace')
-     * @return array{0: string|null, 1: string}
-     */
-    private function resolveFilePath(string $path, string $scope): array
-    {
+        $from = 1;
+        if (isset($arguments['from']) && is_int($arguments['from']) && $arguments['from'] >= 1) {
+            $from = $arguments['from'];
+        }
+
+        $maxLines = self::MAX_LINES;
+        if (isset($arguments['lines']) && is_int($arguments['lines']) && $arguments['lines'] >= 1) {
+            $maxLines = min($arguments['lines'], self::MAX_LINES);
+        }
+
         $basePath = $this->resolveBasePath($scope);
+        $fullPath = $basePath.'/'.ltrim($path, '/');
         $realBase = realpath($basePath);
+        $realFull = realpath($fullPath);
 
         if ($realBase === false) {
-            return [self::ERROR_PREFIX.'Scope directory does not exist.', ''];
+            return 'Error: Scope directory does not exist.';
         }
-
-        $realFull = realpath($basePath.'/'.ltrim($path, '/'));
 
         if ($realFull === false || ! is_file($realFull)) {
-            return [self::ERROR_PREFIX.'File not found: '.$path, ''];
+            return 'Error: File not found: '.$path;
         }
 
+        // Ensure resolved path is within the scope directory
         if (! str_starts_with($realFull, $realBase.'/')) {
-            return [self::ERROR_PREFIX.'Invalid path: directory traversal is not allowed.', ''];
+            return 'Error: Invalid path: directory traversal is not allowed.';
         }
 
-        return [null, $realFull];
-    }
+        if ($this->isBinary($realFull)) {
+            return 'Error: Cannot read binary file: '.$path;
+        }
 
-    /**
-     * Read the requested line range from an already-validated file path.
-     *
-     * @param  string  $realFull  Absolute, validated filesystem path
-     * @param  string  $path  Original relative path (for error messages and footer)
-     * @param  string  $scope  Scope label ('docs' or 'workspace')
-     * @param  int  $from  1-indexed start line
-     * @param  int  $maxLines  Maximum lines to return
-     */
-    private function readLines(string $realFull, string $path, string $scope, int $from, int $maxLines): string
-    {
         $allLines = file($realFull, FILE_IGNORE_NEW_LINES);
 
         if ($allLines === false) {
-            return self::ERROR_PREFIX.'Unable to read file: '.$path;
+            return 'Error: Unable to read file: '.$path;
         }
 
         $totalLines = count($allLines);
 
         if ($from > $totalLines) {
-            return self::ERROR_PREFIX.'Start line '.$from.' exceeds file length ('.$totalLines.' lines).';
+            return 'Error: Start line '.$from.' exceeds file length ('.$totalLines.' lines).';
         }
 
-        return $this->formatOutput($path, $scope, $from, $maxLines, $allLines, $totalLines);
-    }
-
-    /**
-     * Build the formatted output string with header, content, and footer.
-     *
-     * @param  string  $path  Relative path (used in footer and heading)
-     * @param  string  $scope  Scope label ('docs' or 'workspace')
-     * @param  int  $from  1-indexed start line
-     * @param  int  $maxLines  Maximum lines to include
-     * @param  list<string>  $allLines  All file lines
-     * @param  int  $totalLines  Total line count in the file
-     */
-    private function formatOutput(string $path, string $scope, int $from, int $maxLines, array $allLines, int $totalLines): string
-    {
         $selectedLines = array_slice($allLines, $from - 1, $maxLines);
-        $returnedCount = count($selectedLines);
         $content = implode("\n", $selectedLines);
+        $returnedCount = count($selectedLines);
 
         $footer = $returnedCount.' lines';
         if ($from > 1 || $returnedCount < $totalLines) {
@@ -212,15 +162,15 @@ class MemoryGetTool implements DigitalWorkerTool
     private function validatePath(string $path): ?string
     {
         if (str_starts_with($path, '/')) {
-            return self::ERROR_PREFIX.'Invalid path: absolute paths are not allowed.';
+            return 'Error: Invalid path: absolute paths are not allowed.';
         }
 
         if (str_contains($path, '..')) {
-            return self::ERROR_PREFIX.'Invalid path: directory traversal is not allowed.';
+            return 'Error: Invalid path: directory traversal is not allowed.';
         }
 
         if (str_contains($path, "\0")) {
-            return self::ERROR_PREFIX.'Invalid path: null bytes are not allowed.';
+            return 'Error: Invalid path: null bytes are not allowed.';
         }
 
         return null;
@@ -239,48 +189,6 @@ class MemoryGetTool implements DigitalWorkerTool
         }
 
         return base_path('docs');
-    }
-
-    /**
-     * Resolve the scope parameter, defaulting to 'docs'.
-     *
-     * @param  array<string, mixed>  $arguments  Raw tool arguments
-     */
-    private function resolveScope(array $arguments): string
-    {
-        if (isset($arguments['scope']) && in_array($arguments['scope'], ['docs', 'workspace'], true)) {
-            return $arguments['scope'];
-        }
-
-        return 'docs';
-    }
-
-    /**
-     * Resolve the from parameter, defaulting to 1.
-     *
-     * @param  array<string, mixed>  $arguments  Raw tool arguments
-     */
-    private function resolveFrom(array $arguments): int
-    {
-        if (isset($arguments['from']) && is_int($arguments['from']) && $arguments['from'] >= 1) {
-            return $arguments['from'];
-        }
-
-        return 1;
-    }
-
-    /**
-     * Resolve the lines parameter, capped at MAX_LINES.
-     *
-     * @param  array<string, mixed>  $arguments  Raw tool arguments
-     */
-    private function resolveMaxLines(array $arguments): int
-    {
-        if (isset($arguments['lines']) && is_int($arguments['lines']) && $arguments['lines'] >= 1) {
-            return min($arguments['lines'], self::MAX_LINES);
-        }
-
-        return self::MAX_LINES;
     }
 
     /**

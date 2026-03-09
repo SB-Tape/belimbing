@@ -12,19 +12,22 @@ use App\Modules\Core\AI\Services\LaraTaskDispatcher;
 /**
  * Task delegation tool for Digital Workers.
  *
- * Allows a DW to delegate a sub-task to another accessible Digital Worker,
- * enabling multi-agent workflows within BLB. The best-matched worker is
- * selected automatically unless a specific worker_id is supplied.
+ * Dispatches a task to a specific Digital Worker or auto-matches the best
+ * available worker based on task description. Uses LaraTaskDispatcher for
+ * dispatch orchestration and LaraCapabilityMatcher for auto-matching.
+ *
+ * Returns a dispatch ID that can be used with delegation_status to poll
+ * for results.
  *
  * Gated by `ai.tool_delegate.execute` authz capability.
  */
 class DelegateTaskTool implements DigitalWorkerTool
 {
-    private const ERROR_PREFIX = 'Error: ';
+    private const MAX_TASK_LENGTH = 5000;
 
     public function __construct(
+        private readonly LaraTaskDispatcher $dispatcher,
         private readonly LaraCapabilityMatcher $capabilityMatcher,
-        private readonly LaraTaskDispatcher $taskDispatcher,
     ) {}
 
     public function name(): string
@@ -34,14 +37,13 @@ class DelegateTaskTool implements DigitalWorkerTool
 
     public function description(): string
     {
-        return 'Delegate a sub-task to another accessible Digital Worker. '
-            .'Use this when the task requires a specialist or a different DW\'s capabilities. '
-            .'Omit worker_id to auto-select the best match, or supply it to target a specific worker.';
+        return 'Dispatch a task to a Digital Worker for execution. '
+            .'Provide a task description and optionally a specific worker_id '
+            .'(from worker_list). If no worker_id is given, the best available '
+            .'worker is auto-selected based on the task description. '
+            .'Returns a dispatch_id for tracking status via delegation_status.';
     }
 
-    /**
-     * @return array<string, mixed>
-     */
     public function parametersSchema(): array
     {
         return [
@@ -49,13 +51,14 @@ class DelegateTaskTool implements DigitalWorkerTool
             'properties' => [
                 'task' => [
                     'type' => 'string',
-                    'description' => 'A clear description of the sub-task to delegate. '
-                        .'Example: "Generate a sales report for Q1 2025 and email it to the finance team."',
+                    'description' => 'Description of the task to delegate. Be specific about '
+                        .'what the worker should accomplish.',
                 ],
                 'worker_id' => [
                     'type' => 'integer',
-                    'description' => 'Optional: the employee ID of a specific Digital Worker to delegate to. '
-                        .'Leave blank to auto-select the best available worker.',
+                    'description' => 'Employee ID of the target Digital Worker. '
+                        .'Use worker_list to discover available workers and their IDs. '
+                        .'If omitted, the best-matching worker is auto-selected.',
                 ],
             ],
             'required' => ['task'],
@@ -67,57 +70,67 @@ class DelegateTaskTool implements DigitalWorkerTool
         return 'ai.tool_delegate.execute';
     }
 
-    /**
-     * Execute the tool with the given arguments.
-     *
-     * @param  array<string, mixed>  $arguments
-     */
     public function execute(array $arguments): string
     {
         $task = $arguments['task'] ?? '';
 
         if (! is_string($task) || trim($task) === '') {
-            return self::ERROR_PREFIX.'No task description provided.';
+            return 'Error: No task description provided.';
         }
 
-        return $this->dispatchTask(trim($task), $arguments);
-    }
+        $task = trim($task);
 
-    /**
-     * Resolve the target worker and dispatch the task.
-     *
-     * @param  array<string, mixed>  $arguments
-     */
-    private function dispatchTask(string $task, array $arguments): string
-    {
-        $workerId = isset($arguments['worker_id']) ? (int) $arguments['worker_id'] : null;
-        $match = $this->resolveWorker($task, $workerId);
+        if (mb_strlen($task) > self::MAX_TASK_LENGTH) {
+            return 'Error: Task description exceeds maximum length of '.self::MAX_TASK_LENGTH.' characters.';
+        }
 
-        if ($match === null) {
-            return self::ERROR_PREFIX.'No accessible Digital Worker is available for this task.';
+        $workerId = $this->resolveWorkerId($arguments, $task);
+
+        if ($workerId === null) {
+            return 'Error: No suitable Digital Worker found for this task. '
+                .'Use worker_list to see available workers, then specify a worker_id explicitly.';
         }
 
         try {
-            $dispatch = $this->taskDispatcher->dispatchForCurrentUser($match['employee_id'], $task);
-        } catch (\Exception $e) {
-            return self::ERROR_PREFIX.'Task delegation failed — '.$e->getMessage();
-        }
+            $result = $this->dispatcher->dispatchForCurrentUser($workerId, $task);
 
-        return 'Task delegated to '.$dispatch['employee_name']
-            .' (dispatch ID: '.$dispatch['dispatch_id'].').';
+            return $this->formatDispatchResult($result);
+        } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
+            return 'Error: '.$e->getMessage();
+        } catch (\Throwable $e) {
+            return 'Error dispatching task: '.$e->getMessage();
+        }
     }
 
     /**
-     * Find a specific worker by ID, or auto-select the best match for the task.
-     *
-     * @return array{employee_id: int, name: string, capability_summary: string}|null
+     * Resolve the target worker ID from explicit argument or auto-matching.
      */
-    private function resolveWorker(string $task, ?int $workerId): ?array
+    private function resolveWorkerId(array $arguments, string $task): ?int
     {
-        if ($workerId !== null) {
-            return $this->capabilityMatcher->findAccessibleWorkerById($workerId);
+        $workerId = $arguments['worker_id'] ?? null;
+
+        if (is_int($workerId)) {
+            return $workerId;
         }
 
-        return $this->capabilityMatcher->matchBestForTask($task);
+        $match = $this->capabilityMatcher->matchBestForTask($task);
+
+        return $match !== null ? $match['employee_id'] : null;
+    }
+
+    /**
+     * Format the dispatch result as a readable status message.
+     *
+     * @param  array{dispatch_id: string, status: string, employee_id: int, employee_name: string, task: string, acting_for_user_id: int, created_at: string}  $result
+     */
+    private function formatDispatchResult(array $result): string
+    {
+        return 'Task dispatched successfully.'
+            ."\n\n".'**Dispatch ID:** '.$result['dispatch_id']
+            ."\n".'**Status:** '.$result['status']
+            ."\n".'**Assigned to:** '.$result['employee_name'].' (ID: '.$result['employee_id'].')'
+            ."\n".'**Task:** '.$result['task']
+            ."\n".'**Created:** '.$result['created_at']
+            ."\n\n".'Use delegation_status with this dispatch_id to check progress.';
     }
 }

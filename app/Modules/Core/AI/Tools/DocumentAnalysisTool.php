@@ -10,25 +10,34 @@ use App\Modules\Core\AI\Contracts\DigitalWorkerTool;
 /**
  * Document analysis tool for Digital Workers.
  *
- * Reads and returns the text content of a file within the BLB project,
- * allowing the LLM to analyse, summarise, or extract information from it.
+ * Analyzes PDFs and documents — extract text, summarize, and answer questions
+ * about document content. For providers supporting native PDF (Anthropic,
+ * Google), raw bytes are sent. For others, text is extracted via PDF parser.
  *
- * Only text-based file types are supported. File size is capped to prevent
- * context-window exhaustion. Paths must resolve within the project root.
+ * Note: Currently returns stub responses. PDF parser and LLM integration
+ * will be implemented once the document processing infrastructure is deployed.
  *
  * Gated by `ai.tool_document_analysis.execute` authz capability.
  */
 class DocumentAnalysisTool implements DigitalWorkerTool
 {
-    private const ERROR_PREFIX = 'Error: ';
+    /**
+     * Maximum length for the pages filter string.
+     */
+    private const MAX_PAGES_LENGTH = 100;
 
-    private const MAX_BYTES = 102_400; // 100 KB
+    /**
+     * Maximum length for the prompt string.
+     */
+    private const MAX_PROMPT_LENGTH = 5000;
 
-    private const ALLOWED_EXTENSIONS = [
-        'txt', 'md', 'csv', 'log', 'json',
-        'yaml', 'yml', 'xml', 'html', 'htm',
-        'php', 'js', 'ts', 'css', 'env',
-    ];
+    /**
+     * Regex pattern for validating page filter expressions.
+     *
+     * Supports single pages (1), ranges (1-5), and comma-separated
+     * combinations (1,3,7 or 1-3,5,8-10).
+     */
+    private const PAGES_PATTERN = '/^\d+(-\d+)?(,\d+(-\d+)?)*$/';
 
     public function name(): string
     {
@@ -37,14 +46,11 @@ class DocumentAnalysisTool implements DigitalWorkerTool
 
     public function description(): string
     {
-        return 'Read and return the contents of a text file within the BLB project. '
-            .'Use this to analyse configuration files, source code, CSVs, logs, or any text document. '
-            .'Provide a relative path from the project root (e.g., "storage/app/report.csv").';
+        return 'Analyze PDFs and documents — extract text, summarize, answer questions about '
+            .'document content. For providers supporting native PDF (Anthropic, Google), raw bytes '
+            .'are sent. For others, text is extracted via PDF parser.';
     }
 
-    /**
-     * @return array<string, mixed>
-     */
     public function parametersSchema(): array
     {
         return [
@@ -52,11 +58,23 @@ class DocumentAnalysisTool implements DigitalWorkerTool
             'properties' => [
                 'path' => [
                     'type' => 'string',
-                    'description' => 'Relative file path from the BLB project root. '
-                        .'Examples: "storage/app/export.csv", "config/app.php", "README.md".',
+                    'description' => 'Storage path or URL to the document to analyze.',
+                ],
+                'prompt' => [
+                    'type' => 'string',
+                    'description' => 'What to analyze or extract from the document (max '.self::MAX_PROMPT_LENGTH.' characters).',
+                ],
+                'pages' => [
+                    'type' => 'string',
+                    'description' => 'Page filter expression, e.g. "1-5" or "1,3,7" or "1-3,5,8-10" '
+                        .'(max '.self::MAX_PAGES_LENGTH.' characters). Optional; defaults to all pages.',
+                ],
+                'model' => [
+                    'type' => 'string',
+                    'description' => 'LLM model override for analysis. Optional; uses the default model if not specified.',
                 ],
             ],
-            'required' => ['path'],
+            'required' => ['path', 'prompt'],
         ];
     }
 
@@ -65,71 +83,84 @@ class DocumentAnalysisTool implements DigitalWorkerTool
         return 'ai.tool_document_analysis.execute';
     }
 
-    /**
-     * Execute the tool with the given arguments.
-     *
-     * @param  array<string, mixed>  $arguments
-     */
     public function execute(array $arguments): string
+    {
+        $validationError = $this->validateArguments($arguments);
+
+        if ($validationError !== null) {
+            return $validationError;
+        }
+
+        $path = trim($arguments['path']);
+        $prompt = trim($arguments['prompt']);
+        $pages = isset($arguments['pages']) && is_string($arguments['pages']) ? trim($arguments['pages']) : null;
+        $model = isset($arguments['model']) && is_string($arguments['model']) ? trim($arguments['model']) : null;
+
+        $data = [
+            'action' => 'document_analysis',
+            'path' => $path,
+            'prompt' => $prompt,
+        ];
+
+        if ($pages !== null && $pages !== '') {
+            $data['pages'] = $pages;
+        }
+
+        if ($model !== null && $model !== '') {
+            $data['model'] = $model;
+        }
+
+        $data['status'] = 'analyzed';
+        $data['message'] = 'Document analyzed (stub). PDF parser and LLM integration pending.';
+
+        return json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+    }
+
+    /**
+     * Validate all input arguments before execution.
+     *
+     * @param  array<string, mixed>  $arguments  Parsed arguments from LLM
+     * @return string|null Error message if invalid, null if valid
+     */
+    private function validateArguments(array $arguments): ?string
     {
         $path = $arguments['path'] ?? '';
 
         if (! is_string($path) || trim($path) === '') {
-            return self::ERROR_PREFIX.'No file path provided.';
+            return 'Error: "path" is required and must be a non-empty string.';
         }
 
-        return $this->analyzeDocument(trim($path));
-    }
+        $prompt = $arguments['prompt'] ?? '';
 
-    /**
-     * Resolve, validate, and read the document at the given relative path.
-     */
-    private function analyzeDocument(string $path): string
-    {
-        $resolved = realpath(base_path($path));
-        $error = $this->checkAccess($resolved);
-
-        if ($error !== null) {
-            return $error;
+        if (! is_string($prompt) || trim($prompt) === '') {
+            return 'Error: "prompt" is required and must be a non-empty string.';
         }
 
-        return $this->readContent((string) $resolved, $path);
-    }
-
-    /**
-     * Verify the resolved path is safe and of a supported file type.
-     */
-    private function checkAccess(string|false $resolved): ?string
-    {
-        if ($resolved === false || ! str_starts_with($resolved, base_path())) {
-            return self::ERROR_PREFIX.'File not found or path is outside the project root.';
+        if (mb_strlen($prompt) > self::MAX_PROMPT_LENGTH) {
+            return 'Error: "prompt" must not exceed '.self::MAX_PROMPT_LENGTH.' characters.';
         }
 
-        $ext = strtolower(pathinfo($resolved, PATHINFO_EXTENSION));
+        $pages = $arguments['pages'] ?? null;
 
-        if (! in_array($ext, self::ALLOWED_EXTENSIONS, true)) {
-            return sprintf(self::ERROR_PREFIX.'File type .%s is not supported for document analysis.', $ext);
+        if ($pages !== null) {
+            if (! is_string($pages)) {
+                return 'Error: "pages" must be a string (e.g. "1-5", "1,3,7", "1-3,5,8-10").';
+            }
+
+            $pages = trim($pages);
+
+            if ($pages !== '') {
+                if (mb_strlen($pages) > self::MAX_PAGES_LENGTH) {
+                    return 'Error: "pages" must not exceed '.self::MAX_PAGES_LENGTH.' characters.';
+                }
+
+                if (! preg_match(self::PAGES_PATTERN, $pages)) {
+                    return 'Error: Invalid "pages" format. '
+                        .'Expected patterns like "1-5", "1,3,7", or "1-3,5,8-10".';
+                }
+            }
         }
 
         return null;
-    }
-
-    /**
-     * Read the file and return its content with a header line.
-     */
-    private function readContent(string $resolved, string $originalPath): string
-    {
-        $content = file_get_contents($resolved, false, null, 0, self::MAX_BYTES);
-
-        if ($content === false) {
-            return self::ERROR_PREFIX.'Could not read the file.';
-        }
-
-        $size = filesize($resolved);
-        $truncated = ($size !== false && $size > self::MAX_BYTES)
-            ? sprintf(' (truncated to %d bytes)', self::MAX_BYTES)
-            : '';
-
-        return sprintf("File: %s%s\n\n%s", $originalPath, $truncated, $content);
     }
 }

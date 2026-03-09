@@ -34,6 +34,70 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Tool Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Per-tool settings. Tools read from config('ai.tools.*') as defaults;
+    | per-company overrides may be stored in `ai_tool_configs` (future).
+    |
+    */
+    'tools' => [
+        'web_search' => [
+            'provider' => env('AI_WEB_SEARCH_PROVIDER', 'parallel'),
+            'parallel' => [
+                'api_key' => env('AI_WEB_SEARCH_PARALLEL_API_KEY'),
+            ],
+            'brave' => [
+                'api_key' => env('AI_WEB_SEARCH_BRAVE_API_KEY'),
+            ],
+            'cache_ttl_minutes' => 15,
+        ],
+        'web_fetch' => [
+            'timeout_seconds' => 30,
+            'max_response_bytes' => 5242880, // 5MB
+            'ssrf_allow_private' => env('AI_WEB_FETCH_SSRF_ALLOW_PRIVATE', false),
+        ],
+        'browser' => [
+            'enabled' => env('AI_BROWSER_ENABLED', false),
+            'executable_path' => env('AI_BROWSER_PATH', null),
+            'headless' => true,
+            'max_contexts_per_company' => 3,
+            'context_idle_timeout_seconds' => 300,
+            'evaluate_enabled' => false,
+            'ssrf_policy' => [
+                'allow_private_network' => false,
+                'hostname_allowlist' => [],
+            ],
+        ],
+        'messaging' => [
+            'channels' => [
+                'whatsapp' => [
+                    'enabled' => env('AI_MESSAGING_WHATSAPP_ENABLED', false),
+                    'rate_limit_per_minute' => 60,
+                ],
+                'telegram' => [
+                    'enabled' => env('AI_MESSAGING_TELEGRAM_ENABLED', false),
+                    'rate_limit_per_minute' => 30,
+                ],
+                'slack' => [
+                    'enabled' => env('AI_MESSAGING_SLACK_ENABLED', false),
+                    'rate_limit_per_minute' => 60,
+                ],
+                'email' => [
+                    'enabled' => env('AI_MESSAGING_EMAIL_ENABLED', false),
+                    'rate_limit_per_minute' => 30,
+                ],
+            ],
+        ],
+        'memory_search' => [
+            'sqlite_vec_extension' => env('AI_SQLITE_VEC_EXTENSION', 'vec0'),
+            'sqlite_vec_extension_dir' => env('AI_SQLITE_VEC_EXTENSION_DIR', null),
+            'embedding_dimensions' => 384,
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Lara (System Digital Worker)
     |--------------------------------------------------------------------------
     |

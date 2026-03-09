@@ -277,8 +277,8 @@ describe('BashTool', function () {
 describe('DelegateTaskTool', function () {
     it(TOOL_METADATA_DESCRIPTION, function () {
         $tool = new DelegateTaskTool(
-            Mockery::mock(LaraCapabilityMatcher::class),
             Mockery::mock(LaraTaskDispatcher::class),
+            Mockery::mock(LaraCapabilityMatcher::class),
         );
 
         expect($tool->name())->toBe('delegate_task');
@@ -287,8 +287,8 @@ describe('DelegateTaskTool', function () {
 
     it('returns error for empty task', function () {
         $tool = new DelegateTaskTool(
-            Mockery::mock(LaraCapabilityMatcher::class),
             Mockery::mock(LaraTaskDispatcher::class),
+            Mockery::mock(LaraCapabilityMatcher::class),
         );
 
         expect($tool->execute([]))->toContain('No task description provided');
@@ -300,12 +300,12 @@ describe('DelegateTaskTool', function () {
         $matcher = Mockery::mock(LaraCapabilityMatcher::class);
         $matcher->shouldReceive('matchBestForTask')->andReturn(null);
 
-        $tool = new DelegateTaskTool($matcher, Mockery::mock(LaraTaskDispatcher::class));
+        $tool = new DelegateTaskTool(Mockery::mock(LaraTaskDispatcher::class), $matcher);
 
         $result = $tool->execute(['task' => 'Generate a report']);
 
         expect($result)->toContain('Error');
-        expect($result)->toContain('No accessible Digital Worker');
+        expect($result)->toContain('No suitable Digital Worker');
     });
 
     it('dispatches task to best matching worker when no worker_id is given', function () {
@@ -327,7 +327,7 @@ describe('DelegateTaskTool', function () {
             'created_at' => '2025-01-01T00:00:00+00:00',
         ]);
 
-        $tool = new DelegateTaskTool($matcher, $dispatcher);
+        $tool = new DelegateTaskTool($dispatcher, $matcher);
 
         $result = $tool->execute(['task' => 'Generate Q1 report']);
 
@@ -354,7 +354,7 @@ describe('DelegateTaskTool', function () {
             'created_at' => '2025-01-01T00:00:00+00:00',
         ]);
 
-        $tool = new DelegateTaskTool($matcher, $dispatcher);
+        $tool = new DelegateTaskTool($dispatcher, $matcher);
 
         $result = $tool->execute(['task' => 'Run analytics', 'worker_id' => 7]);
 
@@ -374,7 +374,7 @@ describe('DelegateTaskTool', function () {
         $dispatcher->shouldReceive('dispatchForCurrentUser')
             ->andThrow(new \RuntimeException('Dispatch unavailable'));
 
-        $tool = new DelegateTaskTool($matcher, $dispatcher);
+        $tool = new DelegateTaskTool($dispatcher, $matcher);
 
         $result = $tool->execute(['task' => 'some task']);
 
@@ -394,38 +394,41 @@ describe('DocumentAnalysisTool', function () {
     it('returns error for empty or missing path', function () {
         $tool = new DocumentAnalysisTool;
 
-        expect($tool->execute([]))->toContain('No file path provided');
-        expect($tool->execute(['path' => '']))->toContain('No file path provided');
-        expect($tool->execute(['path' => '   ']))->toContain('No file path provided');
+        expect($tool->execute([]))->toContain('"path" is required and must be a non-empty string');
+        expect($tool->execute(['path' => '']))->toContain('"path" is required and must be a non-empty string');
+        expect($tool->execute(['path' => '   ']))->toContain('"path" is required and must be a non-empty string');
     });
 
-    it('returns file content for a supported text file', function () {
+    it('returns structured payload for a valid request', function () {
         $tool = new DocumentAnalysisTool;
 
-        $result = $tool->execute(['path' => 'README.md']);
+        $result = $tool->execute([
+            'path' => 'README.md',
+            'prompt' => 'Summarize this document.',
+        ]);
 
-        expect($result)->toStartWith('File: README.md');
+        expect($result)->toContain('"action": "document_analysis"');
+        expect($result)->toContain('"path": "README.md"');
+        expect($result)->toContain('"prompt": "Summarize this document."');
     });
 
     it('returns error for a path that does not exist', function () {
         $tool = new DocumentAnalysisTool;
 
-        $result = $tool->execute(['path' => 'non-existent-file-xyz.txt']);
+        $result = $tool->execute([
+            'path' => 'non-existent-file-xyz.txt',
+            'prompt' => 'Summarize this document.',
+        ]);
 
-        expect($result)->toContain('Error');
+        expect($result)->toContain('"path": "non-existent-file-xyz.txt"');
     });
 
-    it('returns error for an unsupported file type', function () {
-        $tmpPath = storage_path('app/test_doc_unsupported.bin');
-        file_put_contents($tmpPath, 'binary');
-
+    it('returns error for missing prompt', function () {
         $tool = new DocumentAnalysisTool;
-        $result = $tool->execute(['path' => 'storage/app/test_doc_unsupported.bin']);
 
-        @unlink($tmpPath);
+        $result = $tool->execute(['path' => 'README.md']);
 
-        expect($result)->toContain('Error');
-        expect($result)->toContain('.bin');
+        expect($result)->toContain('"prompt" is required and must be a non-empty string');
     });
 
     it('returns file content and header for a created temp file', function () {
@@ -433,12 +436,15 @@ describe('DocumentAnalysisTool', function () {
         file_put_contents($tmpPath, 'Hello, document analysis!');
 
         $tool = new DocumentAnalysisTool;
-        $result = $tool->execute(['path' => 'storage/app/test_doc_analysis_tool.txt']);
+        $result = $tool->execute([
+            'path' => 'storage/app/test_doc_analysis_tool.txt',
+            'prompt' => 'Summarize this document.',
+        ]);
 
         @unlink($tmpPath);
 
-        expect($result)->toStartWith('File: storage/app/test_doc_analysis_tool.txt');
-        expect($result)->toContain('Hello, document analysis!');
+        expect($result)->toContain('"path": "storage/app/test_doc_analysis_tool.txt"');
+        expect($result)->toContain('"prompt": "Summarize this document."');
     });
 });
 
@@ -453,27 +459,32 @@ describe('ImageAnalysisTool', function () {
     it('returns error for empty or missing path', function () {
         $tool = new ImageAnalysisTool;
 
-        expect($tool->execute([]))->toContain('No file path provided');
-        expect($tool->execute(['path' => '']))->toContain('No file path provided');
-        expect($tool->execute(['path' => '   ']))->toContain('No file path provided');
+        expect($tool->execute([]))->toContain('"path" is required and must be a non-empty string');
+        expect($tool->execute(['path' => '']))->toContain('"path" is required and must be a non-empty string');
+        expect($tool->execute(['path' => '   ']))->toContain('"path" is required and must be a non-empty string');
     });
 
     it('returns error for a path that does not exist', function () {
         $tool = new ImageAnalysisTool;
 
-        $result = $tool->execute(['path' => 'non-existent-image-xyz.png']);
+        $result = $tool->execute([
+            'path' => 'non-existent-image-xyz.png',
+            'prompt' => 'Describe this image.',
+        ]);
 
-        expect($result)->toContain('Error');
+        expect($result)->toContain('"path": "non-existent-image-xyz.png"');
     });
 
     it('returns error for an unsupported file type', function () {
         $tool = new ImageAnalysisTool;
 
         // README.md is a text file, not a supported image type
-        $result = $tool->execute(['path' => 'README.md']);
+        $result = $tool->execute([
+            'path' => 'README.md',
+            'prompt' => 'Describe this image.',
+        ]);
 
-        expect($result)->toContain('Error');
-        expect($result)->toContain('.md');
+        expect($result)->toContain('Unsupported image format');
     });
 
     it('returns metadata for a valid PNG image', function () {
@@ -485,13 +496,15 @@ describe('ImageAnalysisTool', function () {
         file_put_contents($tmpPath, $png);
 
         $tool = new ImageAnalysisTool;
-        $result = $tool->execute(['path' => 'storage/app/test_image_analysis_tool.png']);
+        $result = $tool->execute([
+            'path' => 'storage/app/test_image_analysis_tool.png',
+            'prompt' => 'Describe this image.',
+        ]);
 
         @unlink($tmpPath);
 
-        expect($result)->toContain('Image:');
-        expect($result)->toContain('Format: PNG');
-        expect($result)->toContain('Size:');
-        expect($result)->toContain('Dimensions:');
+        expect($result)->toContain('"action": "image_analysis"');
+        expect($result)->toContain('"path": "storage/app/test_image_analysis_tool.png"');
+        expect($result)->toContain('"prompt": "Describe this image."');
     });
 });

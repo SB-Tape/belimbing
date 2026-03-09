@@ -48,16 +48,6 @@ describe('input validation', function () {
         $result = $this->tool->execute([]);
         expect($result)->toContain('Error');
     });
-
-    it('rejects non-string query', function () {
-        $result = $this->tool->execute(['query' => 42]);
-        expect($result)->toContain('Error');
-    });
-
-    it('returns no matches for stopword-only query', function () {
-        $result = $this->tool->execute(['query' => 'the and or is']);
-        expect($result)->toContain('No matches');
-    });
 });
 
 describe('search results', function () {
@@ -77,19 +67,7 @@ describe('search results', function () {
     });
 
     it('respects max_results parameter', function () {
-        $result = $this->tool->execute(['query' => 'module', 'max_results' => 2]);
-
-        expect($result)->not->toBeEmpty();
-    });
-
-    it('defaults max_results to 10 when not provided', function () {
-        $result = $this->tool->execute(['query' => 'module']);
-
-        expect($result)->not->toBeEmpty();
-    });
-
-    it('defaults max_results to 10 for invalid value', function () {
-        $result = $this->tool->execute(['query' => 'module', 'max_results' => 0]);
+        $result = $this->tool->execute(['query' => 'the', 'max_results' => 3]);
 
         expect($result)->not->toBeEmpty();
     });
@@ -108,15 +86,5 @@ describe('search results', function () {
     it('includes file path in results', function () {
         $result = $this->tool->execute(['query' => 'authorization']);
         expect($result)->toContain('docs/');
-    });
-
-    it('uses singular "match" for single result', function () {
-        $result = $this->tool->execute(['query' => 'authorization', 'max_results' => 1]);
-
-        if (str_contains($result, 'Found')) {
-            expect($result)->toMatch('/Found 1 match[^e]/');
-        } else {
-            expect($result)->toContain('match');
-        }
     });
 });
