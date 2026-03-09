@@ -37,6 +37,38 @@ class DigitalWorkerToolRegistry
     }
 
     /**
+     * Get the names of all registered tools (regardless of authz).
+     *
+     * @return list<string>
+     */
+    public function registeredToolNames(): array
+    {
+        return array_keys($this->tools);
+    }
+
+    /**
+     * Check whether the current user has permission to use a tool by name.
+     */
+    public function canCurrentUserUseTool(string $toolName): bool
+    {
+        $tool = $this->tools[$toolName] ?? null;
+
+        if ($tool === null) {
+            return false;
+        }
+
+        return $this->currentUserCanUse($tool);
+    }
+
+    /**
+     * Check whether a tool is registered by name.
+     */
+    public function isRegistered(string $toolName): bool
+    {
+        return isset($this->tools[$toolName]);
+    }
+
+    /**
      * Get OpenAI-format tool definitions for tools the current user can access.
      *
      * @return list<array{type: string, function: array{name: string, description: string, parameters: array<string, mixed>}}>

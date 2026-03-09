@@ -46,6 +46,8 @@ use App\Modules\Core\AI\Tools\WebFetchTool;
 use App\Modules\Core\AI\Tools\WebSearchTool;
 use App\Modules\Core\AI\Tools\WorkerListTool;
 use App\Modules\Core\AI\Tools\WriteJsTool;
+use App\Modules\Core\AI\Services\ToolMetadataRegistry;
+use App\Modules\Core\AI\Services\ToolReadinessService;
 use Illuminate\Support\ServiceProvider as BaseServiceProvider;
 
 class ServiceProvider extends BaseServiceProvider
@@ -122,5 +124,8 @@ class ServiceProvider extends BaseServiceProvider
         });
 
         $this->app->singleton(AgenticRuntime::class);
+
+        $this->app->singleton(ToolMetadataRegistry::class);
+        $this->app->singleton(ToolReadinessService::class);
     }
 }

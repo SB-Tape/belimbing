@@ -6,17 +6,17 @@
 
 @if($help)
     <tr {{ $attributes }}>
-        <td colspan="{{ $colspan }}" class="px-4 pb-3 pt-0">
+        <td colspan="{{ $colspan }}" class="px-4 pb-3 pt-1">
             <div
                 x-data
                 x-init="$el.scrollIntoView({ behavior: 'smooth', block: 'nearest' })"
-                class="mt-3 rounded-2xl border border-border-default bg-surface-card p-4 text-sm text-muted shadow-lg shadow-black/[0.02]"
+                class="mt-2 rounded-2xl border border-border-default bg-surface-card p-4 text-sm text-muted shadow-lg shadow-black/[0.02]"
             >
                 <div class="flex items-start justify-between gap-3 mb-3">
                     <div class="flex items-center gap-1.5">
                         <x-icon name="heroicon-o-question-mark-circle" class="w-4 h-4 text-accent shrink-0" />
-                        <span class="text-xs font-semibold uppercase tracking-wider text-accent">{{ __('Setup & Troubleshooting') }}</span>
-                        <span class="text-xs text-muted">— {{ $providerName }}</span>
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-accent">{{ __('Setup & Troubleshooting') }}</span>
+                        <span class="text-xs text-muted/70">— {{ $providerName }}</span>
                     </div>
                     <button
                         type="button"
