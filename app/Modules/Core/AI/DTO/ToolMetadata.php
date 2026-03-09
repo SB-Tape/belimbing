@@ -5,19 +5,19 @@
 
 namespace App\Modules\Core\AI\DTO;
 
-use App\Modules\Core\AI\Enums\ToolCategory;
-use App\Modules\Core\AI\Enums\ToolRiskClass;
+use App\Base\AI\Enums\ToolCategory;
+use App\Base\AI\Enums\ToolRiskClass;
 
 /**
  * Rich UI metadata for a Digital Worker tool.
  *
- * Separate from the runtime DigitalWorkerTool contract — this holds
+ * Separate from the runtime Tool contract — this holds
  * display-oriented information for the Tool Workspace UI.
  */
 final readonly class ToolMetadata
 {
     /**
-     * @param  string  $name  Machine name matching DigitalWorkerTool::name()
+     * @param  string  $name  Machine name matching Tool::name()
      * @param  string  $displayName  Human-friendly name for UI display
      * @param  string  $summary  One-sentence plain-language description
      * @param  string  $explanation  Longer description: what it does and does not do

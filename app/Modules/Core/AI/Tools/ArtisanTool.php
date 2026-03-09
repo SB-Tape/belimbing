@@ -5,8 +5,11 @@
 
 namespace App\Modules\Core\AI\Tools;
 
-use App\Modules\Core\AI\Contracts\DigitalWorkerTool;
-use App\Modules\Core\AI\Tools\Concerns\FormatsProcessResult;
+use App\Base\AI\Enums\ToolCategory;
+use App\Base\AI\Enums\ToolRiskClass;
+use App\Base\AI\Tools\AbstractTool;
+use App\Base\AI\Tools\Concerns\FormatsProcessResult;
+use App\Base\AI\Tools\Schema\ToolSchemaBuilder;
 use Illuminate\Support\Facades\Process;
 
 /**
@@ -22,7 +25,7 @@ use Illuminate\Support\Facades\Process;
  * class uses proc_open without shell invocation, so metacharacters
  * have no shell-level effect. Timeout enforced per execution.
  */
-class ArtisanTool implements DigitalWorkerTool
+class ArtisanTool extends AbstractTool
 {
     use FormatsProcessResult;
 
@@ -54,32 +57,39 @@ class ArtisanTool implements DigitalWorkerTool
             .'Supports optional timeout override and background execution via Laravel queues.';
     }
 
-    public function parametersSchema(): array
+    protected function schema(): ToolSchemaBuilder
     {
-        return [
-            'type' => 'object',
-            'properties' => [
-                'command' => [
-                    'type' => 'string',
-                    'description' => 'The artisan command to run (without "php artisan" prefix). '
-                        .'Examples: "tinker --execute=\'echo App\\\\Modules\\\\Core\\\\User\\\\Models\\\\User::count();\'", '
-                        .'"blb:ai:catalog:sync --dry-run", "route:list --columns=name,uri", '
-                        .'"blb:user:create alice@example.com --name=\'Alice Smith\' --role=core_admin".',
-                ],
-                'timeout' => [
-                    'type' => 'integer',
-                    'description' => 'Timeout in seconds for foreground execution (default '.self::DEFAULT_TIMEOUT_SECONDS.', '
-                        .'min '.self::MIN_TIMEOUT_SECONDS.', max '.self::MAX_TIMEOUT_SECONDS.'). '
-                        .'Ignored when background is true.',
-                ],
-                'background' => [
-                    'type' => 'boolean',
-                    'description' => 'Run the command in the background via Laravel queues. '
-                        .'Returns a dispatch_id immediately for polling with delegation_status tool.',
-                ],
-            ],
-            'required' => ['command'],
-        ];
+        return ToolSchemaBuilder::make()
+            ->string(
+                'command',
+                'The artisan command to run (without "php artisan" prefix). '
+                    .'Examples: "tinker --execute=\'echo App\\\\Modules\\\\Core\\\\User\\\\Models\\\\User::count();\'", '
+                    .'"blb:ai:catalog:sync --dry-run", "route:list --columns=name,uri", '
+                    .'"blb:user:create alice@example.com --name=\'Alice Smith\' --role=core_admin".'
+            )->required()
+            ->integer(
+                'timeout',
+                'Timeout in seconds for foreground execution (default '.self::DEFAULT_TIMEOUT_SECONDS.', '
+                    .'min '.self::MIN_TIMEOUT_SECONDS.', max '.self::MAX_TIMEOUT_SECONDS.'). '
+                    .'Ignored when background is true.',
+                min: self::MIN_TIMEOUT_SECONDS,
+                max: self::MAX_TIMEOUT_SECONDS
+            )
+            ->boolean(
+                'background',
+                'Run the command in the background via Laravel queues. '
+                    .'Returns a dispatch_id immediately for polling with delegation_status tool.'
+            );
+    }
+
+    public function category(): ToolCategory
+    {
+        return ToolCategory::SYSTEM;
+    }
+
+    public function riskClass(): ToolRiskClass
+    {
+        return ToolRiskClass::HIGH_IMPACT;
     }
 
     public function requiredCapability(): ?string
@@ -87,24 +97,18 @@ class ArtisanTool implements DigitalWorkerTool
         return 'ai.tool_artisan.execute';
     }
 
-    public function execute(array $arguments): string
+    protected function handle(array $arguments): string
     {
-        $command = $arguments['command'] ?? '';
-
-        if (! is_string($command) || trim($command) === '') {
-            return 'Error: No command provided.';
-        }
-
-        $command = trim($command);
+        $command = $this->requireString($arguments, 'command');
 
         // Strip "php artisan" prefix if the LLM included it
         $command = preg_replace('/^(php\s+)?artisan\s+/', '', $command) ?? $command;
 
         if ($command === '') {
-            return 'Error: Empty command after parsing.';
+            throw new \App\Base\AI\Tools\ToolArgumentException('Empty command after parsing.');
         }
 
-        $background = (bool) ($arguments['background'] ?? false);
+        $background = $this->optionalBool($arguments, 'background');
 
         if ($background) {
             return $this->executeBackground($command);
@@ -120,7 +124,14 @@ class ArtisanTool implements DigitalWorkerTool
      */
     private function executeForeground(string $command, array $arguments): string
     {
-        $timeout = $this->resolveTimeout($arguments);
+        $timeout = $this->optionalInt(
+            $arguments,
+            'timeout',
+            self::DEFAULT_TIMEOUT_SECONDS,
+            self::MIN_TIMEOUT_SECONDS,
+            self::MAX_TIMEOUT_SECONDS
+        );
+
         $fullCommand = 'php artisan '.$command;
 
         $result = Process::timeout($timeout)
@@ -150,21 +161,5 @@ class ArtisanTool implements DigitalWorkerTool
                 .'Queue job implementation pending. '
                 .'Use the delegation_status tool to check progress.',
         ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
-    }
-
-    /**
-     * Resolve the timeout value from arguments, clamped to allowed range.
-     *
-     * @param  array<string, mixed>  $arguments  Parsed arguments from LLM
-     */
-    private function resolveTimeout(array $arguments): int
-    {
-        $timeout = $arguments['timeout'] ?? self::DEFAULT_TIMEOUT_SECONDS;
-
-        if (! is_int($timeout)) {
-            return self::DEFAULT_TIMEOUT_SECONDS;
-        }
-
-        return max(self::MIN_TIMEOUT_SECONDS, min(self::MAX_TIMEOUT_SECONDS, $timeout));
     }
 }

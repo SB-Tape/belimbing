@@ -3,16 +3,22 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // (c) Ng Kiat Siong <kiatsiong.ng@gmail.com>
 
-namespace App\Modules\Core\AI\Contracts;
+namespace App\Base\AI\Contracts;
+
+use App\Base\AI\Enums\ToolCategory;
+use App\Base\AI\Enums\ToolRiskClass;
 
 /**
- * Contract for Digital Worker tool implementations.
+ * Contract for AI tool implementations.
  *
- * Each tool is a discrete capability that a DW can invoke during an agentic
- * conversation turn. Tools are registered in the DigitalWorkerToolRegistry
+ * Each tool is a discrete capability that an AI agent can invoke during
+ * an agentic conversation turn. Tools are registered in a tool registry
  * and gated by authz capabilities before execution.
+ *
+ * Tools self-declare their category and risk class, eliminating the need
+ * for parallel metadata registries to maintain this information separately.
  */
-interface DigitalWorkerTool
+interface Tool
 {
     /**
      * Unique tool name (used as the function name in OpenAI tool calling).
@@ -37,6 +43,16 @@ interface DigitalWorkerTool
      * Returns null if the tool requires no special capability (auth-only).
      */
     public function requiredCapability(): ?string;
+
+    /**
+     * Grouping category for catalog filtering and UI display.
+     */
+    public function category(): ToolCategory;
+
+    /**
+     * Risk classification for safety badges and audit classification.
+     */
+    public function riskClass(): ToolRiskClass;
 
     /**
      * Execute the tool with the given arguments.

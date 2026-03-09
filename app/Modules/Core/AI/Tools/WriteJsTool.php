@@ -5,7 +5,11 @@
 
 namespace App\Modules\Core\AI\Tools;
 
-use App\Modules\Core\AI\Contracts\DigitalWorkerTool;
+use App\Base\AI\Enums\ToolCategory;
+use App\Base\AI\Enums\ToolRiskClass;
+use App\Base\AI\Tools\AbstractTool;
+use App\Base\AI\Tools\Schema\ToolSchemaBuilder;
+use App\Base\AI\Tools\ToolArgumentException;
 
 /**
  * Client-side JavaScript execution tool for Digital Workers.
@@ -16,7 +20,7 @@ use App\Modules\Core\AI\Contracts\DigitalWorkerTool;
  *
  * Gated by `ai.tool_write_js.execute` authz capability.
  */
-class WriteJsTool implements DigitalWorkerTool
+class WriteJsTool extends AbstractTool
 {
     private const int MAX_SCRIPT_LENGTH = 10000;
 
@@ -53,22 +57,21 @@ class WriteJsTool implements DigitalWorkerTool
             .'Scripts must be CSP-compliant.';
     }
 
-    public function parametersSchema(): array
+    protected function schema(): ToolSchemaBuilder
     {
-        return [
-            'type' => 'object',
-            'properties' => [
-                'script' => [
-                    'type' => 'string',
-                    'description' => 'JavaScript code to execute.',
-                ],
-                'description' => [
-                    'type' => 'string',
-                    'description' => 'Human-readable description of what the script does.',
-                ],
-            ],
-            'required' => ['script', 'description'],
-        ];
+        return ToolSchemaBuilder::make()
+            ->string('script', 'JavaScript code to execute.')->required()
+            ->string('description', 'Human-readable description of what the script does.')->required();
+    }
+
+    public function category(): ToolCategory
+    {
+        return ToolCategory::BROWSER;
+    }
+
+    public function riskClass(): ToolRiskClass
+    {
+        return ToolRiskClass::BROWSER;
     }
 
     public function requiredCapability(): ?string
@@ -76,30 +79,22 @@ class WriteJsTool implements DigitalWorkerTool
         return 'ai.tool_write_js.execute';
     }
 
-    public function execute(array $arguments): string
+    protected function handle(array $arguments): string
     {
-        $script = $arguments['script'] ?? '';
-        $description = $arguments['description'] ?? '';
-
-        if (! is_string($script) || trim($script) === '') {
-            return 'Error: script is required and must be a non-empty string.';
-        }
-
-        if (! is_string($description) || trim($description) === '') {
-            return 'Error: description is required and must be a non-empty string.';
-        }
+        $script = $this->requireString($arguments, 'script');
+        $description = $this->requireString($arguments, 'description');
 
         if (strlen($script) > self::MAX_SCRIPT_LENGTH) {
-            return 'Error: script exceeds maximum length of '.self::MAX_SCRIPT_LENGTH.' characters.';
+            throw new ToolArgumentException('script exceeds maximum length of '.self::MAX_SCRIPT_LENGTH.' characters.');
         }
 
         if (strlen($description) > self::MAX_DESCRIPTION_LENGTH) {
-            return 'Error: description exceeds maximum length of '.self::MAX_DESCRIPTION_LENGTH.' characters.';
+            throw new ToolArgumentException('description exceeds maximum length of '.self::MAX_DESCRIPTION_LENGTH.' characters.');
         }
 
         foreach (self::BLOCKED_PATTERNS as $pattern) {
             if (stripos($script, $pattern) !== false) {
-                return 'Error: script contains blocked pattern "'.strtolower($pattern).'".';
+                throw new ToolArgumentException('script contains blocked pattern "'.strtolower($pattern).'".');
             }
         }
 

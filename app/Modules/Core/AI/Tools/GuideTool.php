@@ -5,8 +5,11 @@
 
 namespace App\Modules\Core\AI\Tools;
 
+use App\Base\AI\Enums\ToolCategory;
+use App\Base\AI\Enums\ToolRiskClass;
 use App\Base\AI\Services\KnowledgeNavigator;
-use App\Modules\Core\AI\Contracts\DigitalWorkerTool;
+use App\Base\AI\Tools\AbstractTool;
+use App\Base\AI\Tools\Schema\ToolSchemaBuilder;
 
 /**
  * BLB framework documentation guide tool for Digital Workers.
@@ -17,7 +20,7 @@ use App\Modules\Core\AI\Contracts\DigitalWorkerTool;
  *
  * Gated by `ai.tool_guide.execute` authz capability.
  */
-class GuideTool implements DigitalWorkerTool
+class GuideTool extends AbstractTool
 {
     private const MAX_LINES = 200;
 
@@ -39,22 +42,21 @@ class GuideTool implements DigitalWorkerTool
             .'before answering questions about the BLB framework.';
     }
 
-    public function parametersSchema(): array
+    protected function schema(): ToolSchemaBuilder
     {
-        return [
-            'type' => 'object',
-            'properties' => [
-                'topic' => [
-                    'type' => 'string',
-                    'description' => 'Topic to search BLB framework documentation for.',
-                ],
-                'max_sections' => [
-                    'type' => 'integer',
-                    'description' => 'Maximum number of relevant sections to return (default 5, max 10).',
-                ],
-            ],
-            'required' => ['topic'],
-        ];
+        return ToolSchemaBuilder::make()
+            ->string('topic', 'Topic to search BLB framework documentation for.')->required()
+            ->integer('max_sections', 'Maximum number of relevant sections to return (default 5, max 10).', min: 1, max: self::MAX_SECTIONS_LIMIT);
+    }
+
+    public function category(): ToolCategory
+    {
+        return ToolCategory::MEMORY;
+    }
+
+    public function riskClass(): ToolRiskClass
+    {
+        return ToolRiskClass::READ_ONLY;
     }
 
     public function requiredCapability(): ?string
@@ -62,16 +64,10 @@ class GuideTool implements DigitalWorkerTool
         return 'ai.tool_guide.execute';
     }
 
-    public function execute(array $arguments): string
+    protected function handle(array $arguments): string
     {
-        $topic = $arguments['topic'] ?? '';
-
-        if (! is_string($topic) || trim($topic) === '') {
-            return 'Error: No topic provided.';
-        }
-
-        $topic = trim($topic);
-        $maxSections = $this->resolveMaxSections($arguments);
+        $topic = $this->requireString($arguments, 'topic');
+        $maxSections = $this->optionalInt($arguments, 'max_sections', 5, min: 1, max: self::MAX_SECTIONS_LIMIT);
 
         $results = $this->navigator->search($topic, $maxSections);
 
@@ -80,17 +76,6 @@ class GuideTool implements DigitalWorkerTool
         }
 
         return $this->formatResults($results, $topic);
-    }
-
-    private function resolveMaxSections(array $arguments): int
-    {
-        $maxSections = $arguments['max_sections'] ?? 5;
-
-        if (! is_int($maxSections) || $maxSections < 1) {
-            return 5;
-        }
-
-        return min($maxSections, self::MAX_SECTIONS_LIMIT);
     }
 
     /**

@@ -221,9 +221,14 @@ app/Base/
 │
 ├── AI/                      # AI infrastructure (stateless)
 │   ├── Config/ai.php        # LLM defaults, provider overlay
-│   ├── Services/            # ModelCatalogService, LlmClient, ProviderDiscoveryService
-│   ├── Console/Commands/    # blb:ai:catalog:sync
-│   └── DTO/                 # Value objects
+│   ├── Contracts/            # Tool interface
+│   ├── Enums/                # ToolCategory, ToolRiskClass
+│   ├── Tools/                # AbstractTool, AbstractActionTool, ToolResult, ToolSchemaBuilder
+│   │   ├── Concerns/         # FormatsProcessResult trait
+│   │   └── Schema/           # ToolSchemaBuilder
+│   ├── Services/             # ModelCatalogService, LlmClient, ProviderDiscoveryService
+│   ├── Console/Commands/     # blb:ai:catalog:sync
+│   └── DTO/                  # Value objects
 │
 ├── Database/                # Database abstraction
 │   ├── MigrationManager.php

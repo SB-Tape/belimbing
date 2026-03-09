@@ -5,7 +5,10 @@
 
 namespace App\Modules\Core\AI\Tools;
 
-use App\Modules\Core\AI\Contracts\DigitalWorkerTool;
+use App\Base\AI\Enums\ToolCategory;
+use App\Base\AI\Enums\ToolRiskClass;
+use App\Base\AI\Tools\AbstractTool;
+use App\Base\AI\Tools\Schema\ToolSchemaBuilder;
 use App\Modules\Core\Employee\Models\Employee;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
@@ -27,7 +30,7 @@ use RecursiveIteratorIterator;
  *
  * Gated by `ai.tool_memory_search.execute` authz capability.
  */
-class MemorySearchTool implements DigitalWorkerTool
+class MemorySearchTool extends AbstractTool
 {
     private const MAX_RESULTS_LIMIT = 50;
 
@@ -84,23 +87,27 @@ class MemorySearchTool implements DigitalWorkerTool
             .'the entire documentation and workspace knowledge base.';
     }
 
-    public function parametersSchema(): array
+    protected function schema(): ToolSchemaBuilder
     {
-        return [
-            'type' => 'object',
-            'properties' => [
-                'query' => [
-                    'type' => 'string',
-                    'description' => 'Search text to find in documentation and workspace files.',
-                ],
-                'max_results' => [
-                    'type' => 'integer',
-                    'description' => 'Maximum number of results to return (default '
-                        .self::DEFAULT_MAX_RESULTS.', max '.self::MAX_RESULTS_LIMIT.').',
-                ],
-            ],
-            'required' => ['query'],
-        ];
+        return ToolSchemaBuilder::make()
+            ->string('query', 'Search text to find in documentation and workspace files.')->required()
+            ->integer(
+                'max_results',
+                'Maximum number of results to return (default '
+                    .self::DEFAULT_MAX_RESULTS.', max '.self::MAX_RESULTS_LIMIT.').',
+                min: 1,
+                max: self::MAX_RESULTS_LIMIT,
+            );
+    }
+
+    public function category(): ToolCategory
+    {
+        return ToolCategory::MEMORY;
+    }
+
+    public function riskClass(): ToolRiskClass
+    {
+        return ToolRiskClass::READ_ONLY;
     }
 
     public function requiredCapability(): ?string
@@ -108,16 +115,10 @@ class MemorySearchTool implements DigitalWorkerTool
         return 'ai.tool_memory_search.execute';
     }
 
-    public function execute(array $arguments): string
+    protected function handle(array $arguments): string
     {
-        $query = $arguments['query'] ?? '';
-
-        if (! is_string($query) || trim($query) === '') {
-            return 'Error: No search query provided.';
-        }
-
-        $query = trim($query);
-        $maxResults = $this->resolveMaxResults($arguments);
+        $query = $this->requireString($arguments, 'query', 'search query');
+        $maxResults = $this->optionalInt($arguments, 'max_results', self::DEFAULT_MAX_RESULTS, min: 1, max: self::MAX_RESULTS_LIMIT);
 
         $matches = $this->searchFiles($query, $maxResults);
 
@@ -126,22 +127,6 @@ class MemorySearchTool implements DigitalWorkerTool
         }
 
         return $this->formatResults($matches, $query);
-    }
-
-    /**
-     * Resolve and clamp the max_results parameter.
-     *
-     * @param  array<string, mixed>  $arguments  Raw tool arguments
-     */
-    private function resolveMaxResults(array $arguments): int
-    {
-        $maxResults = $arguments['max_results'] ?? self::DEFAULT_MAX_RESULTS;
-
-        if (! is_int($maxResults) || $maxResults < 1) {
-            return self::DEFAULT_MAX_RESULTS;
-        }
-
-        return min($maxResults, self::MAX_RESULTS_LIMIT);
     }
 
     /**

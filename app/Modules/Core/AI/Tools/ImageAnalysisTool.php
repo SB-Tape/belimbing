@@ -5,7 +5,11 @@
 
 namespace App\Modules\Core\AI\Tools;
 
-use App\Modules\Core\AI\Contracts\DigitalWorkerTool;
+use App\Base\AI\Enums\ToolCategory;
+use App\Base\AI\Enums\ToolRiskClass;
+use App\Base\AI\Tools\AbstractTool;
+use App\Base\AI\Tools\Schema\ToolSchemaBuilder;
+use App\Base\AI\Tools\ToolArgumentException;
 
 /**
  * Image analysis tool for Digital Workers.
@@ -19,7 +23,7 @@ use App\Modules\Core\AI\Contracts\DigitalWorkerTool;
  *
  * Gated by `ai.tool_image_analysis.execute` authz capability.
  */
-class ImageAnalysisTool implements DigitalWorkerTool
+class ImageAnalysisTool extends AbstractTool
 {
     /**
      * Supported image file extensions.
@@ -51,22 +55,21 @@ class ImageAnalysisTool implements DigitalWorkerTool
             .'Supports common formats (JPEG, PNG, GIF, WebP).';
     }
 
-    public function parametersSchema(): array
+    protected function schema(): ToolSchemaBuilder
     {
-        return [
-            'type' => 'object',
-            'properties' => [
-                'path' => [
-                    'type' => 'string',
-                    'description' => 'Storage path or URL to the image.',
-                ],
-                'prompt' => [
-                    'type' => 'string',
-                    'description' => 'What to analyze or question about the image.',
-                ],
-            ],
-            'required' => ['path', 'prompt'],
-        ];
+        return ToolSchemaBuilder::make()
+            ->string('path', 'Storage path or URL to the image.')->required()
+            ->string('prompt', 'What to analyze or question about the image.')->required();
+    }
+
+    public function category(): ToolCategory
+    {
+        return ToolCategory::MEDIA;
+    }
+
+    public function riskClass(): ToolRiskClass
+    {
+        return ToolRiskClass::READ_ONLY;
     }
 
     public function requiredCapability(): ?string
@@ -74,25 +77,15 @@ class ImageAnalysisTool implements DigitalWorkerTool
         return 'ai.tool_image_analysis.execute';
     }
 
-    public function execute(array $arguments): string
+    protected function handle(array $arguments): string
     {
-        $path = $arguments['path'] ?? '';
-
-        if (! is_string($path) || trim($path) === '') {
-            return 'Error: "path" is required and must be a non-empty string.';
-        }
-
-        $prompt = $arguments['prompt'] ?? '';
-
-        if (! is_string($prompt) || trim($prompt) === '') {
-            return 'Error: "prompt" is required and must be a non-empty string.';
-        }
-
-        $path = trim($path);
-        $prompt = trim($prompt);
+        $path = $this->requireString($arguments, 'path');
+        $prompt = $this->requireString($arguments, 'prompt');
 
         if (mb_strlen($prompt) > self::MAX_PROMPT_LENGTH) {
-            return 'Error: "prompt" must not exceed '.self::MAX_PROMPT_LENGTH.' characters.';
+            throw new ToolArgumentException(
+                '"prompt" must not exceed '.self::MAX_PROMPT_LENGTH.' characters.'
+            );
         }
 
         $isUrl = str_starts_with($path, 'http://') || str_starts_with($path, 'https://');
@@ -101,8 +94,10 @@ class ImageAnalysisTool implements DigitalWorkerTool
             $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
 
             if (! in_array($extension, self::SUPPORTED_EXTENSIONS, true)) {
-                return 'Error: Unsupported image format. Supported extensions: '
-                    .implode(', ', self::SUPPORTED_EXTENSIONS).'.';
+                throw new ToolArgumentException(
+                    'Unsupported image format. Supported extensions: '
+                        .implode(', ', self::SUPPORTED_EXTENSIONS).'.'
+                );
             }
         }
 

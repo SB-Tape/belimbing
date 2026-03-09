@@ -5,7 +5,10 @@
 
 namespace App\Modules\Core\AI\Tools;
 
-use App\Modules\Core\AI\Contracts\DigitalWorkerTool;
+use App\Base\AI\Enums\ToolCategory;
+use App\Base\AI\Enums\ToolRiskClass;
+use App\Base\AI\Tools\AbstractTool;
+use App\Base\AI\Tools\Schema\ToolSchemaBuilder;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -17,7 +20,7 @@ use Illuminate\Support\Facades\DB;
  *
  * Gated by `ai.tool_system_info.execute` authz capability.
  */
-class SystemInfoTool implements DigitalWorkerTool
+class SystemInfoTool extends AbstractTool
 {
     /**
      * Valid section names that can be requested.
@@ -45,21 +48,26 @@ class SystemInfoTool implements DigitalWorkerTool
             .'"Which modules are active?", or "Is the database healthy?".';
     }
 
-    public function parametersSchema(): array
+    protected function schema(): ToolSchemaBuilder
     {
-        return [
-            'type' => 'object',
-            'properties' => [
-                'section' => [
-                    'type' => 'string',
-                    'enum' => self::SECTIONS,
-                    'description' => 'Which section to return. '
-                        .'Options: "all" (default), "framework", "modules", "providers", "health". '
-                        .'Use "all" to get a complete system overview.',
-                ],
-            ],
-            'required' => [],
-        ];
+        return ToolSchemaBuilder::make()
+            ->string(
+                'section',
+                'Which section to return. '
+                    .'Options: "all" (default), "framework", "modules", "providers", "health". '
+                    .'Use "all" to get a complete system overview.',
+                self::SECTIONS,
+            );
+    }
+
+    public function category(): ToolCategory
+    {
+        return ToolCategory::SYSTEM;
+    }
+
+    public function riskClass(): ToolRiskClass
+    {
+        return ToolRiskClass::READ_ONLY;
     }
 
     public function requiredCapability(): ?string
@@ -67,13 +75,9 @@ class SystemInfoTool implements DigitalWorkerTool
         return 'ai.tool_system_info.execute';
     }
 
-    public function execute(array $arguments): string
+    protected function handle(array $arguments): string
     {
-        $section = $arguments['section'] ?? 'all';
-
-        if (! is_string($section) || ! in_array($section, self::SECTIONS, true)) {
-            $section = 'all';
-        }
+        $section = $this->requireEnum($arguments, 'section', self::SECTIONS, 'all');
 
         $data = $section === 'all'
             ? $this->gatherAll()

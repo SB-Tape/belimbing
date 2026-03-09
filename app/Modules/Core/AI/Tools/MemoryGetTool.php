@@ -5,7 +5,10 @@
 
 namespace App\Modules\Core\AI\Tools;
 
-use App\Modules\Core\AI\Contracts\DigitalWorkerTool;
+use App\Base\AI\Enums\ToolCategory;
+use App\Base\AI\Enums\ToolRiskClass;
+use App\Base\AI\Tools\AbstractTool;
+use App\Base\AI\Tools\Schema\ToolSchemaBuilder;
 use App\Modules\Core\Employee\Models\Employee;
 
 /**
@@ -20,7 +23,7 @@ use App\Modules\Core\Employee\Models\Employee;
  *
  * Gated by `ai.tool_memory_get.execute` authz capability.
  */
-class MemoryGetTool implements DigitalWorkerTool
+class MemoryGetTool extends AbstractTool
 {
     private const MAX_LINES = 500;
 
@@ -39,33 +42,32 @@ class MemoryGetTool implements DigitalWorkerTool
             .'Supports optional line range selection for large files.';
     }
 
-    public function parametersSchema(): array
+    protected function schema(): ToolSchemaBuilder
     {
-        return [
-            'type' => 'object',
-            'properties' => [
-                'path' => [
-                    'type' => 'string',
-                    'description' => 'Relative file path within the chosen scope '
-                        .'(e.g., "MEMORY.md", "architecture/database.md").',
-                ],
-                'scope' => [
-                    'type' => 'string',
-                    'enum' => ['docs', 'workspace'],
-                    'description' => 'Where to read from: "docs" for project documentation (default), '
-                        .'"workspace" for Lara\'s workspace files.',
-                ],
-                'from' => [
-                    'type' => 'integer',
-                    'description' => 'Start reading from this line number (1-indexed, default: 1).',
-                ],
-                'lines' => [
-                    'type' => 'integer',
-                    'description' => 'Maximum number of lines to return (default: all, capped at 500).',
-                ],
-            ],
-            'required' => ['path'],
-        ];
+        return ToolSchemaBuilder::make()
+            ->string(
+                'path',
+                'Relative file path within the chosen scope '
+                    .'(e.g., "MEMORY.md", "architecture/database.md").',
+            )->required()
+            ->string(
+                'scope',
+                'Where to read from: "docs" for project documentation (default), '
+                    .'"workspace" for Lara\'s workspace files.',
+                enum: ['docs', 'workspace'],
+            )
+            ->integer('from', 'Start reading from this line number (1-indexed, default: 1).', min: 1)
+            ->integer('lines', 'Maximum number of lines to return (default: all, capped at 500).', min: 1, max: self::MAX_LINES);
+    }
+
+    public function category(): ToolCategory
+    {
+        return ToolCategory::MEMORY;
+    }
+
+    public function riskClass(): ToolRiskClass
+    {
+        return ToolRiskClass::READ_ONLY;
     }
 
     public function requiredCapability(): ?string
@@ -73,35 +75,18 @@ class MemoryGetTool implements DigitalWorkerTool
         return 'ai.tool_memory_get.execute';
     }
 
-    public function execute(array $arguments): string
+    protected function handle(array $arguments): string
     {
-        $path = $arguments['path'] ?? '';
-
-        if (! is_string($path) || trim($path) === '') {
-            return 'Error: No path provided.';
-        }
-
-        $path = trim($path);
+        $path = $this->requireString($arguments, 'path');
 
         $pathError = $this->validatePath($path);
         if ($pathError !== null) {
             return $pathError;
         }
 
-        $scope = 'docs';
-        if (isset($arguments['scope']) && in_array($arguments['scope'], ['docs', 'workspace'], true)) {
-            $scope = $arguments['scope'];
-        }
-
-        $from = 1;
-        if (isset($arguments['from']) && is_int($arguments['from']) && $arguments['from'] >= 1) {
-            $from = $arguments['from'];
-        }
-
-        $maxLines = self::MAX_LINES;
-        if (isset($arguments['lines']) && is_int($arguments['lines']) && $arguments['lines'] >= 1) {
-            $maxLines = min($arguments['lines'], self::MAX_LINES);
-        }
+        $scope = $this->requireEnum($arguments, 'scope', ['docs', 'workspace'], 'docs');
+        $from = $this->optionalInt($arguments, 'from', 1, min: 1);
+        $maxLines = $this->optionalInt($arguments, 'lines', self::MAX_LINES, min: 1, max: self::MAX_LINES);
 
         $basePath = $this->resolveBasePath($scope);
         $fullPath = $basePath.'/'.ltrim($path, '/');

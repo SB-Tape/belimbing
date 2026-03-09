@@ -5,7 +5,11 @@
 
 namespace App\Modules\Core\AI\Tools;
 
-use App\Modules\Core\AI\Contracts\DigitalWorkerTool;
+use App\Base\AI\Enums\ToolCategory;
+use App\Base\AI\Enums\ToolRiskClass;
+use App\Base\AI\Tools\AbstractTool;
+use App\Base\AI\Tools\Schema\ToolSchemaBuilder;
+use App\Base\AI\Tools\ToolArgumentException;
 use App\Modules\Core\AI\Services\LaraCapabilityMatcher;
 use App\Modules\Core\AI\Services\LaraTaskDispatcher;
 
@@ -21,7 +25,7 @@ use App\Modules\Core\AI\Services\LaraTaskDispatcher;
  *
  * Gated by `ai.tool_delegate.execute` authz capability.
  */
-class DelegateTaskTool implements DigitalWorkerTool
+class DelegateTaskTool extends AbstractTool
 {
     private const MAX_TASK_LENGTH = 5000;
 
@@ -44,25 +48,30 @@ class DelegateTaskTool implements DigitalWorkerTool
             .'Returns a dispatch_id for tracking status via delegation_status.';
     }
 
-    public function parametersSchema(): array
+    protected function schema(): ToolSchemaBuilder
     {
-        return [
-            'type' => 'object',
-            'properties' => [
-                'task' => [
-                    'type' => 'string',
-                    'description' => 'Description of the task to delegate. Be specific about '
-                        .'what the worker should accomplish.',
-                ],
-                'worker_id' => [
-                    'type' => 'integer',
-                    'description' => 'Employee ID of the target Digital Worker. '
-                        .'Use worker_list to discover available workers and their IDs. '
-                        .'If omitted, the best-matching worker is auto-selected.',
-                ],
-            ],
-            'required' => ['task'],
-        ];
+        return ToolSchemaBuilder::make()
+            ->string(
+                'task',
+                'Description of the task to delegate. Be specific about '
+                    .'what the worker should accomplish.'
+            )->required()
+            ->integer(
+                'worker_id',
+                'Employee ID of the target Digital Worker. '
+                    .'Use worker_list to discover available workers and their IDs. '
+                    .'If omitted, the best-matching worker is auto-selected.'
+            );
+    }
+
+    public function category(): ToolCategory
+    {
+        return ToolCategory::DELEGATION;
+    }
+
+    public function riskClass(): ToolRiskClass
+    {
+        return ToolRiskClass::INTERNAL;
     }
 
     public function requiredCapability(): ?string
@@ -70,18 +79,14 @@ class DelegateTaskTool implements DigitalWorkerTool
         return 'ai.tool_delegate.execute';
     }
 
-    public function execute(array $arguments): string
+    protected function handle(array $arguments): string
     {
-        $task = $arguments['task'] ?? '';
-
-        if (! is_string($task) || trim($task) === '') {
-            return 'Error: No task description provided.';
-        }
-
-        $task = trim($task);
+        $task = $this->requireString($arguments, 'task');
 
         if (mb_strlen($task) > self::MAX_TASK_LENGTH) {
-            return 'Error: Task description exceeds maximum length of '.self::MAX_TASK_LENGTH.' characters.';
+            throw new ToolArgumentException(
+                'Task description exceeds maximum length of '.self::MAX_TASK_LENGTH.' characters.'
+            );
         }
 
         $workerId = $this->resolveWorkerId($arguments, $task);

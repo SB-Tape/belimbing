@@ -5,7 +5,11 @@
 
 namespace App\Modules\Core\AI\Tools;
 
-use App\Modules\Core\AI\Contracts\DigitalWorkerTool;
+use App\Base\AI\Enums\ToolCategory;
+use App\Base\AI\Enums\ToolRiskClass;
+use App\Base\AI\Tools\AbstractActionTool;
+use App\Base\AI\Tools\Schema\ToolSchemaBuilder;
+use App\Base\AI\Tools\ToolArgumentException;
 use App\Modules\Core\AI\Services\Browser\BrowserPoolManager;
 use App\Modules\Core\AI\Services\Browser\BrowserSsrfGuard;
 
@@ -27,7 +31,7 @@ use App\Modules\Core\AI\Services\Browser\BrowserSsrfGuard;
  * Gated by `ai.tool_browser.execute` authz capability.
  * The `evaluate` action additionally requires `ai.tool_browser_evaluate.execute`.
  */
-class BrowserTool implements DigitalWorkerTool
+class BrowserTool extends AbstractActionTool
 {
     private const ERROR_PREFIX = 'Error: ';
 
@@ -95,90 +99,14 @@ class BrowserTool implements DigitalWorkerTool
             .'and waiting for page state. Each DW session gets an isolated browser context.';
     }
 
-    public function parametersSchema(): array
+    public function category(): ToolCategory
     {
-        return [
-            'type' => 'object',
-            'properties' => [
-                'action' => [
-                    'type' => 'string',
-                    'enum' => self::ACTIONS,
-                    'description' => 'The browser action to perform.',
-                ],
-                'url' => [
-                    'type' => 'string',
-                    'description' => 'URL to navigate to (for "navigate" and "open" actions).',
-                ],
-                'format' => [
-                    'type' => 'string',
-                    'enum' => ['ai', 'aria'],
-                    'description' => 'Snapshot format: "ai" for LLM-optimized (default), "aria" for accessibility tree.',
-                ],
-                'interactive' => [
-                    'type' => 'boolean',
-                    'description' => 'Whether to include interactive element refs in snapshot (default true).',
-                ],
-                'compact' => [
-                    'type' => 'boolean',
-                    'description' => 'Whether to return a compact snapshot (default false).',
-                ],
-                'full_page' => [
-                    'type' => 'boolean',
-                    'description' => 'Capture full page screenshot instead of viewport only.',
-                ],
-                'ref' => [
-                    'type' => 'string',
-                    'description' => 'Element reference from a snapshot, used by "act" and "screenshot" actions.',
-                ],
-                'selector' => [
-                    'type' => 'string',
-                    'description' => 'CSS selector for targeting elements (screenshot, wait).',
-                ],
-                'kind' => [
-                    'type' => 'string',
-                    'enum' => self::ACT_KINDS,
-                    'description' => 'Interaction kind for "act" action: click, type, select, press, drag, hover, scroll, fill.',
-                ],
-                'text' => [
-                    'type' => 'string',
-                    'description' => 'Text input for type/fill/press actions, or text to wait for.',
-                ],
-                'submit' => [
-                    'type' => 'boolean',
-                    'description' => 'Whether to submit the form after typing/filling (default false).',
-                ],
-                'tab_id' => [
-                    'type' => 'string',
-                    'description' => 'Tab identifier for "close" action.',
-                ],
-                'script' => [
-                    'type' => 'string',
-                    'description' => 'JavaScript code to evaluate in page context (requires evaluate to be enabled).',
-                ],
-                'cookie_action' => [
-                    'type' => 'string',
-                    'enum' => self::COOKIE_ACTIONS,
-                    'description' => 'Cookie sub-action: "get", "set", or "clear".',
-                ],
-                'cookie_name' => [
-                    'type' => 'string',
-                    'description' => 'Cookie name (for get/set/clear).',
-                ],
-                'cookie_value' => [
-                    'type' => 'string',
-                    'description' => 'Cookie value (for set).',
-                ],
-                'cookie_url' => [
-                    'type' => 'string',
-                    'description' => 'URL scope for cookie operations.',
-                ],
-                'timeout_ms' => [
-                    'type' => 'integer',
-                    'description' => 'Timeout in milliseconds for "wait" action (default 5000).',
-                ],
-            ],
-            'required' => ['action'],
-        ];
+        return ToolCategory::BROWSER;
+    }
+
+    public function riskClass(): ToolRiskClass
+    {
+        return ToolRiskClass::BROWSER;
     }
 
     public function requiredCapability(): ?string
@@ -186,14 +114,44 @@ class BrowserTool implements DigitalWorkerTool
         return 'ai.tool_browser.execute';
     }
 
-    public function execute(array $arguments): string
+    /**
+     * @return list<string>
+     */
+    protected function actions(): array
     {
-        $action = $arguments['action'] ?? '';
+        return self::ACTIONS;
+    }
 
-        if (! is_string($action) || ! in_array($action, self::ACTIONS, true)) {
-            return self::ERROR_PREFIX.'Invalid action. Must be one of: '.implode(', ', self::ACTIONS).'.';
-        }
+    protected function schema(): ToolSchemaBuilder
+    {
+        return ToolSchemaBuilder::make()
+            ->string('url', 'URL to navigate to (for "navigate" and "open" actions).')
+            ->string('format', 'Snapshot format: "ai" for LLM-optimized (default), "aria" for accessibility tree.', ['ai', 'aria'])
+            ->boolean('interactive', 'Whether to include interactive element refs in snapshot (default true).')
+            ->boolean('compact', 'Whether to return a compact snapshot (default false).')
+            ->boolean('full_page', 'Capture full page screenshot instead of viewport only.')
+            ->string('ref', 'Element reference from a snapshot, used by "act" and "screenshot" actions.')
+            ->string('selector', 'CSS selector for targeting elements (screenshot, wait).')
+            ->string('kind', 'Interaction kind for "act" action: click, type, select, press, drag, hover, scroll, fill.', self::ACT_KINDS)
+            ->string('text', 'Text input for type/fill/press actions, or text to wait for.')
+            ->boolean('submit', 'Whether to submit the form after typing/filling (default false).')
+            ->string('tab_id', 'Tab identifier for "close" action.')
+            ->string('script', 'JavaScript code to evaluate in page context (requires evaluate to be enabled).')
+            ->string('cookie_action', 'Cookie sub-action: "get", "set", or "clear".', self::COOKIE_ACTIONS)
+            ->string('cookie_name', 'Cookie name (for get/set/clear).')
+            ->string('cookie_value', 'Cookie value (for set).')
+            ->string('cookie_url', 'URL scope for cookie operations.')
+            ->integer('timeout_ms', 'Timeout in milliseconds for "wait" action (default 5000).');
+    }
 
+    /**
+     * Dispatch to the appropriate browser action handler.
+     *
+     * @param  string  $action  The validated action name
+     * @param  array<string, mixed>  $arguments  Full arguments (including 'action')
+     */
+    protected function handleAction(string $action, array $arguments): string
+    {
         if (! $this->poolManager->isAvailable()) {
             return self::ERROR_PREFIX.'Browser automation is not available. '
                 .'The browser tool is either disabled or Playwright is not installed. '
@@ -224,13 +182,7 @@ class BrowserTool implements DigitalWorkerTool
      */
     private function handleNavigate(array $arguments): string
     {
-        $url = $arguments['url'] ?? '';
-
-        if (! is_string($url) || trim($url) === '') {
-            return self::ERROR_PREFIX.'"url" is required for the navigate action.';
-        }
-
-        $url = trim($url);
+        $url = $this->requireString($arguments, 'url');
         $ssrfCheck = $this->ssrfGuard->validate($url);
 
         if ($ssrfCheck !== true) {
@@ -255,19 +207,15 @@ class BrowserTool implements DigitalWorkerTool
      */
     private function handleSnapshot(array $arguments): string
     {
-        $format = 'ai';
-        if (isset($arguments['format']) && in_array($arguments['format'], ['ai', 'aria'], true)) {
-            $format = $arguments['format'];
-        }
-
-        $interactive = $arguments['interactive'] ?? true;
-        $compact = $arguments['compact'] ?? false;
+        $format = $this->requireEnum($arguments, 'format', ['ai', 'aria'], 'ai');
+        $interactive = $this->optionalBool($arguments, 'interactive', true);
+        $compact = $this->optionalBool($arguments, 'compact');
 
         return json_encode([
             'action' => 'snapshot',
             'format' => $format,
-            'interactive' => (bool) $interactive,
-            'compact' => (bool) $compact,
+            'interactive' => $interactive,
+            'compact' => $compact,
             'content' => '',
             'status' => 'captured',
             'message' => 'Snapshot captured (stub). Playwright integration pending.',
@@ -285,9 +233,9 @@ class BrowserTool implements DigitalWorkerTool
     {
         return json_encode([
             'action' => 'screenshot',
-            'full_page' => (bool) ($arguments['full_page'] ?? false),
-            'ref' => $arguments['ref'] ?? null,
-            'selector' => $arguments['selector'] ?? null,
+            'full_page' => $this->optionalBool($arguments, 'full_page'),
+            'ref' => $this->optionalString($arguments, 'ref'),
+            'selector' => $this->optionalString($arguments, 'selector'),
             'image_base64' => '',
             'status' => 'captured',
             'message' => 'Screenshot captured (stub). Playwright integration pending.',
@@ -303,26 +251,15 @@ class BrowserTool implements DigitalWorkerTool
      */
     private function handleAct(array $arguments): string
     {
-        $kind = $arguments['kind'] ?? '';
-
-        if (! is_string($kind) || ! in_array($kind, self::ACT_KINDS, true)) {
-            return self::ERROR_PREFIX.'"kind" is required for the act action. '
-                .'Must be one of: '.implode(', ', self::ACT_KINDS).'.';
-        }
-
-        $ref = $arguments['ref'] ?? null;
-
-        if (! is_string($ref) || trim($ref) === '') {
-            return self::ERROR_PREFIX.'"ref" is required for the act action. '
-                .'Use a snapshot to get element references.';
-        }
+        $kind = $this->requireEnum($arguments, 'kind', self::ACT_KINDS);
+        $ref = $this->requireString($arguments, 'ref');
 
         return json_encode([
             'action' => 'act',
             'kind' => $kind,
-            'ref' => trim($ref),
-            'text' => $arguments['text'] ?? null,
-            'submit' => (bool) ($arguments['submit'] ?? false),
+            'ref' => $ref,
+            'text' => $this->optionalString($arguments, 'text'),
+            'submit' => $this->optionalBool($arguments, 'submit'),
             'status' => 'performed',
             'message' => 'Action performed (stub). Playwright integration pending.',
         ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
@@ -352,13 +289,7 @@ class BrowserTool implements DigitalWorkerTool
      */
     private function handleOpen(array $arguments): string
     {
-        $url = $arguments['url'] ?? '';
-
-        if (! is_string($url) || trim($url) === '') {
-            return self::ERROR_PREFIX.'"url" is required for the open action.';
-        }
-
-        $url = trim($url);
+        $url = $this->requireString($arguments, 'url');
         $ssrfCheck = $this->ssrfGuard->validate($url);
 
         if ($ssrfCheck !== true) {
@@ -383,15 +314,11 @@ class BrowserTool implements DigitalWorkerTool
      */
     private function handleClose(array $arguments): string
     {
-        $tabId = $arguments['tab_id'] ?? '';
-
-        if (! is_string($tabId) || trim($tabId) === '') {
-            return self::ERROR_PREFIX.'"tab_id" is required for the close action.';
-        }
+        $tabId = $this->requireString($arguments, 'tab_id');
 
         return json_encode([
             'action' => 'close',
-            'tab_id' => trim($tabId),
+            'tab_id' => $tabId,
             'status' => 'closed',
             'message' => 'Tab closed (stub). Playwright integration pending.',
         ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
@@ -413,15 +340,11 @@ class BrowserTool implements DigitalWorkerTool
                 .'An administrator must enable it via config("ai.tools.browser.evaluate_enabled").';
         }
 
-        $script = $arguments['script'] ?? '';
-
-        if (! is_string($script) || trim($script) === '') {
-            return self::ERROR_PREFIX.'"script" is required for the evaluate action.';
-        }
+        $script = $this->requireString($arguments, 'script');
 
         return json_encode([
             'action' => 'evaluate',
-            'script' => trim($script),
+            'script' => $script,
             'result' => null,
             'status' => 'evaluated',
             'message' => 'Script evaluated (stub). Playwright integration pending.',
@@ -452,12 +375,7 @@ class BrowserTool implements DigitalWorkerTool
      */
     private function handleCookies(array $arguments): string
     {
-        $cookieAction = $arguments['cookie_action'] ?? '';
-
-        if (! is_string($cookieAction) || ! in_array($cookieAction, self::COOKIE_ACTIONS, true)) {
-            return self::ERROR_PREFIX.'"cookie_action" is required for the cookies action. '
-                .'Must be one of: '.implode(', ', self::COOKIE_ACTIONS).'.';
-        }
+        $cookieAction = $this->requireEnum($arguments, 'cookie_action', self::COOKIE_ACTIONS);
 
         return match ($cookieAction) {
             'get' => $this->handleCookieGet($arguments),
@@ -476,7 +394,7 @@ class BrowserTool implements DigitalWorkerTool
         return json_encode([
             'action' => 'cookies',
             'cookie_action' => 'get',
-            'cookie_name' => $arguments['cookie_name'] ?? null,
+            'cookie_name' => $this->optionalString($arguments, 'cookie_name'),
             'cookies' => [],
             'status' => 'retrieved',
             'message' => 'Cookies retrieved (stub). Playwright integration pending.',
@@ -490,23 +408,19 @@ class BrowserTool implements DigitalWorkerTool
      */
     private function handleCookieSet(array $arguments): string
     {
-        $name = $arguments['cookie_name'] ?? '';
+        $name = $this->requireString($arguments, 'cookie_name');
+
         $value = $arguments['cookie_value'] ?? '';
-
-        if (! is_string($name) || trim($name) === '') {
-            return self::ERROR_PREFIX.'"cookie_name" is required to set a cookie.';
-        }
-
         if (! is_string($value)) {
-            return self::ERROR_PREFIX.'"cookie_value" is required to set a cookie.';
+            throw new ToolArgumentException('"cookie_value" is required to set a cookie.');
         }
 
         return json_encode([
             'action' => 'cookies',
             'cookie_action' => 'set',
-            'cookie_name' => trim($name),
+            'cookie_name' => $name,
             'cookie_value' => $value,
-            'cookie_url' => $arguments['cookie_url'] ?? null,
+            'cookie_url' => $this->optionalString($arguments, 'cookie_url'),
             'status' => 'set',
             'message' => 'Cookie set (stub). Playwright integration pending.',
         ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
@@ -522,7 +436,7 @@ class BrowserTool implements DigitalWorkerTool
         return json_encode([
             'action' => 'cookies',
             'cookie_action' => 'clear',
-            'cookie_name' => $arguments['cookie_name'] ?? null,
+            'cookie_name' => $this->optionalString($arguments, 'cookie_name'),
             'status' => 'cleared',
             'message' => 'Cookies cleared (stub). Playwright integration pending.',
         ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
@@ -537,18 +451,17 @@ class BrowserTool implements DigitalWorkerTool
      */
     private function handleWait(array $arguments): string
     {
-        $text = $arguments['text'] ?? null;
-        $selector = $arguments['selector'] ?? null;
-        $url = $arguments['url'] ?? null;
+        $text = $this->optionalString($arguments, 'text');
+        $selector = $this->optionalString($arguments, 'selector');
+        $url = $this->optionalString($arguments, 'url');
 
         if ($text === null && $selector === null && $url === null) {
-            return self::ERROR_PREFIX.'At least one of "text", "selector", or "url" is required for the wait action.';
+            throw new ToolArgumentException(
+                'At least one of "text", "selector", or "url" is required for the wait action.'
+            );
         }
 
-        $timeoutMs = 5000;
-        if (isset($arguments['timeout_ms']) && is_int($arguments['timeout_ms'])) {
-            $timeoutMs = max(100, $arguments['timeout_ms']);
-        }
+        $timeoutMs = $this->optionalInt($arguments, 'timeout_ms', 5000, 100);
 
         return json_encode([
             'action' => 'wait',

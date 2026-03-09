@@ -5,8 +5,11 @@
 
 namespace App\Modules\Core\AI\Tools;
 
-use App\Modules\Core\AI\Contracts\DigitalWorkerTool;
-use App\Modules\Core\AI\Tools\Concerns\FormatsProcessResult;
+use App\Base\AI\Enums\ToolCategory;
+use App\Base\AI\Enums\ToolRiskClass;
+use App\Base\AI\Tools\AbstractTool;
+use App\Base\AI\Tools\Concerns\FormatsProcessResult;
+use App\Base\AI\Tools\Schema\ToolSchemaBuilder;
 use Illuminate\Support\Facades\Process;
 
 /**
@@ -18,11 +21,9 @@ use Illuminate\Support\Facades\Process;
  * Safety: Timeout enforced per execution. Authz gating is the primary
  * control — only users with explicit bash capability can trigger this.
  */
-class BashTool implements DigitalWorkerTool
+class BashTool extends AbstractTool
 {
     use FormatsProcessResult;
-
-    private const ERROR_PREFIX = 'Error: ';
 
     private const TIMEOUT_SECONDS = 30;
 
@@ -38,19 +39,24 @@ class BashTool implements DigitalWorkerTool
             .'Commands run from the BLB project root directory.';
     }
 
-    public function parametersSchema(): array
+    protected function schema(): ToolSchemaBuilder
     {
-        return [
-            'type' => 'object',
-            'properties' => [
-                'command' => [
-                    'type' => 'string',
-                    'description' => 'The bash command to execute. '
-                        .'Examples: "ls -la storage/app", "cat .env | grep DB_", "git log --oneline -5".',
-                ],
-            ],
-            'required' => ['command'],
-        ];
+        return ToolSchemaBuilder::make()
+            ->string(
+                'command',
+                'The bash command to execute. '
+                    .'Examples: "ls -la storage/app", "cat .env | grep DB_", "git log --oneline -5".'
+            )->required();
+    }
+
+    public function category(): ToolCategory
+    {
+        return ToolCategory::SYSTEM;
+    }
+
+    public function riskClass(): ToolRiskClass
+    {
+        return ToolRiskClass::HIGH_IMPACT;
     }
 
     public function requiredCapability(): ?string
@@ -58,15 +64,9 @@ class BashTool implements DigitalWorkerTool
         return 'ai.tool_bash.execute';
     }
 
-    public function execute(array $arguments): string
+    protected function handle(array $arguments): string
     {
-        $command = $arguments['command'] ?? '';
-
-        if (! is_string($command) || trim($command) === '') {
-            return self::ERROR_PREFIX.'No command provided.';
-        }
-
-        $command = trim($command);
+        $command = $this->requireString($arguments, 'command');
 
         $result = Process::timeout(self::TIMEOUT_SECONDS)
             ->path(base_path())

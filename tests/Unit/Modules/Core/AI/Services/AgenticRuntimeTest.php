@@ -7,7 +7,9 @@ use App\Base\AI\Services\GithubCopilotAuthService;
 use App\Base\AI\Services\LlmClient;
 use App\Base\Authz\Contracts\AuthorizationService;
 use App\Base\Authz\DTO\AuthorizationDecision;
-use App\Modules\Core\AI\Contracts\DigitalWorkerTool;
+use App\Base\AI\Contracts\Tool;
+use App\Base\AI\Enums\ToolCategory;
+use App\Base\AI\Enums\ToolRiskClass;
 use App\Modules\Core\AI\DTO\Message;
 use App\Modules\Core\AI\Services\AgenticRuntime;
 use App\Modules\Core\AI\Services\ConfigResolver;
@@ -16,7 +18,7 @@ use Illuminate\Foundation\Testing\TestCase;
 
 uses(TestCase::class);
 
-class TestDigitalWorkerTool implements DigitalWorkerTool
+class TestTool implements Tool
 {
     /**
      * @param  array<string, mixed>  $schema
@@ -46,6 +48,16 @@ class TestDigitalWorkerTool implements DigitalWorkerTool
     public function requiredCapability(): ?string
     {
         return null;
+    }
+
+    public function category(): ToolCategory
+    {
+        return ToolCategory::SYSTEM;
+    }
+
+    public function riskClass(): ToolRiskClass
+    {
+        return ToolRiskClass::READ_ONLY;
     }
 
     public function execute(array $arguments): string
@@ -96,7 +108,7 @@ function buildResolvedConfigResolverMock(): ConfigResolver
     return $configResolver;
 }
 
-function buildToolRegistry(DigitalWorkerTool ...$tools): DigitalWorkerToolRegistry
+function buildToolRegistry(Tool ...$tools): DigitalWorkerToolRegistry
 {
     $registry = new DigitalWorkerToolRegistry(buildAllowAllAuthzMock());
 
@@ -110,13 +122,13 @@ function buildToolRegistry(DigitalWorkerTool ...$tools): DigitalWorkerToolRegist
 function buildRuntime(
     LlmClient $llmClient,
     ?ConfigResolver $configResolver = null,
-    ?DigitalWorkerToolRegistry $registry = null,
+    ?DigitalWorkerToolRegistry $toolRegistry = null,
 ): AgenticRuntime {
     return new AgenticRuntime(
         $configResolver ?? buildResolvedConfigResolverMock(),
         $llmClient,
         Mockery::mock(GithubCopilotAuthService::class),
-        $registry ?? buildToolRegistry(),
+        $toolRegistry ?? buildToolRegistry(),
     );
 }
 
@@ -125,12 +137,12 @@ function buildGenericTool(
     string $description,
     array $schema,
     string $result,
-): DigitalWorkerTool
+): Tool
 {
-    return new TestDigitalWorkerTool($name, $description, $schema, $result);
+    return new TestTool($name, $description, $schema, $result);
 }
 
-function buildEchoTool(): DigitalWorkerTool
+function buildEchoTool(): Tool
 {
     return buildGenericTool(
         'echo_tool',
@@ -140,7 +152,7 @@ function buildEchoTool(): DigitalWorkerTool
     );
 }
 
-function buildNavigateActionTool(): DigitalWorkerTool
+function buildNavigateActionTool(): Tool
 {
     return buildGenericTool(
         'navigate_tool',

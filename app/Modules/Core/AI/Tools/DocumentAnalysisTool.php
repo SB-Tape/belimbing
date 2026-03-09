@@ -5,7 +5,11 @@
 
 namespace App\Modules\Core\AI\Tools;
 
-use App\Modules\Core\AI\Contracts\DigitalWorkerTool;
+use App\Base\AI\Enums\ToolCategory;
+use App\Base\AI\Enums\ToolRiskClass;
+use App\Base\AI\Tools\AbstractTool;
+use App\Base\AI\Tools\Schema\ToolSchemaBuilder;
+use App\Base\AI\Tools\ToolArgumentException;
 
 /**
  * Document analysis tool for Digital Workers.
@@ -19,7 +23,7 @@ use App\Modules\Core\AI\Contracts\DigitalWorkerTool;
  *
  * Gated by `ai.tool_document_analysis.execute` authz capability.
  */
-class DocumentAnalysisTool implements DigitalWorkerTool
+class DocumentAnalysisTool extends AbstractTool
 {
     /**
      * Maximum length for the pages filter string.
@@ -51,31 +55,33 @@ class DocumentAnalysisTool implements DigitalWorkerTool
             .'are sent. For others, text is extracted via PDF parser.';
     }
 
-    public function parametersSchema(): array
+    protected function schema(): ToolSchemaBuilder
     {
-        return [
-            'type' => 'object',
-            'properties' => [
-                'path' => [
-                    'type' => 'string',
-                    'description' => 'Storage path or URL to the document to analyze.',
-                ],
-                'prompt' => [
-                    'type' => 'string',
-                    'description' => 'What to analyze or extract from the document (max '.self::MAX_PROMPT_LENGTH.' characters).',
-                ],
-                'pages' => [
-                    'type' => 'string',
-                    'description' => 'Page filter expression, e.g. "1-5" or "1,3,7" or "1-3,5,8-10" '
-                        .'(max '.self::MAX_PAGES_LENGTH.' characters). Optional; defaults to all pages.',
-                ],
-                'model' => [
-                    'type' => 'string',
-                    'description' => 'LLM model override for analysis. Optional; uses the default model if not specified.',
-                ],
-            ],
-            'required' => ['path', 'prompt'],
-        ];
+        return ToolSchemaBuilder::make()
+            ->string('path', 'Storage path or URL to the document to analyze.')->required()
+            ->string(
+                'prompt',
+                'What to analyze or extract from the document (max '.self::MAX_PROMPT_LENGTH.' characters).'
+            )->required()
+            ->string(
+                'pages',
+                'Page filter expression, e.g. "1-5" or "1,3,7" or "1-3,5,8-10" '
+                    .'(max '.self::MAX_PAGES_LENGTH.' characters). Optional; defaults to all pages.'
+            )
+            ->string(
+                'model',
+                'LLM model override for analysis. Optional; uses the default model if not specified.'
+            );
+    }
+
+    public function category(): ToolCategory
+    {
+        return ToolCategory::MEDIA;
+    }
+
+    public function riskClass(): ToolRiskClass
+    {
+        return ToolRiskClass::READ_ONLY;
     }
 
     public function requiredCapability(): ?string
@@ -83,18 +89,23 @@ class DocumentAnalysisTool implements DigitalWorkerTool
         return 'ai.tool_document_analysis.execute';
     }
 
-    public function execute(array $arguments): string
+    protected function handle(array $arguments): string
     {
-        $validationError = $this->validateArguments($arguments);
+        $path = $this->requireString($arguments, 'path');
+        $prompt = $this->requireString($arguments, 'prompt');
 
-        if ($validationError !== null) {
-            return $validationError;
+        if (mb_strlen($prompt) > self::MAX_PROMPT_LENGTH) {
+            throw new ToolArgumentException(
+                '"prompt" must not exceed '.self::MAX_PROMPT_LENGTH.' characters.'
+            );
         }
 
-        $path = trim($arguments['path']);
-        $prompt = trim($arguments['prompt']);
-        $pages = isset($arguments['pages']) && is_string($arguments['pages']) ? trim($arguments['pages']) : null;
-        $model = isset($arguments['model']) && is_string($arguments['model']) ? trim($arguments['model']) : null;
+        $pages = $this->optionalString($arguments, 'pages');
+        $model = $this->optionalString($arguments, 'model');
+
+        if ($pages !== null) {
+            $this->validatePages($pages);
+        }
 
         $data = [
             'action' => 'document_analysis',
@@ -102,11 +113,11 @@ class DocumentAnalysisTool implements DigitalWorkerTool
             'prompt' => $prompt,
         ];
 
-        if ($pages !== null && $pages !== '') {
+        if ($pages !== null) {
             $data['pages'] = $pages;
         }
 
-        if ($model !== null && $model !== '') {
+        if ($model !== null) {
             $data['model'] = $model;
         }
 
@@ -117,50 +128,25 @@ class DocumentAnalysisTool implements DigitalWorkerTool
     }
 
     /**
-     * Validate all input arguments before execution.
+     * Validate the pages filter expression.
      *
-     * @param  array<string, mixed>  $arguments  Parsed arguments from LLM
-     * @return string|null Error message if invalid, null if valid
+     * @param  string  $pages  Trimmed pages string
+     *
+     * @throws ToolArgumentException If the pages string is invalid
      */
-    private function validateArguments(array $arguments): ?string
+    private function validatePages(string $pages): void
     {
-        $path = $arguments['path'] ?? '';
-
-        if (! is_string($path) || trim($path) === '') {
-            return 'Error: "path" is required and must be a non-empty string.';
+        if (mb_strlen($pages) > self::MAX_PAGES_LENGTH) {
+            throw new ToolArgumentException(
+                '"pages" must not exceed '.self::MAX_PAGES_LENGTH.' characters.'
+            );
         }
 
-        $prompt = $arguments['prompt'] ?? '';
-
-        if (! is_string($prompt) || trim($prompt) === '') {
-            return 'Error: "prompt" is required and must be a non-empty string.';
+        if (! preg_match(self::PAGES_PATTERN, $pages)) {
+            throw new ToolArgumentException(
+                'Invalid "pages" format. '
+                    .'Expected patterns like "1-5", "1,3,7", or "1-3,5,8-10".'
+            );
         }
-
-        if (mb_strlen($prompt) > self::MAX_PROMPT_LENGTH) {
-            return 'Error: "prompt" must not exceed '.self::MAX_PROMPT_LENGTH.' characters.';
-        }
-
-        $pages = $arguments['pages'] ?? null;
-
-        if ($pages !== null) {
-            if (! is_string($pages)) {
-                return 'Error: "pages" must be a string (e.g. "1-5", "1,3,7", "1-3,5,8-10").';
-            }
-
-            $pages = trim($pages);
-
-            if ($pages !== '') {
-                if (mb_strlen($pages) > self::MAX_PAGES_LENGTH) {
-                    return 'Error: "pages" must not exceed '.self::MAX_PAGES_LENGTH.' characters.';
-                }
-
-                if (! preg_match(self::PAGES_PATTERN, $pages)) {
-                    return 'Error: Invalid "pages" format. '
-                        .'Expected patterns like "1-5", "1,3,7", or "1-3,5,8-10".';
-                }
-            }
-        }
-
-        return null;
     }
 }

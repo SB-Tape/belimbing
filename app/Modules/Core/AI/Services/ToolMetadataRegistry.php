@@ -6,15 +6,15 @@
 namespace App\Modules\Core\AI\Services;
 
 use App\Modules\Core\AI\DTO\ToolMetadata;
-use App\Modules\Core\AI\Enums\ToolCategory;
-use App\Modules\Core\AI\Enums\ToolRiskClass;
+use App\Base\AI\Enums\ToolCategory;
+use App\Base\AI\Enums\ToolRiskClass;
 
 /**
  * Rich UI metadata registry for Digital Worker tools.
  *
  * Provides display-oriented information (names, descriptions, categories,
  * risk classes, setup requirements, test examples) for the Tool Workspace UI.
- * Keyed by the tool's machine name matching DigitalWorkerTool::name().
+ * Keyed by the tool's machine name matching Tool::name().
  */
 class ToolMetadataRegistry
 {

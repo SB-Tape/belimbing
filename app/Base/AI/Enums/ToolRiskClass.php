@@ -3,10 +3,10 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // (c) Ng Kiat Siong <kiatsiong.ng@gmail.com>
 
-namespace App\Modules\Core\AI\Enums;
+namespace App\Base\AI\Enums;
 
 /**
- * Risk classification for Digital Worker tools.
+ * Risk classification for AI tools.
  *
  * Helps users understand the potential impact of a tool at a glance.
  */

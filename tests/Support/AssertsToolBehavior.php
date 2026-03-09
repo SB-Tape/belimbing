@@ -2,12 +2,12 @@
 
 namespace Tests\Support;
 
-use App\Modules\Core\AI\Contracts\DigitalWorkerTool;
+use App\Base\AI\Contracts\Tool;
 
 trait AssertsToolBehavior
 {
     protected function assertToolMetadata(
-        DigitalWorkerTool $tool,
+        Tool $tool,
         string $expectedName,
         string $expectedCapability,
         array $expectedPropertyKeys = [],
@@ -26,7 +26,7 @@ trait AssertsToolBehavior
         }
 
         if ($expectedRequired !== null) {
-            expect($schema['required'])->toBe($expectedRequired);
+            expect($schema['required'] ?? [])->toBe($expectedRequired);
         }
     }
 

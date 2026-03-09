@@ -35,7 +35,7 @@ describe('input validation', function () {
     });
 
     it('rejects invalid action', function () {
-        $this->assertToolError(['action' => 'bogus'], 'Must be one of');
+        $this->assertToolError(['action' => 'bogus'], 'must be one of');
     });
 
     it('returns error when pool unavailable', function () {

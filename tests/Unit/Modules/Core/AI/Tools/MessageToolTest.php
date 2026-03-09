@@ -92,7 +92,7 @@ describe('input validation', function () {
     });
 
     it('rejects invalid action', function () {
-        $this->assertToolError(['action' => 'bogus', 'channel' => 'telegram'], 'Must be one of');
+        $this->assertToolError(['action' => 'bogus', 'channel' => 'telegram'], 'must be one of');
     });
 
     it('rejects missing channel', function () {

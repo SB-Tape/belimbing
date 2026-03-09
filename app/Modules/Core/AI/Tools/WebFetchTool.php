@@ -5,9 +5,12 @@
 
 namespace App\Modules\Core\AI\Tools;
 
+use App\Base\AI\Enums\ToolCategory;
+use App\Base\AI\Enums\ToolRiskClass;
 use App\Base\AI\Services\UrlSafetyGuard;
 use App\Base\AI\Services\WebFetchService;
-use App\Modules\Core\AI\Contracts\DigitalWorkerTool;
+use App\Base\AI\Tools\AbstractTool;
+use App\Base\AI\Tools\Schema\ToolSchemaBuilder;
 
 /**
  * Web page fetching and content extraction tool for Digital Workers.
@@ -21,7 +24,7 @@ use App\Modules\Core\AI\Contracts\DigitalWorkerTool;
  *
  * Gated by `ai.tool_web_fetch.execute` authz capability.
  */
-class WebFetchTool implements DigitalWorkerTool
+class WebFetchTool extends AbstractTool
 {
     private const DEFAULT_TIMEOUT_SECONDS = 30;
 
@@ -48,29 +51,32 @@ class WebFetchTool implements DigitalWorkerTool
             .'Returns extracted text content from the page.';
     }
 
-    public function parametersSchema(): array
+    protected function schema(): ToolSchemaBuilder
     {
-        return [
-            'type' => 'object',
-            'properties' => [
-                'url' => [
-                    'type' => 'string',
-                    'description' => 'The URL to fetch (must be http or https).',
-                ],
-                'max_chars' => [
-                    'type' => 'integer',
-                    'description' => 'Maximum characters of content to return (default 50000). '
-                        .'Reduce for concise summaries, increase for full-page content.',
-                ],
-                'extract_mode' => [
-                    'type' => 'string',
-                    'enum' => ['text', 'markdown'],
-                    'description' => 'Content extraction mode: "text" for plain text (default), '
-                        .'"markdown" to preserve headings, links, and formatting.',
-                ],
-            ],
-            'required' => ['url'],
-        ];
+        return ToolSchemaBuilder::make()
+            ->string('url', 'The URL to fetch (must be http or https).')->required()
+            ->integer(
+                'max_chars',
+                'Maximum characters of content to return (default 50000). '
+                    .'Reduce for concise summaries, increase for full-page content.',
+                min: 1,
+            )
+            ->string(
+                'extract_mode',
+                'Content extraction mode: "text" for plain text (default), '
+                    .'"markdown" to preserve headings, links, and formatting.',
+                enum: ['text', 'markdown'],
+            );
+    }
+
+    public function category(): ToolCategory
+    {
+        return ToolCategory::WEB;
+    }
+
+    public function riskClass(): ToolRiskClass
+    {
+        return ToolRiskClass::EXTERNAL_IO;
     }
 
     public function requiredCapability(): ?string
@@ -78,25 +84,11 @@ class WebFetchTool implements DigitalWorkerTool
         return 'ai.tool_web_fetch.execute';
     }
 
-    public function execute(array $arguments): string
+    protected function handle(array $arguments): string
     {
-        $url = $arguments['url'] ?? '';
-
-        if (! is_string($url) || trim($url) === '') {
-            return 'Error: No URL provided.';
-        }
-
-        $url = trim($url);
-
-        $maxChars = self::DEFAULT_MAX_CHARS;
-        if (isset($arguments['max_chars']) && is_int($arguments['max_chars'])) {
-            $maxChars = max(1, $arguments['max_chars']);
-        }
-
-        $extractMode = 'text';
-        if (isset($arguments['extract_mode']) && in_array($arguments['extract_mode'], ['text', 'markdown'], true)) {
-            $extractMode = $arguments['extract_mode'];
-        }
+        $url = $this->requireString($arguments, 'url', 'URL');
+        $maxChars = $this->optionalInt($arguments, 'max_chars', self::DEFAULT_MAX_CHARS, min: 1);
+        $extractMode = $this->requireEnum($arguments, 'extract_mode', ['text', 'markdown'], 'text');
 
         $timeout = (int) config('ai.tools.web_fetch.timeout_seconds', self::DEFAULT_TIMEOUT_SECONDS);
         $maxBytes = (int) config('ai.tools.web_fetch.max_response_bytes', self::DEFAULT_MAX_RESPONSE_BYTES);

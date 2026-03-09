@@ -5,8 +5,11 @@
 
 namespace App\Modules\Core\AI\Tools;
 
+use App\Base\AI\Enums\ToolCategory;
+use App\Base\AI\Enums\ToolRiskClass;
 use App\Base\AI\Services\WebSearchService;
-use App\Modules\Core\AI\Contracts\DigitalWorkerTool;
+use App\Base\AI\Tools\AbstractTool;
+use App\Base\AI\Tools\Schema\ToolSchemaBuilder;
 use Illuminate\Support\Facades\Cache;
 
 /**
@@ -18,7 +21,7 @@ use Illuminate\Support\Facades\Cache;
  *
  * Gated by `ai.tool_web_search.execute` authz capability.
  */
-class WebSearchTool implements DigitalWorkerTool
+class WebSearchTool extends AbstractTool
 {
     private const TIMEOUT_SECONDS = 15;
 
@@ -88,27 +91,31 @@ class WebSearchTool implements DigitalWorkerTool
             .'Returns a list of relevant web pages with titles, URLs, and snippets.';
     }
 
-    public function parametersSchema(): array
+    protected function schema(): ToolSchemaBuilder
     {
-        return [
-            'type' => 'object',
-            'properties' => [
-                'query' => [
-                    'type' => 'string',
-                    'description' => 'The search query or objective text.',
-                ],
-                'count' => [
-                    'type' => 'integer',
-                    'description' => 'Number of results to return (1–'.self::MAX_COUNT.', default '.self::DEFAULT_COUNT.').',
-                ],
-                'freshness' => [
-                    'type' => 'string',
-                    'enum' => self::VALID_FRESHNESS,
-                    'description' => 'Recency filter: "day", "week", or "month".',
-                ],
-            ],
-            'required' => ['query'],
-        ];
+        return ToolSchemaBuilder::make()
+            ->string('query', 'The search query or objective text.')->required()
+            ->integer(
+                'count',
+                'Number of results to return (1–'.self::MAX_COUNT.', default '.self::DEFAULT_COUNT.').',
+                min: 1,
+                max: self::MAX_COUNT,
+            )
+            ->string(
+                'freshness',
+                'Recency filter: "day", "week", or "month".',
+                enum: self::VALID_FRESHNESS,
+            );
+    }
+
+    public function category(): ToolCategory
+    {
+        return ToolCategory::WEB;
+    }
+
+    public function riskClass(): ToolRiskClass
+    {
+        return ToolRiskClass::EXTERNAL_IO;
     }
 
     public function requiredCapability(): ?string
@@ -116,24 +123,14 @@ class WebSearchTool implements DigitalWorkerTool
         return 'ai.tool_web_search.execute';
     }
 
-    public function execute(array $arguments): string
+    protected function handle(array $arguments): string
     {
-        $query = $arguments['query'] ?? '';
+        $query = $this->requireString($arguments, 'query', 'search query');
+        $count = $this->optionalInt($arguments, 'count', self::DEFAULT_COUNT, min: 1, max: self::MAX_COUNT);
 
-        if (! is_string($query) || trim($query) === '') {
-            return 'Error: No search query provided.';
-        }
-
-        $query = trim($query);
-
-        $count = self::DEFAULT_COUNT;
-        if (isset($arguments['count']) && is_int($arguments['count'])) {
-            $count = max(1, min($arguments['count'], self::MAX_COUNT));
-        }
-
-        $freshness = null;
-        if (isset($arguments['freshness']) && is_string($arguments['freshness']) && in_array($arguments['freshness'], self::VALID_FRESHNESS, true)) {
-            $freshness = $arguments['freshness'];
+        $freshness = $this->optionalString($arguments, 'freshness');
+        if ($freshness !== null && ! in_array($freshness, self::VALID_FRESHNESS, true)) {
+            $freshness = null;
         }
 
         $cacheKey = 'lara_tool:web_search:'.md5($query.$count.$freshness);

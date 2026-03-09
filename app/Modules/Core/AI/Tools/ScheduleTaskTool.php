@@ -5,7 +5,11 @@
 
 namespace App\Modules\Core\AI\Tools;
 
-use App\Modules\Core\AI\Contracts\DigitalWorkerTool;
+use App\Base\AI\Enums\ToolCategory;
+use App\Base\AI\Enums\ToolRiskClass;
+use App\Base\AI\Tools\AbstractActionTool;
+use App\Base\AI\Tools\Schema\ToolSchemaBuilder;
+use App\Base\AI\Tools\ToolArgumentException;
 use Illuminate\Support\Str;
 
 /**
@@ -21,7 +25,7 @@ use Illuminate\Support\Str;
  *
  * Gated by `ai.tool_schedule.execute` authz capability.
  */
-class ScheduleTaskTool implements DigitalWorkerTool
+class ScheduleTaskTool extends AbstractActionTool
 {
     /**
      * Valid actions for schedule management.
@@ -62,46 +66,14 @@ class ScheduleTaskTool implements DigitalWorkerTool
             .'description, and enabled state. Tasks execute via Laravel\'s scheduler.';
     }
 
-    public function parametersSchema(): array
+    public function category(): ToolCategory
     {
-        return [
-            'type' => 'object',
-            'properties' => [
-                'action' => [
-                    'type' => 'string',
-                    'enum' => self::ACTIONS,
-                    'description' => 'The operation to perform: '
-                        .'"list" all tasks, "add" a new task, "update" an existing task, '
-                        .'"remove" a task, or check "status" of a task.',
-                ],
-                'task_id' => [
-                    'type' => 'string',
-                    'description' => 'The scheduled task ID. Required for update, remove, and status actions. '
-                        .'Format: "sched_<alphanumeric>".',
-                ],
-                'description' => [
-                    'type' => 'string',
-                    'description' => 'Description of what the scheduled task should do. '
-                        .'Required for add, optional for update.',
-                ],
-                'cron_expression' => [
-                    'type' => 'string',
-                    'description' => 'Standard 5-field cron expression (minute hour day month weekday). '
-                        .'Required for add, optional for update. Example: "0 9 * * 1" for every Monday at 9am.',
-                ],
-                'worker_id' => [
-                    'type' => 'integer',
-                    'description' => 'Employee ID of the target Digital Worker to execute the task. '
-                        .'Optional; use worker_list to discover available workers.',
-                ],
-                'enabled' => [
-                    'type' => 'boolean',
-                    'description' => 'Whether the scheduled task is enabled. Defaults to true for add. '
-                        .'Optional for update.',
-                ],
-            ],
-            'required' => ['action'],
-        ];
+        return ToolCategory::AUTOMATION;
+    }
+
+    public function riskClass(): ToolRiskClass
+    {
+        return ToolRiskClass::HIGH_IMPACT;
     }
 
     public function requiredCapability(): ?string
@@ -109,14 +81,23 @@ class ScheduleTaskTool implements DigitalWorkerTool
         return 'ai.tool_schedule.execute';
     }
 
-    public function execute(array $arguments): string
+    protected function actions(): array
     {
-        $action = $arguments['action'] ?? '';
+        return self::ACTIONS;
+    }
 
-        if (! is_string($action) || ! in_array($action, self::ACTIONS, true)) {
-            return 'Error: Invalid action. Must be one of: '.implode(', ', self::ACTIONS).'.';
-        }
+    protected function schema(): ToolSchemaBuilder
+    {
+        return ToolSchemaBuilder::make()
+            ->string('task_id', 'The scheduled task ID. Required for update, remove, and status actions. Format: "sched_<alphanumeric>".')
+            ->string('description', 'Description of what the scheduled task should do. Required for add, optional for update.')
+            ->string('cron_expression', 'Standard 5-field cron expression (minute hour day month weekday). Required for add, optional for update. Example: "0 9 * * 1" for every Monday at 9am.')
+            ->integer('worker_id', 'Employee ID of the target Digital Worker to execute the task. Optional; use worker_list to discover available workers.')
+            ->boolean('enabled', 'Whether the scheduled task is enabled. Defaults to true for add. Optional for update.');
+    }
 
+    protected function handleAction(string $action, array $arguments): string
+    {
         return match ($action) {
             'list' => $this->handleList(),
             'add' => $this->handleAdd($arguments),
@@ -153,18 +134,8 @@ class ScheduleTaskTool implements DigitalWorkerTool
      */
     private function handleAdd(array $arguments): string
     {
-        $description = $arguments['description'] ?? '';
-        $cronExpression = $arguments['cron_expression'] ?? '';
-
-        if (! is_string($description) || trim($description) === '') {
-            return 'Error: "description" is required for the add action.';
-        }
-
-        if (! is_string($cronExpression) || trim($cronExpression) === '') {
-            return 'Error: "cron_expression" is required for the add action.';
-        }
-
-        $cronExpression = trim($cronExpression);
+        $description = $this->requireString($arguments, 'description');
+        $cronExpression = $this->requireString($arguments, 'cron_expression');
 
         if (! $this->isValidCronExpression($cronExpression)) {
             return 'Error: Invalid cron_expression format. '
@@ -173,15 +144,15 @@ class ScheduleTaskTool implements DigitalWorkerTool
         }
 
         $taskId = self::TASK_ID_PREFIX.Str::random(12);
-        $enabled = $arguments['enabled'] ?? true;
         $workerId = $arguments['worker_id'] ?? null;
+        $enabled = $this->optionalBool($arguments, 'enabled', true);
 
         return json_encode([
             'task_id' => $taskId,
-            'description' => trim($description),
+            'description' => $description,
             'cron_expression' => $cronExpression,
             'worker_id' => is_int($workerId) ? $workerId : null,
-            'enabled' => (bool) $enabled,
+            'enabled' => $enabled,
             'status' => 'created',
             'message' => 'Task created (stub). Persistence is pending — this task '
                 .'will not survive restarts until the scheduled_tasks DB table '
@@ -200,16 +171,10 @@ class ScheduleTaskTool implements DigitalWorkerTool
      */
     private function handleUpdate(array $arguments): string
     {
-        $validationError = $this->validateTaskId($arguments);
+        $taskId = $this->requireValidTaskId($arguments);
+        $cronExpression = $this->optionalString($arguments, 'cron_expression');
 
-        if ($validationError !== null) {
-            return $validationError;
-        }
-
-        $taskId = trim($arguments['task_id']);
-        $cronExpression = $arguments['cron_expression'] ?? null;
-
-        if (is_string($cronExpression) && trim($cronExpression) !== '' && ! $this->isValidCronExpression(trim($cronExpression))) {
+        if ($cronExpression !== null && ! $this->isValidCronExpression($cronExpression)) {
             return 'Error: Invalid cron_expression format. '
                 .'Expected 5-field cron format: "minute hour day month weekday". '
                 .'Example: "0 9 * * 1" for every Monday at 9am.';
@@ -234,13 +199,7 @@ class ScheduleTaskTool implements DigitalWorkerTool
      */
     private function handleRemove(array $arguments): string
     {
-        $validationError = $this->validateTaskId($arguments);
-
-        if ($validationError !== null) {
-            return $validationError;
-        }
-
-        $taskId = trim($arguments['task_id']);
+        $taskId = $this->requireValidTaskId($arguments);
 
         return json_encode([
             'task_id' => $taskId,
@@ -261,13 +220,7 @@ class ScheduleTaskTool implements DigitalWorkerTool
      */
     private function handleStatus(array $arguments): string
     {
-        $validationError = $this->validateTaskId($arguments);
-
-        if ($validationError !== null) {
-            return $validationError;
-        }
-
-        $taskId = trim($arguments['task_id']);
+        $taskId = $this->requireValidTaskId($arguments);
 
         return json_encode([
             'task_id' => $taskId,
@@ -282,30 +235,30 @@ class ScheduleTaskTool implements DigitalWorkerTool
     }
 
     /**
-     * Validate that the task_id argument is present and has the expected format.
+     * Extract and validate the task_id argument.
+     *
+     * Uses `requireString()` for presence/type validation, then checks the
+     * expected "sched_<alphanumeric>" format.
      *
      * @param  array<string, mixed>  $arguments  Parsed arguments from LLM
-     * @return string|null Error message if invalid, null if valid
+     *
+     * @throws ToolArgumentException If task_id is missing or malformed
      */
-    private function validateTaskId(array $arguments): ?string
+    private function requireValidTaskId(array $arguments): string
     {
-        $taskId = $arguments['task_id'] ?? '';
-
-        if (! is_string($taskId) || trim($taskId) === '') {
-            return 'Error: "task_id" is required for this action.';
-        }
-
-        $taskId = trim($taskId);
+        $taskId = $this->requireString($arguments, 'task_id');
 
         if (! str_starts_with($taskId, self::TASK_ID_PREFIX)
             || strlen($taskId) <= strlen(self::TASK_ID_PREFIX)
             || ! ctype_alnum(substr($taskId, strlen(self::TASK_ID_PREFIX)))
         ) {
-            return 'Error: Invalid task_id format. '
-                .'Expected format: "sched_<alphanumeric>" as returned by the add action.';
+            throw new ToolArgumentException(
+                'Invalid task_id format. '
+                .'Expected format: "sched_<alphanumeric>" as returned by the add action.'
+            );
         }
 
-        return null;
+        return $taskId;
     }
 
     /**

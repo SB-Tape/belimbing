@@ -30,7 +30,7 @@ describe('input validation', function () {
     it('rejects invalid action', function () {
         $result = $this->tool->execute(['action' => 'bogus']);
         expect($result)->toContain('Error')
-            ->and($result)->toContain('Must be one of');
+            ->and($result)->toContain('must be one of');
     });
 });
 

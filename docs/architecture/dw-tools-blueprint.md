@@ -2,10 +2,10 @@
 
 **Document Type:** Architecture Blueprint (Study & Plan)
 **Status:** Draft
-**Last Updated:** 2026-03-07
-**Related:** `docs/architecture/lara-system-dw.md` §3 (Lara vs DWs), §14 (Tool Calling), `docs/architecture/ai-digital-worker.md` §13–§14
+**Last Updated:** 2026-03-09
+**Related:** `docs/Base/AI/tool-framework.md` (tool abstraction layer), `docs/architecture/lara-system-dw.md` §3 (Lara vs DWs), §14 (Tool Calling), `docs/architecture/ai-digital-worker.md` §13–§14
 
-> **Important:** The tool-calling infrastructure described here is **DW-generic**, not Lara-specific. All tools implement the `DigitalWorkerTool` contract, are registered in the shared `DigitalWorkerToolRegistry`, and execute through the common `AgenticRuntime`. Lara is distinguished from other DWs by her framework-controlled identity, personality, and mission — not by unique tool code. Which tools a DW can use is a **policy decision** controlled by authz role assignment. See `docs/architecture/lara-system-dw.md` §3 for the full distinction.
+> **Important:** The tool-calling infrastructure described here is **DW-generic**, not Lara-specific. All tools implement the `Tool` contract (`App\Base\AI\Contracts\Tool`), extend `AbstractTool` or `AbstractActionTool`, are registered in the shared `DigitalWorkerToolRegistry`, and execute through the common `AgenticRuntime`. Lara is distinguished from other DWs by her framework-controlled identity, personality, and mission — not by unique tool code. Which tools a DW can use is a **policy decision** controlled by authz role assignment. See `docs/architecture/lara-system-dw.md` §3 for the full distinction.
 
 ---
 
@@ -72,14 +72,20 @@ OpenClaw organizes tools into groups with an allow/deny policy system:
 
 ### 3.1 Tool Infrastructure (Implemented)
 
-| Component | Status | Notes |
-|-----------|--------|-------|
-| `DigitalWorkerTool` interface | ✅ Done | `name()`, `description()`, `parametersSchema()`, `requiredCapability()`, `execute()` |
-| `DigitalWorkerToolRegistry` | ✅ Done | Register, authz-filtered definitions, dispatch execution |
-| `AgenticRuntime` | ✅ Done | Iterative tool-calling loop (max 10 iterations) |
-| `ArtisanTool` | ✅ Done | `php artisan` execution with shell safety |
-| `NavigateTool` | ✅ Done | Client-side SPA navigation via `<lara-action>` blocks |
-| LLM tool calling in `LlmClient` | ✅ Done | `tools` and `toolChoice` params, `tool_calls` parsing |
+| Component | Location | Status | Notes |
+|-----------|----------|--------|-------|
+| `Tool` interface | `Base/AI/Contracts/` | ✅ Done | 7 methods: `name()`, `description()`, `parametersSchema()`, `requiredCapability()`, `category()`, `riskClass()`, `execute()` |
+| `AbstractTool` | `Base/AI/Tools/` | ✅ Done | Sealed `execute()` → `handle()`, typed argument extractors, `ToolSchemaBuilder` integration |
+| `AbstractActionTool` | `Base/AI/Tools/` | ✅ Done | Multi-action dispatch: auto-injects `action` enum, routes to `handleAction()` |
+| `ToolSchemaBuilder` | `Base/AI/Tools/Schema/` | ✅ Done | Fluent JSON Schema builder replacing hand-crafted arrays |
+| `ToolResult` | `Base/AI/Tools/` | ✅ Done | Structured result with `success()`/`error()`/`withClientAction()` factories; `Stringable` for backward compat |
+| `ToolCategory` enum | `Base/AI/Enums/` | ✅ Done | 9 categories with `label()` and `sortOrder()` |
+| `ToolRiskClass` enum | `Base/AI/Enums/` | ✅ Done | 6 risk classes with `label()`, `color()`, and `sortOrder()` |
+| `DigitalWorkerToolRegistry` | `Core/AI/Services/` | ✅ Done | Register, authz-filtered definitions, dispatch execution |
+| `AgenticRuntime` | `Core/AI/Services/` | ✅ Done | Iterative tool-calling loop (max 10 iterations) |
+| LLM tool calling in `LlmClient` | `Base/AI/Services/` | ✅ Done | `tools` and `toolChoice` params, `tool_calls` parsing |
+
+> **Architecture note:** The tool abstraction layer lives in `Base/AI` (framework infrastructure), enabling any module — Core, Business, or Extension — to define tools. See `docs/Base/AI/tool-framework.md` for the full reference.
 
 ### 3.2 Orchestration Services (Implemented)
 
@@ -966,6 +972,7 @@ Lara should be able to help admins configure tool settings conversationally. Ins
 | 0.5 | 2026-03-08 | AI + Kiat | Implementation status: Phases 1–4 complete (15 tools, 271 tests). Phase 5 (Browser Automation) started — BrowserTool, BrowserPoolManager, BrowserContextFactory, BrowserSsrfGuard implemented as stubs with 70 tests (341 total). Config, authz capabilities, and ServiceProvider wired. All in `lara-tools` worktree. |
 | 0.6 | 2026-03-08 | AI + Kiat | Phase 5 complete, Phase 6 (Messaging) complete. MessageTool with 8 action-based dispatch (send/reply/react/edit/delete/poll/list_conversations/search), ChannelAdapter contract, ChannelAdapterRegistry, 4 stub adapters (WhatsApp, Telegram, Slack, Email), ChannelCapabilities/ChannelAccount/SendResult/InboundMessage DTOs. 19 messaging authz capabilities + 4 role bundles (messaging_reader/responder/operator/admin). 8 new authz verbs (manage, grant, revoke, send, react, edit, media, poll, search). 51 new tests (392 total). All in `lara-tools` worktree. |
 | 0.7 | 2026-03-08 | AI + Kiat | Phase 7 (Media & Documents) complete, Phase 8 (Enhanced Runtime) complete. DocumentAnalysisTool (PDF analysis stub with page filter validation), ImageAnalysisTool (vision model stub with format validation + URL support), WriteJsTool (client-side JS via lara-action blocks, 7 blocked patterns for security), ArtisanTool v2 (background execution via dispatch_id, configurable timeout 1–300s clamped). 2 new authz capabilities (ai.tool_document_analysis.execute, ai.tool_image_analysis.execute) added to digital_worker_operator and dw_power_user roles. 108 new tests (500 total, 994 assertions). All phases complete. All in `lara-tools` worktree. |
+| 0.8 | 2026-03-09 | AI + Kiat | Tool abstraction layer: Extracted `Tool` interface, `AbstractTool`, `AbstractActionTool`, `ToolSchemaBuilder`, `ToolResult`, `ToolArgumentException`, `ToolCategory`/`ToolRiskClass` enums into `Base/AI`. All 20 tools migrated: 17 extend `AbstractTool`, 3 extend `AbstractActionTool`. Replaced `DigitalWorkerTool` contract. Updated §3.1 infrastructure table. See `docs/Base/AI/tool-framework.md`. |
 
 ---
 

@@ -5,7 +5,11 @@
 
 namespace App\Modules\Core\AI\Tools;
 
-use App\Modules\Core\AI\Contracts\DigitalWorkerTool;
+use App\Base\AI\Enums\ToolCategory;
+use App\Base\AI\Enums\ToolRiskClass;
+use App\Base\AI\Tools\AbstractTool;
+use App\Base\AI\Tools\Schema\ToolSchemaBuilder;
+use App\Base\AI\Tools\ToolArgumentException;
 
 /**
  * Browser navigation tool for Digital Workers.
@@ -15,10 +19,8 @@ use App\Modules\Core\AI\Contracts\DigitalWorkerTool;
  *
  * Gated by `ai.tool_navigate.execute` authz capability.
  */
-class NavigateTool implements DigitalWorkerTool
+class NavigateTool extends AbstractTool
 {
-    private const ERROR_PREFIX = 'Error: ';
-
     public function name(): string
     {
         return 'navigate';
@@ -31,18 +33,23 @@ class NavigateTool implements DigitalWorkerTool
             .'Provide the relative URL path (e.g., "/admin/users", "/admin/geonames/postcodes", "/dashboard").';
     }
 
-    public function parametersSchema(): array
+    protected function schema(): ToolSchemaBuilder
     {
-        return [
-            'type' => 'object',
-            'properties' => [
-                'url' => [
-                    'type' => 'string',
-                    'description' => 'Relative URL path to navigate to (must start with "/").',
-                ],
-            ],
-            'required' => ['url'],
-        ];
+        return ToolSchemaBuilder::make()
+            ->string(
+                'url',
+                'Relative URL path to navigate to (must start with "/").'
+            )->required();
+    }
+
+    public function category(): ToolCategory
+    {
+        return ToolCategory::BROWSER;
+    }
+
+    public function riskClass(): ToolRiskClass
+    {
+        return ToolRiskClass::INTERNAL;
     }
 
     public function requiredCapability(): ?string
@@ -50,17 +57,17 @@ class NavigateTool implements DigitalWorkerTool
         return 'ai.tool_navigate.execute';
     }
 
-    public function execute(array $arguments): string
+    protected function handle(array $arguments): string
     {
-        $url = $arguments['url'] ?? '';
+        $url = $this->requireString($arguments, 'url');
 
-        if (! is_string($url) || ! str_starts_with($url, '/')) {
-            return self::ERROR_PREFIX.'URL must be a relative path starting with "/".';
+        if (! str_starts_with($url, '/')) {
+            throw new ToolArgumentException('URL must be a relative path starting with "/".');
         }
 
         // Sanitize: only allow path characters
         if (preg_match('#^/[a-zA-Z0-9/_\-\.]+$#', $url) !== 1) {
-            return self::ERROR_PREFIX.'URL contains invalid characters.';
+            throw new ToolArgumentException('URL contains invalid characters.');
         }
 
         return '<lara-action>Livewire.navigate(\''.$url.'\')</lara-action>Navigation initiated to '.$url.'.';

@@ -8,7 +8,7 @@ namespace App\Modules\Core\AI\Services;
 use App\Base\Authz\Contracts\AuthorizationService;
 use App\Base\Authz\DTO\Actor;
 use App\Base\Authz\Enums\PrincipalType;
-use App\Modules\Core\AI\Contracts\DigitalWorkerTool;
+use App\Base\AI\Contracts\Tool;
 use App\Modules\Core\User\Models\User;
 
 /**
@@ -21,7 +21,7 @@ class DigitalWorkerToolRegistry
 {
     private const ERROR_PREFIX = 'Error: ';
 
-    /** @var array<string, DigitalWorkerTool> */
+    /** @var array<string, Tool> */
     private array $tools = [];
 
     public function __construct(
@@ -31,7 +31,7 @@ class DigitalWorkerToolRegistry
     /**
      * Register a tool.
      */
-    public function register(DigitalWorkerTool $tool): void
+    public function register(Tool $tool): void
     {
         $this->tools[$tool->name()] = $tool;
     }
@@ -123,7 +123,7 @@ class DigitalWorkerToolRegistry
     /**
      * Check whether the current user has the capability required by a tool.
      */
-    private function currentUserCanUse(DigitalWorkerTool $tool): bool
+    private function currentUserCanUse(Tool $tool): bool
     {
         $capability = $tool->requiredCapability();
 

@@ -5,7 +5,10 @@
 
 namespace App\Modules\Core\AI\Tools;
 
-use App\Modules\Core\AI\Contracts\DigitalWorkerTool;
+use App\Base\AI\Enums\ToolCategory;
+use App\Base\AI\Enums\ToolRiskClass;
+use App\Base\AI\Tools\AbstractActionTool;
+use App\Base\AI\Tools\Schema\ToolSchemaBuilder;
 use App\Modules\Core\AI\Contracts\Messaging\ChannelAdapter;
 use App\Modules\Core\AI\DTO\Messaging\ChannelCapabilities;
 use App\Modules\Core\AI\Services\Messaging\ChannelAdapterRegistry;
@@ -30,7 +33,7 @@ use App\Modules\Core\AI\Services\Messaging\ChannelAdapterRegistry;
  * Per-channel send capabilities (e.g., `messaging.whatsapp.send`) are
  * enforced at the authz layer, not within this tool.
  */
-class MessageTool implements DigitalWorkerTool
+class MessageTool extends AbstractActionTool
 {
     /**
      * Valid actions for messaging.
@@ -75,60 +78,14 @@ class MessageTool implements DigitalWorkerTool
             .'Each action requires a channel parameter to route to the correct platform.';
     }
 
-    public function parametersSchema(): array
+    public function category(): ToolCategory
     {
-        return [
-            'type' => 'object',
-            'properties' => [
-                'action' => [
-                    'type' => 'string',
-                    'enum' => self::ACTIONS,
-                    'description' => 'The messaging action to perform.',
-                ],
-                'channel' => [
-                    'type' => 'string',
-                    'description' => 'Channel to use: whatsapp, telegram, slack, email.',
-                ],
-                'target' => [
-                    'type' => 'string',
-                    'description' => 'Recipient identifier (phone number, chat ID, email address, channel name).',
-                ],
-                'text' => [
-                    'type' => 'string',
-                    'description' => 'Message text content (max '.self::MAX_TEXT_LENGTH.' characters).',
-                ],
-                'media_path' => [
-                    'type' => 'string',
-                    'description' => 'Path to media file to attach (for "send" action).',
-                ],
-                'message_id' => [
-                    'type' => 'string',
-                    'description' => 'Platform-specific message ID (for reply, react, edit, delete actions).',
-                ],
-                'emoji' => [
-                    'type' => 'string',
-                    'description' => 'Emoji to react with (for "react" action).',
-                ],
-                'question' => [
-                    'type' => 'string',
-                    'description' => 'Poll question (for "poll" action).',
-                ],
-                'options' => [
-                    'type' => 'array',
-                    'items' => ['type' => 'string'],
-                    'description' => 'Poll options (for "poll" action, max '.self::MAX_POLL_OPTIONS.').',
-                ],
-                'query' => [
-                    'type' => 'string',
-                    'description' => 'Search query (for "search" action).',
-                ],
-                'limit' => [
-                    'type' => 'integer',
-                    'description' => 'Maximum results to return (for list_conversations and search, default 10).',
-                ],
-            ],
-            'required' => ['action', 'channel'],
-        ];
+        return ToolCategory::MESSAGING;
+    }
+
+    public function riskClass(): ToolRiskClass
+    {
+        return ToolRiskClass::MESSAGING;
     }
 
     public function requiredCapability(): ?string
@@ -136,22 +93,29 @@ class MessageTool implements DigitalWorkerTool
         return 'ai.tool_message.execute';
     }
 
-    public function execute(array $arguments): string
+    protected function actions(): array
     {
-        $action = $arguments['action'] ?? '';
+        return self::ACTIONS;
+    }
 
-        if (! is_string($action) || ! in_array($action, self::ACTIONS, true)) {
-            return 'Error: Invalid action. Must be one of: '.implode(', ', self::ACTIONS).'.';
-        }
+    protected function schema(): ToolSchemaBuilder
+    {
+        return ToolSchemaBuilder::make()
+            ->string('channel', 'Channel to use: whatsapp, telegram, slack, email.')->required()
+            ->string('target', 'Recipient identifier (phone number, chat ID, email address, channel name).')
+            ->string('text', 'Message text content (max '.self::MAX_TEXT_LENGTH.' characters).')
+            ->string('media_path', 'Path to media file to attach (for "send" action).')
+            ->string('message_id', 'Platform-specific message ID (for reply, react, edit, delete actions).')
+            ->string('emoji', 'Emoji to react with (for "react" action).')
+            ->string('question', 'Poll question (for "poll" action).')
+            ->array('options', 'Poll options (for "poll" action, max '.self::MAX_POLL_OPTIONS.').')
+            ->string('query', 'Search query (for "search" action).')
+            ->integer('limit', 'Maximum results to return (for list_conversations and search, default 10).');
+    }
 
-        $channel = $arguments['channel'] ?? '';
-
-        if (! is_string($channel) || trim($channel) === '') {
-            return 'Error: "channel" is required. Available channels: '
-                .implode(', ', $this->adapterRegistry->channels()).'.';
-        }
-
-        $channel = trim($channel);
+    protected function handleAction(string $action, array $arguments): string
+    {
+        $channel = $this->requireString($arguments, 'channel');
 
         if (! $this->adapterRegistry->isAvailable($channel)) {
             $available = $this->adapterRegistry->channels();
@@ -186,8 +150,8 @@ class MessageTool implements DigitalWorkerTool
      */
     private function handleSend(string $channel, array $arguments): string
     {
-        $target = $this->resolveRequiredStringArgument($arguments, 'target', 'send');
-        $text = $this->resolveRequiredTextArgument($arguments, 'send');
+        $target = $this->requireString($arguments, 'target');
+        $text = $this->resolveRequiredText($arguments);
 
         $capabilities = $this->resolveChannelCapabilities($channel);
 
@@ -196,14 +160,14 @@ class MessageTool implements DigitalWorkerTool
                 .$capabilities->maxMessageLength.' characters.';
         }
 
-        $mediaPath = $arguments['media_path'] ?? null;
+        $mediaPath = $this->optionalString($arguments, 'media_path');
 
         return $this->encodeResponse([
             'action' => 'send',
             'channel' => $channel,
             'target' => $target,
             'text' => $text,
-            'media_path' => is_string($mediaPath) ? trim($mediaPath) : null,
+            'media_path' => $mediaPath,
             'status' => 'sent',
             'message_id' => null,
             'message' => 'Message sent (stub). Channel adapter integration pending.',
@@ -220,8 +184,8 @@ class MessageTool implements DigitalWorkerTool
      */
     private function handleReply(string $channel, array $arguments): string
     {
-        $messageId = $this->resolveRequiredStringArgument($arguments, 'message_id', 'reply');
-        $text = $this->resolveRequiredTextArgument($arguments, 'reply');
+        $messageId = $this->requireString($arguments, 'message_id');
+        $text = $this->resolveRequiredText($arguments);
 
         return $this->encodeResponse([
             'action' => 'reply',
@@ -245,8 +209,8 @@ class MessageTool implements DigitalWorkerTool
     {
         $this->assertChannelCapability($channel, 'supportsReactions', 'Error: '.$channel.' does not support reactions.');
 
-        $messageId = $this->resolveRequiredStringArgument($arguments, 'message_id', 'react');
-        $emoji = $this->resolveRequiredStringArgument($arguments, 'emoji', 'react');
+        $messageId = $this->requireString($arguments, 'message_id');
+        $emoji = $this->requireString($arguments, 'emoji');
 
         return $this->encodeResponse([
             'action' => 'react',
@@ -270,8 +234,8 @@ class MessageTool implements DigitalWorkerTool
     {
         $this->assertChannelCapability($channel, 'supportsEditing', 'Error: '.$channel.' does not support message editing.');
 
-        $messageId = $this->resolveRequiredStringArgument($arguments, 'message_id', 'edit');
-        $text = $this->resolveRequiredTextArgument($arguments, 'edit');
+        $messageId = $this->requireString($arguments, 'message_id');
+        $text = $this->resolveRequiredText($arguments);
 
         return $this->encodeResponse([
             'action' => 'edit',
@@ -295,7 +259,7 @@ class MessageTool implements DigitalWorkerTool
     {
         $this->assertChannelCapability($channel, 'supportsDeletion', 'Error: '.$channel.' does not support message deletion.');
 
-        $messageId = $this->resolveRequiredStringArgument($arguments, 'message_id', 'delete');
+        $messageId = $this->requireString($arguments, 'message_id');
 
         return $this->encodeResponse([
             'action' => 'delete',
@@ -318,8 +282,8 @@ class MessageTool implements DigitalWorkerTool
     {
         $this->assertChannelCapability($channel, 'supportsPolls', 'Error: '.$channel.' does not support polls.');
 
-        $target = $this->resolveRequiredStringArgument($arguments, 'target', 'poll');
-        $question = $this->resolveRequiredStringArgument($arguments, 'question', 'poll');
+        $target = $this->requireString($arguments, 'target');
+        $question = $this->requireString($arguments, 'question');
 
         $options = $arguments['options'] ?? [];
 
@@ -358,7 +322,7 @@ class MessageTool implements DigitalWorkerTool
      */
     private function handleListConversations(string $channel, array $arguments): string
     {
-        $limit = $this->resolveLimit($arguments);
+        $limit = $this->optionalInt($arguments, 'limit', 10, min: 1, max: 50);
 
         return $this->encodeResponse([
             'action' => 'list_conversations',
@@ -382,9 +346,9 @@ class MessageTool implements DigitalWorkerTool
     {
         $this->assertChannelCapability($channel, 'supportsSearch', 'Error: '.$channel.' does not support message search.');
 
-        $query = $this->resolveRequiredStringArgument($arguments, 'query', 'search');
+        $query = $this->requireString($arguments, 'query');
 
-        $limit = $this->resolveLimit($arguments);
+        $limit = $this->optionalInt($arguments, 'limit', 10, min: 1, max: 50);
 
         return $this->encodeResponse([
             'action' => 'search',
@@ -397,20 +361,19 @@ class MessageTool implements DigitalWorkerTool
         ]);
     }
 
-    private function resolveRequiredStringArgument(array $arguments, string $name, string $action): string
+    /**
+     * Extract and validate the required 'text' argument.
+     *
+     * Uses the base `requireString()` for extraction, then applies
+     * domain-specific length validation via `assertTextLength()`.
+     *
+     * @param  array<string, mixed>  $arguments  Parsed arguments from LLM
+     *
+     * @throws MessageToolValidationException If text exceeds MAX_TEXT_LENGTH
+     */
+    private function resolveRequiredText(array $arguments): string
     {
-        $value = $arguments[$name] ?? '';
-
-        if (! is_string($value) || trim($value) === '') {
-            throw new MessageToolValidationException('Error: "'.$name.'" is required for the '.$action.' action.');
-        }
-
-        return trim($value);
-    }
-
-    private function resolveRequiredTextArgument(array $arguments, string $action): string
-    {
-        $text = $this->resolveRequiredStringArgument($arguments, 'text', $action);
+        $text = $this->requireString($arguments, 'text');
         $this->assertTextLength($text);
 
         return $text;
@@ -444,16 +407,6 @@ class MessageTool implements DigitalWorkerTool
     {
         return $this->adapterRegistry->resolve($channel)
             ?? throw new \RuntimeException('Channel "'.$channel.'" is not registered.');
-    }
-
-    /**
-     * @param  array<string, mixed>  $arguments
-     */
-    private function resolveLimit(array $arguments): int
-    {
-        $limit = $arguments['limit'] ?? 10;
-
-        return is_int($limit) ? max(1, min(50, $limit)) : 10;
     }
 }
 

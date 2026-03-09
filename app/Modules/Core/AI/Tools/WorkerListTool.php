@@ -5,7 +5,10 @@
 
 namespace App\Modules\Core\AI\Tools;
 
-use App\Modules\Core\AI\Contracts\DigitalWorkerTool;
+use App\Base\AI\Enums\ToolCategory;
+use App\Base\AI\Enums\ToolRiskClass;
+use App\Base\AI\Tools\AbstractTool;
+use App\Base\AI\Tools\Schema\ToolSchemaBuilder;
 use App\Modules\Core\AI\Services\LaraCapabilityMatcher;
 
 /**
@@ -17,7 +20,7 @@ use App\Modules\Core\AI\Services\LaraCapabilityMatcher;
  *
  * Gated by `ai.tool_worker_list.execute` authz capability.
  */
-class WorkerListTool implements DigitalWorkerTool
+class WorkerListTool extends AbstractTool
 {
     public function __construct(
         private readonly LaraCapabilityMatcher $capabilityMatcher,
@@ -36,19 +39,24 @@ class WorkerListTool implements DigitalWorkerTool
             .'and find the best match for a given task.';
     }
 
-    public function parametersSchema(): array
+    protected function schema(): ToolSchemaBuilder
     {
-        return [
-            'type' => 'object',
-            'properties' => [
-                'capability_filter' => [
-                    'type' => 'string',
-                    'description' => 'Optional keyword to filter workers by capability summary. '
-                        .'Only workers whose capability summary contains this keyword will be returned.',
-                ],
-            ],
-            'required' => [],
-        ];
+        return ToolSchemaBuilder::make()
+            ->string(
+                'capability_filter',
+                'Optional keyword to filter workers by capability summary. '
+                    .'Only workers whose capability summary contains this keyword will be returned.'
+            );
+    }
+
+    public function category(): ToolCategory
+    {
+        return ToolCategory::DELEGATION;
+    }
+
+    public function riskClass(): ToolRiskClass
+    {
+        return ToolRiskClass::READ_ONLY;
     }
 
     public function requiredCapability(): ?string
@@ -56,7 +64,7 @@ class WorkerListTool implements DigitalWorkerTool
         return 'ai.tool_worker_list.execute';
     }
 
-    public function execute(array $arguments): string
+    protected function handle(array $arguments): string
     {
         $workers = $this->capabilityMatcher->discoverDelegableWorkersForCurrentUser();
 
@@ -65,7 +73,7 @@ class WorkerListTool implements DigitalWorkerTool
                 .'The current user has no accessible Digital Workers.';
         }
 
-        $filter = $this->resolveFilter($arguments);
+        $filter = $this->optionalString($arguments, 'capability_filter');
 
         if ($filter !== null) {
             $workers = $this->filterWorkers($workers, $filter);
@@ -77,20 +85,6 @@ class WorkerListTool implements DigitalWorkerTool
         }
 
         return $this->formatWorkerList($workers);
-    }
-
-    /**
-     * Extract and validate the optional capability filter.
-     */
-    private function resolveFilter(array $arguments): ?string
-    {
-        $filter = $arguments['capability_filter'] ?? null;
-
-        if (! is_string($filter) || trim($filter) === '') {
-            return null;
-        }
-
-        return trim($filter);
     }
 
     /**

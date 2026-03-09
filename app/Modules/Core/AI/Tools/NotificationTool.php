@@ -5,7 +5,11 @@
 
 namespace App\Modules\Core\AI\Tools;
 
-use App\Modules\Core\AI\Contracts\DigitalWorkerTool;
+use App\Base\AI\Enums\ToolCategory;
+use App\Base\AI\Enums\ToolRiskClass;
+use App\Base\AI\Tools\AbstractTool;
+use App\Base\AI\Tools\Schema\ToolSchemaBuilder;
+use App\Base\AI\Tools\ToolArgumentException;
 use App\Modules\Core\User\Models\User;
 use Illuminate\Notifications\Messages\BroadcastMessage;
 use Illuminate\Notifications\Notification;
@@ -21,7 +25,7 @@ use Illuminate\Support\Facades\Notification as NotificationFacade;
  *
  * Gated by `ai.tool_notification.execute` authz capability.
  */
-class NotificationTool implements DigitalWorkerTool
+class NotificationTool extends AbstractTool
 {
     /**
      * Maximum length for the notification subject.
@@ -53,34 +57,36 @@ class NotificationTool implements DigitalWorkerTool
             .'or broadcast a message to the team.';
     }
 
-    public function parametersSchema(): array
+    protected function schema(): ToolSchemaBuilder
     {
-        return [
-            'type' => 'object',
-            'properties' => [
-                'user_id' => [
-                    'oneOf' => [
-                        ['type' => 'integer', 'description' => 'Target user ID.'],
-                        ['type' => 'string', 'enum' => ['all'], 'description' => 'Send to all users in the company.'],
-                    ],
-                    'description' => 'User ID to notify, or "all" to broadcast to all company users.',
-                ],
-                'channel' => [
-                    'type' => 'string',
-                    'enum' => self::CHANNELS,
-                    'description' => 'Notification channel: "database" (default) or "broadcast".',
-                ],
-                'subject' => [
-                    'type' => 'string',
-                    'description' => 'Notification title/subject (max '.self::MAX_SUBJECT_LENGTH.' characters).',
-                ],
-                'body' => [
-                    'type' => 'string',
-                    'description' => 'Notification body/content (max '.self::MAX_BODY_LENGTH.' characters).',
-                ],
-            ],
-            'required' => ['user_id', 'subject', 'body'],
-        ];
+        return ToolSchemaBuilder::make()
+            ->oneOf('user_id', 'User ID to notify, or "all" to broadcast to all company users.', [
+                ['type' => 'integer', 'description' => 'Target user ID.'],
+                ['type' => 'string', 'enum' => ['all'], 'description' => 'Send to all users in the company.'],
+            ])->required()
+            ->string(
+                'channel',
+                'Notification channel: "database" (default) or "broadcast".',
+                enum: self::CHANNELS,
+            )
+            ->string(
+                'subject',
+                'Notification title/subject (max '.self::MAX_SUBJECT_LENGTH.' characters).',
+            )->required()
+            ->string(
+                'body',
+                'Notification body/content (max '.self::MAX_BODY_LENGTH.' characters).',
+            )->required();
+    }
+
+    public function category(): ToolCategory
+    {
+        return ToolCategory::MESSAGING;
+    }
+
+    public function riskClass(): ToolRiskClass
+    {
+        return ToolRiskClass::MESSAGING;
     }
 
     public function requiredCapability(): ?string
@@ -88,17 +94,33 @@ class NotificationTool implements DigitalWorkerTool
         return 'ai.tool_notification.execute';
     }
 
-    public function execute(array $arguments): string
+    protected function handle(array $arguments): string
     {
-        $validationError = $this->validateArguments($arguments);
-        if ($validationError !== null) {
-            return $validationError;
+        $userId = $arguments['user_id'] ?? null;
+
+        if ($userId === null) {
+            throw new ToolArgumentException('user_id is required.');
         }
 
-        $userId = $arguments['user_id'];
-        $channel = $arguments['channel'] ?? 'database';
-        $subject = trim($arguments['subject']);
-        $body = trim($arguments['body']);
+        if ($userId !== 'all' && (! is_int($userId) || $userId < 1)) {
+            throw new ToolArgumentException('user_id must be a positive integer or the string "all".');
+        }
+
+        $channel = $this->requireEnum($arguments, 'channel', self::CHANNELS, 'database');
+        $subject = $this->requireString($arguments, 'subject');
+        $body = $this->requireString($arguments, 'body');
+
+        if (mb_strlen($subject) > self::MAX_SUBJECT_LENGTH) {
+            throw new ToolArgumentException(
+                'subject must not exceed '.self::MAX_SUBJECT_LENGTH.' characters.'
+            );
+        }
+
+        if (mb_strlen($body) > self::MAX_BODY_LENGTH) {
+            throw new ToolArgumentException(
+                'body must not exceed '.self::MAX_BODY_LENGTH.' characters.'
+            );
+        }
 
         try {
             $users = $this->resolveRecipients($userId);
@@ -128,45 +150,6 @@ class NotificationTool implements DigitalWorkerTool
         ];
 
         return json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
-    }
-
-    /**
-     * Validate all input arguments before execution.
-     */
-    private function validateArguments(array $arguments): ?string
-    {
-        $userId = $arguments['user_id'] ?? null;
-
-        if ($userId === null) {
-            return 'Error: user_id is required.';
-        }
-
-        if ($userId !== 'all' && (! is_int($userId) || $userId < 1)) {
-            return 'Error: user_id must be a positive integer or the string "all".';
-        }
-
-        $channel = $arguments['channel'] ?? 'database';
-        if (! is_string($channel) || ! in_array($channel, self::CHANNELS, true)) {
-            return 'Error: channel must be one of: '.implode(', ', self::CHANNELS).'.';
-        }
-
-        $subject = $arguments['subject'] ?? null;
-        if (! is_string($subject) || trim($subject) === '') {
-            return 'Error: subject is required and must be a non-empty string.';
-        }
-        if (mb_strlen($subject) > self::MAX_SUBJECT_LENGTH) {
-            return 'Error: subject must not exceed '.self::MAX_SUBJECT_LENGTH.' characters.';
-        }
-
-        $body = $arguments['body'] ?? null;
-        if (! is_string($body) || trim($body) === '') {
-            return 'Error: body is required and must be a non-empty string.';
-        }
-        if (mb_strlen($body) > self::MAX_BODY_LENGTH) {
-            return 'Error: body must not exceed '.self::MAX_BODY_LENGTH.' characters.';
-        }
-
-        return null;
     }
 
     /**

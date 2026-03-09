@@ -5,7 +5,7 @@
 //
 // Tool Catalog — searchable overview of all registered Digital Worker tools.
 
-use App\Modules\Core\AI\Enums\ToolCategory;
+use App\Base\AI\Enums\ToolCategory;
 use App\Modules\Core\AI\Services\ToolMetadataRegistry;
 use App\Modules\Core\AI\Services\ToolReadinessService;
 use Livewire\Volt\Component;

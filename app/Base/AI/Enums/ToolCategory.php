@@ -3,10 +3,10 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // (c) Ng Kiat Siong <kiatsiong.ng@gmail.com>
 
-namespace App\Modules\Core\AI\Enums;
+namespace App\Base\AI\Enums;
 
 /**
- * Categories for grouping Digital Worker tools in the catalog UI.
+ * Categories for grouping AI tools in the catalog UI.
  */
 enum ToolCategory: string
 {

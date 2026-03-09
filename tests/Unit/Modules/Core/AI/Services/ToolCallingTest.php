@@ -6,7 +6,9 @@
 use App\Base\Authz\Contracts\AuthorizationService;
 use App\Base\Authz\DTO\AuthorizationDecision;
 use App\Base\Authz\Enums\AuthorizationReasonCode;
-use App\Modules\Core\AI\Contracts\DigitalWorkerTool;
+use App\Base\AI\Contracts\Tool;
+use App\Base\AI\Enums\ToolCategory;
+use App\Base\AI\Enums\ToolRiskClass;
 use App\Modules\Core\AI\Services\DigitalWorkerToolRegistry;
 use App\Modules\Core\AI\Services\LaraCapabilityMatcher;
 use App\Modules\Core\AI\Services\LaraTaskDispatcher;
@@ -23,11 +25,11 @@ uses(TestCase::class);
 const TOOL_METADATA_DESCRIPTION = 'has correct name and required capability';
 
 const NO_COMMAND_PROVIDED = 'No command provided';
-const NO_TASK_DESCRIPTION_PROVIDED = 'No task description provided';
+const NO_TASK_DESCRIPTION_PROVIDED = 'No task provided';
 const GENERATE_Q1_REPORT = 'Generate Q1 report';
 const REPORT_BOT = 'Report Bot';
 const DATA_ANALYST = 'Data Analyst';
-const PATH_REQUIRED_ERROR = '"path" is required and must be a non-empty string';
+const PATH_REQUIRED_ERROR = 'No path provided';
 
 class ToolExecutionFailure extends RuntimeException {}
 
@@ -49,9 +51,9 @@ function makeDenyAllAuthzService(): AuthorizationService
     return $mock;
 }
 
-function makeSimpleTool(string $name, ?string $capability = null): DigitalWorkerTool
+function makeSimpleTool(string $name, ?string $capability = null): Tool
 {
-    return new class($name, $capability) implements DigitalWorkerTool
+    return new class($name, $capability) implements Tool
     {
         public function __construct(
             private readonly string $toolName,
@@ -76,6 +78,16 @@ function makeSimpleTool(string $name, ?string $capability = null): DigitalWorker
         public function requiredCapability(): ?string
         {
             return $this->toolCapability;
+        }
+
+        public function category(): ToolCategory
+        {
+            return ToolCategory::SYSTEM;
+        }
+
+        public function riskClass(): ToolRiskClass
+        {
+            return ToolRiskClass::READ_ONLY;
         }
 
         public function execute(array $arguments): string
@@ -143,7 +155,7 @@ describe('DigitalWorkerToolRegistry', function () {
     });
 
     it('catches exceptions during tool execution', function () {
-        $failingTool = new class implements DigitalWorkerTool
+        $failingTool = new class implements Tool
         {
             public function name(): string
             {
@@ -163,6 +175,16 @@ describe('DigitalWorkerToolRegistry', function () {
             public function requiredCapability(): ?string
             {
                 return null;
+            }
+
+            public function category(): ToolCategory
+            {
+                return ToolCategory::SYSTEM;
+            }
+
+            public function riskClass(): ToolRiskClass
+            {
+                return ToolRiskClass::READ_ONLY;
             }
 
             public function execute(array $arguments): string
@@ -433,7 +455,7 @@ describe('DocumentAnalysisTool', function () {
 
         $result = $tool->execute(['path' => 'README.md']);
 
-        expect($result)->toContain('"prompt" is required and must be a non-empty string');
+        expect($result)->toContain('No prompt provided');
     });
 
     it('returns file content and header for a created temp file', function () {

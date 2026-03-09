@@ -2,8 +2,8 @@
 
 **Document Type:** Architecture Specification
 **Status:** Draft
-**Last Updated:** 2026-03-05
-**Related:** `docs/architecture/ai-digital-worker.md`, `docs/architecture/user-employee-company.md`
+**Last Updated:** 2026-03-09
+**Related:** `docs/architecture/ai-digital-worker.md`, `docs/architecture/user-employee-company.md`, `docs/Base/AI/tool-framework.md`
 
 ---
 
@@ -28,7 +28,7 @@ BLB is an AI-native framework, but AI activation is currently optional and user-
 
 ## 3. Lara vs Regular Digital Workers
 
-Lara and other Digital Workers share the same tool-calling infrastructure (`DigitalWorkerTool`, `DigitalWorkerToolRegistry`, `AgenticRuntime`). Any tool built for one is available to all — the distinction is **not** in the tools themselves, but in who Lara is and what she's authorized to do.
+Lara and other Digital Workers share the same tool-calling infrastructure (`Tool` contract, `DigitalWorkerToolRegistry`, `AgenticRuntime`). Any tool built for one is available to all — the distinction is **not** in the tools themselves, but in who Lara is and what she's authorized to do.
 
 ### What makes Lara unique
 
@@ -44,11 +44,14 @@ Lara and other Digital Workers share the same tool-calling infrastructure (`Digi
 
 The tool layer is intentionally **not** Lara-specific:
 
-- `DigitalWorkerTool` — contract any DW tool implements
+- `Tool` — framework-level contract in `Base/AI/Contracts/` that any DW tool implements
+- `AbstractTool` / `AbstractActionTool` — base classes in `Base/AI/Tools/` providing sealed execution, argument validation, schema building, and action dispatch
 - `DigitalWorkerToolRegistry` — authz-gated registry shared by all DW runtimes
 - `AgenticRuntime` — agentic loop usable by any DW, not just Lara
 - Authz capabilities use generic `ai.tool_*` prefix (e.g., `ai.tool_artisan.execute`)
 - The `dw_power_user` role bundles all tool capabilities — assign it to Lara or any DW that needs full tool access
+
+> **See** `docs/Base/AI/tool-framework.md` for the complete tool framework reference: contract, base classes, schema builder, result types, and how to create new tools.
 
 **Lara's elevated access is a policy decision (authz role assignment), not a code-level privilege.** A sales-focused DW might only have `ai.tool_navigate.execute` and `ai.tool_query_data.execute`, while Lara — as the system administrator's AI partner — gets the full tool suite. The framework enforces this through the same capability system that governs human users.
 

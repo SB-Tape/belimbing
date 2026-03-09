@@ -7,6 +7,7 @@
 | PHP conventions, dev philosophy, coding style | Root `AGENTS.md` |
 | Database CLI (`migrate`, `--seed`, `--module`, `--seeder`) | `app/Base/Database/AGENTS.md` |
 | UI / Blade / Tailwind / Alpine | `resources/views/AGENTS.md` |
+| AI tool framework (Tool contract, AbstractTool, schema builder) | `docs/Base/AI/tool-framework.md` |
 | Scratch / temporary work | `docs/scratch/` |
 
 ## For Developers & Adopters
@@ -25,6 +26,7 @@
 
 ```
 docs/
+├── Base/                  # Framework infrastructure documentation (Base/AI, Base/Database, etc.)
 ├── architecture/          # System design specs (layers, database, domain model, broadcasting, Digital Worker)
 ├── guides/                # Task-oriented how-to guides
 │   └── extensions/        # Extension development guides (migrations, config)

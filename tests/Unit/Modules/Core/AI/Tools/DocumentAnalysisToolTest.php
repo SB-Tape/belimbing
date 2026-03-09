@@ -1,8 +1,8 @@
 <?php
 
 use App\Modules\Core\AI\Tools\DocumentAnalysisTool;
-use Tests\TestCase;
 use Tests\Support\AssertsToolBehavior;
+use Tests\TestCase;
 
 uses(TestCase::class, AssertsToolBehavior::class);
 
@@ -87,13 +87,15 @@ describe('input validation', function () {
             ->and($result)->toContain('exceed');
     });
 
-    it('rejects non-string pages', function () {
+    it('ignores non-string pages', function () {
         $result = $this->tool->execute([
             'path' => DOCUMENT_ANALYSIS_PATH,
             'prompt' => DOCUMENT_ANALYSIS_PROMPT,
             'pages' => 5,
         ]);
-        expect($result)->toContain('Error');
+        // optionalString() treats non-string values as absent — no pages filter applied
+        expect($result)->not->toContain('Error')
+            ->and($result)->not->toContain('"pages"');
     });
 });
 

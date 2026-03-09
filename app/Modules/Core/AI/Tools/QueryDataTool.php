@@ -5,7 +5,10 @@
 
 namespace App\Modules\Core\AI\Tools;
 
-use App\Modules\Core\AI\Contracts\DigitalWorkerTool;
+use App\Base\AI\Enums\ToolCategory;
+use App\Base\AI\Enums\ToolRiskClass;
+use App\Base\AI\Tools\AbstractTool;
+use App\Base\AI\Tools\Schema\ToolSchemaBuilder;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -21,7 +24,7 @@ use Illuminate\Support\Facades\DB;
  *
  * Gated by `ai.tool_query_data.execute` authz capability.
  */
-class QueryDataTool implements DigitalWorkerTool
+class QueryDataTool extends AbstractTool
 {
     private const TIMEOUT_SECONDS = 10;
 
@@ -69,27 +72,34 @@ class QueryDataTool implements DigitalWorkerTool
             .'Results are returned as a formatted table. Maximum '.self::MAX_ROWS.' rows.';
     }
 
-    public function parametersSchema(): array
+    protected function schema(): ToolSchemaBuilder
     {
-        return [
-            'type' => 'object',
-            'properties' => [
-                'query' => [
-                    'type' => 'string',
-                    'description' => 'The SQL SELECT query to execute. '
-                        .'Only SELECT statements are allowed — no INSERT, UPDATE, DELETE, DROP, etc. '
-                        .'Use standard SQL compatible with PostgreSQL. '
-                        .'Examples: "SELECT count(*) FROM employees WHERE status = \'active\'", '
-                        .'"SELECT id, full_name, designation FROM employees LIMIT 10".',
-                ],
-                'limit' => [
-                    'type' => 'integer',
-                    'description' => 'Maximum number of rows to return (1–'.self::MAX_ROWS.', default '.self::DEFAULT_LIMIT.'). '
-                        .'Overrides any LIMIT clause in the query.',
-                ],
-            ],
-            'required' => ['query'],
-        ];
+        return ToolSchemaBuilder::make()
+            ->string(
+                'query',
+                'The SQL SELECT query to execute. '
+                    .'Only SELECT statements are allowed — no INSERT, UPDATE, DELETE, DROP, etc. '
+                    .'Use standard SQL compatible with PostgreSQL. '
+                    .'Examples: "SELECT count(*) FROM employees WHERE status = \'active\'", '
+                    .'"SELECT id, full_name, designation FROM employees LIMIT 10".'
+            )->required()
+            ->integer(
+                'limit',
+                'Maximum number of rows to return (1–'.self::MAX_ROWS.', default '.self::DEFAULT_LIMIT.'). '
+                    .'Overrides any LIMIT clause in the query.',
+                min: 1,
+                max: self::MAX_ROWS,
+            );
+    }
+
+    public function category(): ToolCategory
+    {
+        return ToolCategory::DATA;
+    }
+
+    public function riskClass(): ToolRiskClass
+    {
+        return ToolRiskClass::INTERNAL;
     }
 
     public function requiredCapability(): ?string
@@ -97,15 +107,9 @@ class QueryDataTool implements DigitalWorkerTool
         return 'ai.tool_query_data.execute';
     }
 
-    public function execute(array $arguments): string
+    protected function handle(array $arguments): string
     {
-        $query = $arguments['query'] ?? '';
-
-        if (! is_string($query) || trim($query) === '') {
-            return 'Error: No query provided.';
-        }
-
-        $query = trim($query);
+        $query = $this->requireString($arguments, 'query');
 
         // Remove trailing semicolons (prevents multi-statement injection)
         $query = rtrim($query, ';');
@@ -115,10 +119,7 @@ class QueryDataTool implements DigitalWorkerTool
             return $validationError;
         }
 
-        $limit = self::DEFAULT_LIMIT;
-        if (isset($arguments['limit']) && is_int($arguments['limit'])) {
-            $limit = max(1, min($arguments['limit'], self::MAX_ROWS));
-        }
+        $limit = $this->optionalInt($arguments, 'limit', self::DEFAULT_LIMIT, min: 1, max: self::MAX_ROWS);
 
         // Enforce row limit by wrapping the query
         $limitedQuery = $this->applyLimit($query, $limit);
