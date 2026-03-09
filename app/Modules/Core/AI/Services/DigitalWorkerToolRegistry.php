@@ -83,8 +83,8 @@ class DigitalWorkerToolRegistry
 
         try {
             return $tool->execute($arguments);
-        } catch (\Exception $e) {
-            return 'Error executing '.$toolName.': '.$e->getMessage();
+        } catch (\Throwable $e) {
+            return self::ERROR_PREFIX.'Error executing "'.$toolName.'": '.$e->getMessage();
         }
     }
 
