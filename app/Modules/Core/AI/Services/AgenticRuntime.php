@@ -298,7 +298,7 @@ class AgenticRuntime
 
         try {
             $employee = \App\Modules\Core\Employee\Models\Employee::query()->find($employeeId);
-        } catch (\Exception) {
+        } catch (\Throwable) {
             return null;
         }
 
