@@ -16,6 +16,7 @@ $digitalWorkerOperatorCapabilities = [
     'ai.tool_web_fetch.execute',
     'ai.tool_web_search.execute',
     'ai.tool_worker_list.execute',
+    'ai.tool_workspace.view',
 ];
 
 $dwPowerUserAdditionalCapabilities = [
@@ -26,6 +27,7 @@ $dwPowerUserAdditionalCapabilities = [
     'ai.tool_delegate.execute',
     'ai.tool_message.execute',
     'ai.tool_schedule.execute',
+    'ai.tool_workspace.manage',
     'ai.tool_write_js.execute',
 ];
 
@@ -87,6 +89,8 @@ return [
         'ai.tool_web_search.execute',
         'ai.tool_worker_list.execute',
         'ai.tool_write_js.execute',
+        'ai.tool_workspace.view',
+        'ai.tool_workspace.manage',
         'messaging.account.manage',
         'messaging.account.grant',
         'messaging.account.revoke',

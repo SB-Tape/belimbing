@@ -28,5 +28,13 @@ return [
             'parent' => 'ai',
             'position' => 20,
         ],
+        [
+            'id' => 'ai.tools',
+            'label' => 'Tools',
+            'icon' => 'heroicon-o-wrench-screwdriver',
+            'route' => 'admin.ai.tools',
+            'parent' => 'ai',
+            'position' => 30,
+        ],
     ],
 ];

@@ -50,7 +50,11 @@ class TestDigitalWorkerTool implements DigitalWorkerTool
 
     public function execute(array $arguments): string
     {
-        return $this->toolResult;
+        if (empty($arguments)) {
+            return $this->toolResult;
+        }
+
+        return $this->toolResult . json_encode($arguments);
     }
 }
 

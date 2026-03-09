@@ -36,8 +36,9 @@
 <button
     type="button"
     {{ $attributes->class([
-        'inline-flex items-center justify-center text-muted hover:text-ink focus:text-ink transition-all',
-        'focus:outline-none hover:bg-surface-subtle focus:bg-surface-subtle rounded-full p-0.5',
+        'inline-flex items-center justify-center text-muted hover:text-ink focus:text-accent transition-all',
+        'focus:outline-none rounded-full p-0.5',
+        'focus:ring-2 focus:ring-accent/20',
     ]) }}
     aria-label="{{ __('Help') }}"
 >
