@@ -3,47 +3,26 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // (c) Ng Kiat Siong <kiatsiong.ng@gmail.com>
 //
-// Provider catalog and onboarding flow inspired by OpenClaw
-// (github.com/nicepkg/openclaw). Adapted for BLB's GUI context.
-//
-// Orchestrator: routes between catalog → connect → manager steps.
-// Each step is a standalone Livewire child component in providers/.
+// Full-page component for browsing the provider catalog and connecting new
+// providers. Replaces the orchestrator role of the old Providers component
+// by embedding the catalog and connect-wizard child components directly.
 
-namespace App\Modules\Core\AI\Livewire;
+namespace App\Modules\Core\AI\Livewire\Providers;
 
 use App\Base\AI\Services\ModelCatalogService;
-use App\Modules\Core\AI\Models\AiProvider;
 use Livewire\Attributes\On;
 use Livewire\Component;
 
-class Providers extends Component
+class BrowseProviders extends Component
 {
-    /** @var string|null null = manage view, 'catalog' = step 1, 'connect' = step 2 */
+    /** @var string|null null = catalog view, 'connect' = connect wizard step */
     public ?string $wizardStep = null;
 
     /** @var list<array> Connect form data passed to the connect-wizard child via mount prop */
     public array $connectForms = [];
 
-    public function mount(): void
-    {
-        $companyId = $this->getCompanyId();
-
-        if ($companyId === null) {
-            return;
-        }
-
-        $hasProviders = AiProvider::query()->forCompany($companyId)->exists();
-
-        if (! $hasProviders) {
-            $this->wizardStep = 'catalog';
-        }
-    }
-
     /**
      * Catalog requested "proceed to connect" — build connect forms and switch step.
-     *
-     * Forms are stored as a property and passed to the connect-wizard child
-     * component via its mount prop, avoiding event timing issues.
      *
      * @param  array  $templates  Selected template keys from catalog
      */
@@ -92,45 +71,20 @@ class Providers extends Component
     #[On('wizard-back-to-catalog')]
     public function onBackToCatalog(): void
     {
-        $this->wizardStep = 'catalog';
-    }
-
-    /**
-     * Wizard cancelled — return to management view.
-     */
-    #[On('wizard-cancel')]
-    public function onCancelWizard(): void
-    {
         $this->wizardStep = null;
     }
 
     /**
-     * All providers connected successfully — exit wizard.
+     * All providers connected successfully — redirect to connections page.
      */
     #[On('wizard-completed')]
     public function onWizardCompleted(): void
     {
-        $this->wizardStep = null;
-    }
-
-    /**
-     * Manager requested to open the catalog.
-     */
-    #[On('wizard-open-catalog')]
-    public function onOpenCatalog(): void
-    {
-        $this->wizardStep = 'catalog';
+        $this->redirectRoute('admin.ai.providers.connections', navigate: true);
     }
 
     public function render(): \Illuminate\Contracts\View\View
     {
-        return view('livewire.ai.providers');
-    }
-
-    private function getCompanyId(): ?int
-    {
-        $user = auth()->user();
-
-        return $user?->employee?->company_id ? (int) $user->employee->company_id : null;
+        return view('livewire.ai.providers.browse-providers');
     }
 }

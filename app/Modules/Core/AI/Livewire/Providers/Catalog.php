@@ -107,11 +107,11 @@ class Catalog extends Component
     }
 
     /**
-     * Dispatch event to cancel the wizard.
+     * Navigate to the connections page (cancel catalog browsing).
      */
     public function cancelWizard(): void
     {
-        $this->dispatch('wizard-cancel');
+        $this->redirectRoute('admin.ai.providers.connections', navigate: true);
     }
 
     /**

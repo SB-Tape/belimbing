@@ -4,7 +4,8 @@
 // (c) Ng Kiat Siong <kiatsiong.ng@gmail.com>
 
 use App\Modules\Core\AI\Livewire\Playground;
-use App\Modules\Core\AI\Livewire\Providers;
+use App\Modules\Core\AI\Livewire\Providers\BrowseProviders;
+use App\Modules\Core\AI\Livewire\Providers\Connections;
 use App\Modules\Core\AI\Livewire\Setup\Lara;
 use App\Modules\Core\AI\Livewire\Tools;
 use Illuminate\Support\Facades\Route;
@@ -16,8 +17,10 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('admin/ai/playground', Playground::class)
         ->name('admin.ai.playground');
-    Route::get('admin/ai/providers', Providers::class)
-        ->name('admin.ai.providers');
+    Route::get('admin/ai/providers/browse', BrowseProviders::class)
+        ->name('admin.ai.providers.browse');
+    Route::get('admin/ai/providers/connections', Connections::class)
+        ->name('admin.ai.providers.connections');
     Route::get('admin/ai/tools/{toolName?}', Tools::class)
         ->name('admin.ai.tools');
 });

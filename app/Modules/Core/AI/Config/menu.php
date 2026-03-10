@@ -25,7 +25,9 @@ return [
     'items' => [
         $item('ai', 'AI', 'heroicon-o-cpu-chip', 'admin', 200),
         $item('ai.playground', 'DW Playground', 'heroicon-o-chat-bubble-left-right', 'ai', 10, 'admin.ai.playground'),
-        $item('ai.providers', 'LLM Providers', 'heroicon-o-server-stack', 'ai', 20, 'admin.ai.providers'),
+        $item('ai.providers', 'Providers', 'heroicon-o-server-stack', 'ai', 20),
+        $item('ai.providers.browse', 'Browse Providers', 'heroicon-o-rectangle-stack', 'ai.providers', 10, 'admin.ai.providers.browse'),
+        $item('ai.providers.connections', 'Connections', 'heroicon-o-link', 'ai.providers', 20, 'admin.ai.providers.connections'),
         $item('ai.tools', 'Tools', 'heroicon-o-wrench-screwdriver', 'ai', 30, 'admin.ai.tools'),
     ],
 ];

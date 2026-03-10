@@ -2,6 +2,9 @@
 
 // SPDX-License-Identifier: AGPL-3.0-only
 // (c) Ng Kiat Siong <kiatsiong.ng@gmail.com>
+//
+// Full-page component for managing connected AI providers and their models.
+// Wraps the existing Manager child component as a standalone routed page.
 
 namespace App\Modules\Core\AI\Livewire\Providers;
 
@@ -12,10 +15,9 @@ use App\Modules\Core\AI\Livewire\Concerns\ManagesProviders;
 use App\Modules\Core\AI\Livewire\Concerns\ManagesSync;
 use App\Modules\Core\AI\Models\AiProvider;
 use App\Modules\Core\AI\Models\AiProviderModel;
-use Livewire\Attributes\On;
 use Livewire\Component;
 
-class Manager extends Component
+class Connections extends Component
 {
     use ManagesModels;
     use ManagesProviderHelp;
@@ -26,26 +28,17 @@ class Manager extends Component
 
     public ?int $expandedProviderId = null;
 
-    /**
-     * Re-render after wizard completes to show newly connected providers.
-     */
-    #[On('wizard-completed')]
-    public function onWizardCompleted(): void
-    {
-        // Triggers re-render
-    }
-
     public function toggleProvider(int $providerId): void
     {
         $this->expandedProviderId = $this->expandedProviderId === $providerId ? null : $providerId;
     }
 
     /**
-     * Navigate to the provider catalog (dispatches to parent orchestrator).
+     * Navigate to the provider catalog page.
      */
     public function openCatalog(): void
     {
-        $this->dispatch('wizard-open-catalog');
+        $this->redirectRoute('admin.ai.providers.browse', navigate: true);
     }
 
     /**
@@ -94,7 +87,7 @@ class Manager extends Component
             ->values()
             ->all();
 
-        return view('livewire.ai.providers.manager', [
+        return view('livewire.ai.providers.connections', [
             'providers' => $providers,
             'expandedModels' => $expandedModels,
             'templateOptions' => $templates,

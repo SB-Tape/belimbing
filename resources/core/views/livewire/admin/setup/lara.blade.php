@@ -36,7 +36,7 @@
                 <x-ui.alert variant="info">
                     {{ __('No AI providers are configured for the Licensee company. You need to set up at least one provider before activating Lara.') }}
                     <br><br>
-                    <a href="{{ route('admin.ai.providers') }}" wire:navigate class="text-accent hover:underline">{{ __('Configure AI Providers') }}</a>
+                    <a href="{{ route('admin.ai.providers.connections') }}" wire:navigate class="text-accent hover:underline">{{ __('Configure AI Providers') }}</a>
                 </x-ui.alert>
             @else
                 <x-ui.card>

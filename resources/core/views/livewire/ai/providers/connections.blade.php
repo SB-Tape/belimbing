@@ -1,6 +1,8 @@
 <div>
+    <x-slot name="title">{{ __('Provider Connections') }}</x-slot>
+
     <div class="space-y-section-gap">
-        <x-ui.page-header :title="__('LLM Providers')" :subtitle="__('Manage AI providers, their models, and priority order. Higher-priority providers are tried first.')">
+        <x-ui.page-header :title="__('Provider Connections')" :subtitle="__('Manage AI providers, their models, and priority order. Higher-priority providers are tried first.')">
             <x-slot name="help">
                 <div class="space-y-3">
                     <p>{{ __('This page shows the LLM providers and models your organization has connected. Digital Workers use these models to think, reason, and respond — at least one active provider with one active model is required.') }}</p>
@@ -41,7 +43,7 @@
                     <x-icon name="heroicon-m-plus" class="w-4 h-4" />
                     {{ __('Manual Add') }}
                 </x-ui.button>
-                <x-ui.button variant="primary" wire:click="openCatalog">
+                <x-ui.button variant="primary" href="{{ route('admin.ai.providers.browse') }}" wire:navigate>
                     <x-icon name="heroicon-m-rectangle-stack" class="w-4 h-4" />
                     {{ __('Browse Providers') }}
                 </x-ui.button>
@@ -288,10 +290,10 @@
                                 <td colspan="8" class="px-table-cell-x py-8 text-center">
                                     <div class="space-y-2">
                                         <p class="text-sm text-muted">{{ __('No providers connected yet.') }}</p>
-                                        <x-ui.button variant="primary" wire:click="openCatalog">
-                                            <x-icon name="heroicon-o-rectangle-stack" class="w-4 h-4" />
-                                            {{ __('Browse Provider Catalog') }}
-                                        </x-ui.button>
+                                        <x-ui.button variant="primary" href="{{ route('admin.ai.providers.browse') }}" wire:navigate>
+                                             <x-icon name="heroicon-o-rectangle-stack" class="w-4 h-4" />
+                                             {{ __('Browse Provider Catalog') }}
+                                         </x-ui.button>
                                     </div>
                                 </td>
                             </tr>
