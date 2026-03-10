@@ -41,44 +41,41 @@ class LaraOrchestrationService
             ?? $this->dispatchModelsCommand($message)
             ?? $this->dispatchGuideCommand($message);
 
-        if ($response !== null) {
-            return $response;
+        if ($response === null) {
+            $task = $this->extractDelegationTask($message);
+
+            if ($task === '') {
+                $response = $this->response(
+                    __('Use "/go <target>", "/models <filter>", "/guide <topic>", or "/delegate <task>".'),
+                    ['status' => 'invalid_command'],
+                );
+            } elseif ($task !== null) {
+                $match = $this->capabilityMatcher->matchBestForTask($task);
+
+                if ($match === null) {
+                    $response = $this->response(
+                        __('No delegated Digital Worker is available for this request.'),
+                        ['status' => 'no_workers'],
+                    );
+                } else {
+                    $dispatch = $this->taskDispatcher->dispatchForCurrentUser($match['employee_id'], $task);
+
+                    $response = $this->response(
+                        __('Delegation queued to :worker (dispatch: :dispatch_id).', [
+                            'worker' => $dispatch['employee_name'],
+                            'dispatch_id' => $dispatch['dispatch_id'],
+                        ]),
+                        [
+                            'status' => 'queued',
+                            'selected_worker' => $match,
+                            'dispatch' => $dispatch,
+                        ],
+                    );
+                }
+            }
         }
 
-        $task = $this->extractDelegationTask($message);
-
-        if ($task === null) {
-            return null;
-        }
-
-        if ($task === '') {
-            return $this->response(
-                __('Use "/go <target>", "/models <filter>", "/guide <topic>", or "/delegate <task>".'),
-                ['status' => 'invalid_command'],
-            );
-        }
-
-        $match = $this->capabilityMatcher->matchBestForTask($task);
-        if ($match === null) {
-            return $this->response(
-                __('No delegated Digital Worker is available for this request.'),
-                ['status' => 'no_workers'],
-            );
-        }
-
-        $dispatch = $this->taskDispatcher->dispatchForCurrentUser($match['employee_id'], $task);
-
-        return $this->response(
-            __('Delegation queued to :worker (dispatch: :dispatch_id).', [
-                'worker' => $dispatch['employee_name'],
-                'dispatch_id' => $dispatch['dispatch_id'],
-            ]),
-            [
-                'status' => 'queued',
-                'selected_worker' => $match,
-                'dispatch' => $dispatch,
-            ],
-        );
+        return $response;
     }
 
     /**

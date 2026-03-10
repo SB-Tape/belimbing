@@ -47,7 +47,7 @@ describe('SQL validation', function () {
 
     it('rejects multi-statement queries', function () {
         $result = $this->tool->execute(['query' => 'SELECT 1; DROP TABLE users']);
-        expect($result)->toContain('not allowed');
+        expect($result)->toContain(QUERY_NOT_ALLOWED);
     });
 
     it('rejects queries not starting with SELECT or WITH', function () {
@@ -58,7 +58,7 @@ describe('SQL validation', function () {
     it('rejects SELECT with embedded write in subquery', function () {
         $result = $this->tool->execute(['query' => 'SELECT * FROM (DELETE FROM users RETURNING *) AS x']);
         expect($result)->toContain('DELETE')
-            ->and($result)->toContain('not allowed');
+            ->and($result)->toContain(QUERY_NOT_ALLOWED);
     });
 });
 

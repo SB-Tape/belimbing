@@ -110,26 +110,25 @@ class WebFetchTool extends AbstractTool
      */
     private function formatFetchResponse(array $result, string $url, int $maxChars): string
     {
+        $response = null;
+
         if (isset($result['validation_error'])) {
-            return 'Error: '.$result['validation_error'];
+            $response = 'Error: '.$result['validation_error'];
+        } elseif (isset($result['request_error'])) {
+            $response = 'Error: Failed to fetch URL: '.$result['request_error'];
+        } elseif (isset($result['http_status'])) {
+            $response = 'Failed to fetch URL: HTTP '.$result['http_status'];
+        } else {
+            $content = $result['content'] ?? '';
+
+            if (($result['truncated'] ?? false) === true) {
+                $content .= "\n\n[Content truncated at {$maxChars} characters]";
+            }
+
+            $charCount = (int) ($result['char_count'] ?? mb_strlen($content));
+            $response = "# Content from {$url}\n\n{$content}\n\n---\nFetched {$charCount} characters from {$url}";
         }
 
-        if (isset($result['request_error'])) {
-            return 'Error: Failed to fetch URL: '.$result['request_error'];
-        }
-
-        if (isset($result['http_status'])) {
-            return 'Failed to fetch URL: HTTP '.$result['http_status'];
-        }
-
-        $content = $result['content'] ?? '';
-
-        if (($result['truncated'] ?? false) === true) {
-            $content .= "\n\n[Content truncated at {$maxChars} characters]";
-        }
-
-        $charCount = (int) ($result['char_count'] ?? mb_strlen($content));
-
-        return "# Content from {$url}\n\n{$content}\n\n---\nFetched {$charCount} characters from {$url}";
+        return $response;
     }
 }

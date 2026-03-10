@@ -45,6 +45,7 @@ class DigitalWorkerRuntime
     {
         $runId = 'run_'.Str::random(12);
         $configs = $this->configResolver->resolve($employeeId);
+        $result = null;
 
         // Fall back to company default when no workspace config exists
         if ($configs === []) {
@@ -52,40 +53,39 @@ class DigitalWorkerRuntime
         }
 
         if ($configs === []) {
-            return $this->noLlmConfigResult($runId);
-        }
+            $result = $this->noLlmConfigResult($runId);
+        } else {
+            $lastResult = null;
+            $fallbackAttempts = [];
 
-        $lastResult = null;
-        $fallbackAttempts = [];
+            foreach ($configs as $config) {
+                $attemptResult = $this->tryModel($messages, $systemPrompt, $config, $runId);
 
-        foreach ($configs as $config) {
-            $result = $this->tryModel($messages, $systemPrompt, $config, $runId);
+                if (! $this->shouldFallback($attemptResult)) {
+                    $attemptResult['meta']['fallback_attempts'] = $fallbackAttempts;
+                    $result = $attemptResult;
 
-            if (! $this->shouldFallback($result)) {
-                $result['meta']['fallback_attempts'] = $fallbackAttempts;
+                    break;
+                }
 
-                return $result;
+                $fallbackAttempts[] = [
+                    'provider' => $config['provider_name'] ?? 'unknown',
+                    'model' => $config['model'] ?? 'unknown',
+                    'error' => $attemptResult['meta']['error'] ?? 'Unknown error',
+                    'error_type' => $attemptResult['meta']['error_type'] ?? 'unknown',
+                    'latency_ms' => $attemptResult['meta']['latency_ms'] ?? 0,
+                ];
+
+                $lastResult = $attemptResult;
             }
 
-            // Record failed attempt trace entry (OpenClaw-style)
-            $fallbackAttempts[] = [
-                'provider' => $config['provider_name'] ?? 'unknown',
-                'model' => $config['model'] ?? 'unknown',
-                'error' => $result['meta']['error'] ?? 'Unknown error',
-                'error_type' => $result['meta']['error_type'] ?? 'unknown',
-                'latency_ms' => $result['meta']['latency_ms'] ?? 0,
-            ];
-
-            $lastResult = $result;
+            if ($result === null) {
+                $result = $lastResult ?? $this->noLlmConfigResult($runId);
+                $result['meta']['fallback_attempts'] = $fallbackAttempts;
+            }
         }
 
-        if ($lastResult === null) {
-            return $this->noLlmConfigResult($runId);
-        }
-
-        $lastResult['meta']['fallback_attempts'] = $fallbackAttempts;
-
-        return $lastResult;
+        return $result;
     }
 
     /**

@@ -73,19 +73,19 @@ class CreateUserCommand extends Command
 
     private function validateCreateUserRequest(mixed $email, int $companyId, ?Company $company, string $password): ?string
     {
+        $error = null;
+
         if (! is_string($email) || $email === '') {
-            return 'Email is required.';
+            $error = 'Email is required.';
+        } elseif (User::query()->where('email', $email)->exists()) {
+            $error = "A user with email [{$email}] already exists.";
+        } elseif ($company === null) {
+            $error = "Company with id [{$companyId}] does not exist.";
+        } elseif (strlen($password) < 8) {
+            $error = 'Password must be at least 8 characters.';
         }
 
-        if (User::query()->where('email', $email)->exists()) {
-            return "A user with email [{$email}] already exists.";
-        }
-
-        if ($company === null) {
-            return "Company with id [{$companyId}] does not exist.";
-        }
-
-        return strlen($password) < 8 ? 'Password must be at least 8 characters.' : null;
+        return $error;
     }
 
     private function assignRole(User $user, string $roleCode): void

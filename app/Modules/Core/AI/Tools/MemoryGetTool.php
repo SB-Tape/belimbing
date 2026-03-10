@@ -112,19 +112,17 @@ class MemoryGetTool extends AbstractTool
      */
     private function validatePath(string $path): ?string
     {
+        $error = null;
+
         if (str_starts_with($path, '/')) {
-            return 'Error: Invalid path: absolute paths are not allowed.';
+            $error = 'Error: Invalid path: absolute paths are not allowed.';
+        } elseif (str_contains($path, '..')) {
+            $error = 'Error: Invalid path: directory traversal is not allowed.';
+        } elseif (str_contains($path, "\0")) {
+            $error = 'Error: Invalid path: null bytes are not allowed.';
         }
 
-        if (str_contains($path, '..')) {
-            return 'Error: Invalid path: directory traversal is not allowed.';
-        }
-
-        if (str_contains($path, "\0")) {
-            return 'Error: Invalid path: null bytes are not allowed.';
-        }
-
-        return null;
+        return $error;
     }
 
     /**
@@ -151,21 +149,20 @@ class MemoryGetTool extends AbstractTool
         $fullPath = $basePath.'/'.ltrim($path, '/');
         $realBase = realpath($basePath);
         $realFull = realpath($fullPath);
+        $error = null;
 
         if ($realBase === false) {
-            return ['error' => 'Error: Scope directory does not exist.'];
+            $error = 'Error: Scope directory does not exist.';
+        } elseif ($realFull === false || ! is_file($realFull)) {
+            $error = 'Error: File not found: '.$path;
+        } elseif (! str_starts_with($realFull, $realBase.'/')) {
+            $error = 'Error: Invalid path: directory traversal is not allowed.';
+        } elseif ($this->isBinary($realFull)) {
+            $error = 'Error: Cannot read binary file: '.$path;
         }
 
-        if ($realFull === false || ! is_file($realFull)) {
-            return ['error' => 'Error: File not found: '.$path];
-        }
-
-        if (! str_starts_with($realFull, $realBase.'/')) {
-            return ['error' => 'Error: Invalid path: directory traversal is not allowed.'];
-        }
-
-        if ($this->isBinary($realFull)) {
-            return ['error' => 'Error: Cannot read binary file: '.$path];
+        if ($error !== null) {
+            return ['error' => $error];
         }
 
         $allLines = file($realFull, FILE_IGNORE_NEW_LINES);

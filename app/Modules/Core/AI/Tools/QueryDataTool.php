@@ -134,26 +134,30 @@ class QueryDataTool extends AbstractTool
      */
     private function validateQuery(string $query): ?string
     {
+        $error = null;
+
         // Reject semicolons within the query (multi-statement)
         if (str_contains($query, ';')) {
-            return 'Error: Multiple statements are not allowed.';
-        }
+            $error = 'Error: Multiple statements are not allowed.';
+        } else {
+            foreach (self::FORBIDDEN_KEYWORDS as $keyword) {
+                if (preg_match('/\b'.$keyword.'\b/i', $query)) {
+                    $error = 'Error: '.$keyword.' operations are not allowed. Only SELECT queries are permitted.';
 
-        // Scan for forbidden keywords at word boundaries
-        foreach (self::FORBIDDEN_KEYWORDS as $keyword) {
-            if (preg_match('/\b'.$keyword.'\b/i', $query)) {
-                return 'Error: '.$keyword.' operations are not allowed. Only SELECT queries are permitted.';
+                    break;
+                }
+            }
+
+            if ($error === null) {
+                $normalised = strtoupper(ltrim($query));
+
+                if (! str_starts_with($normalised, 'SELECT') && ! str_starts_with($normalised, 'WITH')) {
+                    $error = 'Error: Only SELECT queries are allowed. Your query must start with SELECT or WITH.';
+                }
             }
         }
 
-        // Must start with SELECT or WITH (for CTEs)
-        $normalised = strtoupper(ltrim($query));
-
-        if (! str_starts_with($normalised, 'SELECT') && ! str_starts_with($normalised, 'WITH')) {
-            return 'Error: Only SELECT queries are allowed. Your query must start with SELECT or WITH.';
-        }
-
-        return null;
+        return $error;
     }
 
     /**

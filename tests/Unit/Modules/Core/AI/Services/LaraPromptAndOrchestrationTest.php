@@ -179,8 +179,8 @@ it('queues delegation to the best matched worker', function (): void {
 
     expect($result)->not->toBeNull()
         ->and($result['meta']['orchestration']['status'])->toBe('queued')
-        ->and($result['meta']['orchestration']['selected_worker']['name'])->toBe('Code Worker')
-        ->and($result['meta']['orchestration']['dispatch']['employee_name'])->toBe('Code Worker')
+        ->and($result['meta']['orchestration']['selected_worker']['name'])->toBe(CODE_WORKER)
+        ->and($result['meta']['orchestration']['dispatch']['employee_name'])->toBe(CODE_WORKER)
         ->and($result['meta']['orchestration']['dispatch']['task'])->toBe('build a PHP module with tests');
 });
 

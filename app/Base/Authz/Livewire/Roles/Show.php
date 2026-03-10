@@ -65,39 +65,43 @@ class Show extends Component
      */
     public function saveScope(?string $companyId): void
     {
-        if (! $this->checkCapability('admin.role.update')) {
-            return;
-        }
+        if ($this->checkCapability('admin.role.update')) {
+            $newCompanyId = $companyId !== '' && $companyId !== null ? (int) $companyId : null;
 
-        if ($this->role->is_system) {
-            Session::flash('error', __('System roles cannot be edited.'));
-
-            return;
-        }
-
-        if ($this->role->principalRoles()->exists()) {
-            Session::flash('error', __('Cannot change scope while users are assigned to this role.'));
-
-            return;
-        }
-
-        $newCompanyId = $companyId !== '' && $companyId !== null ? (int) $companyId : null;
-
-        if ($newCompanyId !== null) {
-            $valid = Company::query()
-                ->where('id', $newCompanyId)
-                ->where(function ($query): void {
-                    $query->where('id', Company::LICENSEE_ID)
-                        ->orWhere('parent_id', Company::LICENSEE_ID);
-                })
-                ->exists();
-
-            if (! $valid) {
+            if ($this->role->is_system) {
+                Session::flash('error', __('System roles cannot be edited.'));
+            } elseif ($this->role->principalRoles()->exists()) {
+                Session::flash('error', __('Cannot change scope while users are assigned to this role.'));
+            } elseif ($this->isInvalidScopeCompany($newCompanyId)) {
                 return;
+            } elseif ($this->scopeConflictExists($newCompanyId)) {
+                Session::flash('error', __('A role with this code already exists in the selected scope.'));
+            } else {
+                $this->role->company_id = $newCompanyId;
+                $this->role->save();
+                $this->role->load('company');
             }
         }
+    }
 
-        $exists = Role::query()
+    private function isInvalidScopeCompany(?int $newCompanyId): bool
+    {
+        if ($newCompanyId === null) {
+            return false;
+        }
+
+        return ! Company::query()
+            ->where('id', $newCompanyId)
+            ->where(function ($query): void {
+                $query->where('id', Company::LICENSEE_ID)
+                    ->orWhere('parent_id', Company::LICENSEE_ID);
+            })
+            ->exists();
+    }
+
+    private function scopeConflictExists(?int $newCompanyId): bool
+    {
+        return Role::query()
             ->where('code', $this->role->code)
             ->where('id', '!=', $this->role->id)
             ->when(
@@ -106,16 +110,6 @@ class Show extends Component
                 fn ($q) => $q->whereNull('company_id'),
             )
             ->exists();
-
-        if ($exists) {
-            Session::flash('error', __('A role with this code already exists in the selected scope.'));
-
-            return;
-        }
-
-        $this->role->company_id = $newCompanyId;
-        $this->role->save();
-        $this->role->load('company');
     }
 
     /**

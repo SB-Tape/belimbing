@@ -29,7 +29,7 @@ class Index extends Component
 
         foreach ($patterns as $pattern) {
             foreach (glob($pattern) ?: [] as $file) {
-                $moduleConfig = require $file;
+                $moduleConfig = require_once $file;
                 $moduleName = $this->extractModuleName($file);
 
                 foreach ($moduleConfig['capabilities'] ?? [] as $capability) {
