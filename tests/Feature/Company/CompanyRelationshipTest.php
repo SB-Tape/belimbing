@@ -8,9 +8,7 @@ use App\Modules\Core\Company\Models\CompanyRelationship;
 use App\Modules\Core\Company\Models\RelationshipType;
 
 test('relationship is active when within valid period', function (): void {
-    $company1 = Company::factory()->create();
-    $company2 = Company::factory()->create();
-    $type = RelationshipType::factory()->create();
+    [$company1, $company2, $type] = createCompanyRelationshipFixture();
 
     $relationship = CompanyRelationship::create([
         'company_id' => $company1->id,
@@ -24,9 +22,7 @@ test('relationship is active when within valid period', function (): void {
 });
 
 test('relationship is not active when before start date', function (): void {
-    $company1 = Company::factory()->create();
-    $company2 = Company::factory()->create();
-    $type = RelationshipType::factory()->create();
+    [$company1, $company2, $type] = createCompanyRelationshipFixture();
 
     $relationship = CompanyRelationship::create([
         'company_id' => $company1->id,
@@ -41,9 +37,7 @@ test('relationship is not active when before start date', function (): void {
 });
 
 test('relationship is not active when after end date', function (): void {
-    $company1 = Company::factory()->create();
-    $company2 = Company::factory()->create();
-    $type = RelationshipType::factory()->create();
+    [$company1, $company2, $type] = createCompanyRelationshipFixture();
 
     $relationship = CompanyRelationship::create([
         'company_id' => $company1->id,
@@ -58,9 +52,7 @@ test('relationship is not active when after end date', function (): void {
 });
 
 test('relationship with no end date is active', function (): void {
-    $company1 = Company::factory()->create();
-    $company2 = Company::factory()->create();
-    $type = RelationshipType::factory()->create();
+    [$company1, $company2, $type] = createCompanyRelationshipFixture();
 
     $relationship = CompanyRelationship::create([
         'company_id' => $company1->id,
@@ -75,9 +67,7 @@ test('relationship with no end date is active', function (): void {
 });
 
 test('relationship with no start date is active', function (): void {
-    $company1 = Company::factory()->create();
-    $company2 = Company::factory()->create();
-    $type = RelationshipType::factory()->create();
+    [$company1, $company2, $type] = createCompanyRelationshipFixture();
 
     $relationship = CompanyRelationship::create([
         'company_id' => $company1->id,
@@ -92,9 +82,7 @@ test('relationship with no start date is active', function (): void {
 });
 
 test('relationship can be ended', function (): void {
-    $company1 = Company::factory()->create();
-    $company2 = Company::factory()->create();
-    $type = RelationshipType::factory()->create();
+    [$company1, $company2, $type] = createCompanyRelationshipFixture();
 
     $relationship = CompanyRelationship::create([
         'company_id' => $company1->id,
@@ -113,9 +101,7 @@ test('relationship can be ended', function (): void {
 });
 
 test('relationship can be extended', function (): void {
-    $company1 = Company::factory()->create();
-    $company2 = Company::factory()->create();
-    $type = RelationshipType::factory()->create();
+    [$company1, $company2, $type] = createCompanyRelationshipFixture();
 
     $originalEndDate = now()->addDays(10);
     $relationship = CompanyRelationship::create([
@@ -134,9 +120,7 @@ test('relationship can be extended', function (): void {
 });
 
 test('relationship can be made indefinite', function (): void {
-    $company1 = Company::factory()->create();
-    $company2 = Company::factory()->create();
-    $type = RelationshipType::factory()->create();
+    [$company1, $company2, $type] = createCompanyRelationshipFixture();
 
     $relationship = CompanyRelationship::create([
         'company_id' => $company1->id,
@@ -156,9 +140,7 @@ test('relationship can be made indefinite', function (): void {
 test('active scope filters only active relationships', function (): void {
     $before = CompanyRelationship::query()->active()->count();
 
-    $company1 = Company::factory()->create();
-    $company2 = Company::factory()->create();
-    $type = RelationshipType::factory()->create();
+    [$company1, $company2, $type] = createCompanyRelationshipFixture();
 
     // Active
     CompanyRelationship::create([

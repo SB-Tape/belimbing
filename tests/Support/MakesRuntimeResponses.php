@@ -2,7 +2,19 @@
 
 namespace Tests\Support;
 
+use App\Base\AI\Contracts\Tool;
+use App\Base\AI\Services\GithubCopilotAuthService;
+use App\Base\AI\Services\LlmClient;
+use App\Base\Authz\Contracts\AuthorizationService;
+use App\Base\Authz\DTO\AuthorizationDecision;
 use App\Modules\Core\AI\DTO\Message;
+use App\Modules\Core\AI\Services\AgenticRuntime;
+use App\Modules\Core\AI\Services\ConfigResolver;
+use App\Modules\Core\AI\Services\DigitalWorkerRuntime;
+use App\Modules\Core\AI\Services\DigitalWorkerToolRegistry;
+use App\Modules\Core\AI\Services\RuntimeCredentialResolver;
+use App\Modules\Core\AI\Services\RuntimeMessageBuilder;
+use App\Modules\Core\AI\Services\RuntimeResponseFactory;
 use DateTimeImmutable;
 
 trait MakesRuntimeResponses
@@ -49,6 +61,97 @@ trait MakesRuntimeResponses
             content: $content,
             timestamp: new DateTimeImmutable,
         );
+    }
+
+    protected function mockResolvedConfigResolver(array $configs): ConfigResolver
+    {
+        $configResolver = \Mockery::mock(ConfigResolver::class);
+        $configResolver->shouldReceive('resolve')->andReturn($configs);
+        $configResolver->shouldReceive('resolveWithDefaultFallback')->andReturn($configs);
+        $configResolver->shouldReceive('resolvePrimaryWithDefaultFallback')->andReturn($configs[0] ?? null);
+
+        return $configResolver;
+    }
+
+    protected function makeAllowAllAuthzMock(): AuthorizationService
+    {
+        $mock = \Mockery::mock(AuthorizationService::class);
+        $mock->shouldReceive('can')->andReturn(AuthorizationDecision::allow());
+
+        return $mock;
+    }
+
+    protected function makeToolRegistry(Tool ...$tools): DigitalWorkerToolRegistry
+    {
+        $registry = new DigitalWorkerToolRegistry($this->makeAllowAllAuthzMock());
+
+        foreach ($tools as $tool) {
+            $registry->register($tool);
+        }
+
+        return $registry;
+    }
+
+    protected function makeAgenticRuntime(
+        LlmClient $llmClient,
+        ?ConfigResolver $configResolver = null,
+        ?DigitalWorkerToolRegistry $toolRegistry = null,
+        ?GithubCopilotAuthService $copilotAuth = null,
+    ): AgenticRuntime {
+        $copilotAuth ??= \Mockery::mock(GithubCopilotAuthService::class);
+
+        return new AgenticRuntime(
+            $configResolver ?? $this->mockResolvedConfigResolver([$this->makeConfig('test-provider', 'gpt-4', 'test-key')]),
+            $llmClient,
+            $toolRegistry ?? $this->makeToolRegistry(),
+            new RuntimeCredentialResolver($copilotAuth),
+            new RuntimeMessageBuilder,
+            new RuntimeResponseFactory,
+        );
+    }
+
+    protected function makeDigitalWorkerRuntime(
+        ConfigResolver $configResolver,
+        LlmClient $llmClient,
+        ?GithubCopilotAuthService $copilotAuth = null,
+    ): DigitalWorkerRuntime {
+        $copilotAuth ??= \Mockery::mock(GithubCopilotAuthService::class);
+
+        return new DigitalWorkerRuntime(
+            $configResolver,
+            $llmClient,
+            new RuntimeCredentialResolver($copilotAuth),
+            new RuntimeMessageBuilder,
+            new RuntimeResponseFactory,
+        );
+    }
+
+    protected function makeToolCallResponse(string $callId, string $toolName, string $arguments): array
+    {
+        return [
+            'content' => null,
+            'latency_ms' => 200,
+            'usage' => ['prompt_tokens' => 20, 'completion_tokens' => 15],
+            'tool_calls' => [
+                [
+                    'id' => $callId,
+                    'type' => 'function',
+                    'function' => [
+                        'name' => $toolName,
+                        'arguments' => $arguments,
+                    ],
+                ],
+            ],
+        ];
+    }
+
+    protected function makeFinalResponse(string $content): array
+    {
+        return [
+            'content' => $content,
+            'latency_ms' => 150,
+            'usage' => ['prompt_tokens' => 30, 'completion_tokens' => 10],
+        ];
     }
 
     protected function assertFallbackAttempt(

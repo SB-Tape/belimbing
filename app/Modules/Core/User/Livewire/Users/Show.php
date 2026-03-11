@@ -9,6 +9,7 @@ use App\Base\Authz\Capability\CapabilityRegistry;
 use App\Base\Authz\Contracts\AuthorizationService;
 use App\Base\Authz\DTO\Actor;
 use App\Base\Authz\Enums\PrincipalType;
+use App\Base\Authz\Livewire\Concerns\ChecksCapabilityAuthorization;
 use App\Base\Authz\Models\PrincipalCapability;
 use App\Base\Authz\Models\PrincipalRole;
 use App\Base\Authz\Models\Role;
@@ -24,6 +25,8 @@ use Livewire\Component;
 
 class Show extends Component
 {
+    use ChecksCapabilityAuthorization;
+
     public User $user;
 
     public string $password = '';
@@ -306,32 +309,6 @@ class Show extends Component
             'new_emp_designation', 'new_emp_employment_start',
         ]);
         Session::flash('success', __('Employee record created.'));
-    }
-
-    /**
-     * Check if the current user has the given capability.
-     *
-     * Flashes a friendly error if denied.
-     */
-    private function checkCapability(string $capability): bool
-    {
-        $authUser = auth()->user();
-
-        $actor = new Actor(
-            type: PrincipalType::HUMAN_USER,
-            id: (int) $authUser->getAuthIdentifier(),
-            companyId: $authUser->company_id !== null ? (int) $authUser->company_id : null,
-        );
-
-        $decision = app(AuthorizationService::class)->can($actor, $capability);
-
-        if (! $decision->allowed) {
-            Session::flash('error', __('You do not have permission to perform this action.'));
-
-            return false;
-        }
-
-        return true;
     }
 
     public function render(): \Illuminate\Contracts\View\View

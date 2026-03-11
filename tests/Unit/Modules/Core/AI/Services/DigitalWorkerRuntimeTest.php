@@ -1,10 +1,8 @@
 <?php
 
-use App\Base\AI\Services\GithubCopilotAuthService;
 use App\Base\AI\Services\LlmClient;
 use App\Modules\Core\AI\DTO\Message;
 use App\Modules\Core\AI\Services\ConfigResolver;
-use App\Modules\Core\AI\Services\DigitalWorkerRuntime;
 use Tests\Support\MakesRuntimeResponses;
 use Tests\TestCase;
 
@@ -13,26 +11,21 @@ uses(TestCase::class, MakesRuntimeResponses::class);
 function makeRuntime(
     ConfigResolver $configResolver,
     LlmClient $llmClient,
-    ?GithubCopilotAuthService $copilotAuth = null,
-): DigitalWorkerRuntime {
-    return new DigitalWorkerRuntime(
-        $configResolver,
-        $llmClient,
-        $copilotAuth ?? Mockery::mock(GithubCopilotAuthService::class),
-    );
+): \App\Modules\Core\AI\Services\DigitalWorkerRuntime {
+    return test()->makeDigitalWorkerRuntime($configResolver, $llmClient);
 }
 
 function stubResolvedConfigs(ConfigResolver $configResolver, array $configs): void
 {
     $configResolver->shouldReceive('resolve')->with(1)->andReturn($configs);
+    $configResolver->shouldReceive('resolveWithDefaultFallback')->with(1)->andReturn($configs);
 }
 
 function runRuntimeConversation(
     ConfigResolver $configResolver,
     LlmClient $llmClient,
-    ?GithubCopilotAuthService $copilotAuth = null,
 ): array {
-    return makeRuntime($configResolver, $llmClient, $copilotAuth)
+    return makeRuntime($configResolver, $llmClient)
         ->run([
             new Message(
                 role: 'user',

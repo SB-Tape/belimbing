@@ -6,17 +6,12 @@
 use App\Base\AI\Contracts\Tool;
 use App\Base\AI\Enums\ToolCategory;
 use App\Base\AI\Enums\ToolRiskClass;
-use App\Base\AI\Services\GithubCopilotAuthService;
 use App\Base\AI\Services\LlmClient;
-use App\Base\Authz\Contracts\AuthorizationService;
-use App\Base\Authz\DTO\AuthorizationDecision;
-use App\Modules\Core\AI\DTO\Message;
-use App\Modules\Core\AI\Services\AgenticRuntime;
 use App\Modules\Core\AI\Services\ConfigResolver;
-use App\Modules\Core\AI\Services\DigitalWorkerToolRegistry;
 use Illuminate\Foundation\Testing\TestCase;
+use Tests\Support\MakesRuntimeResponses;
 
-uses(TestCase::class);
+uses(TestCase::class, MakesRuntimeResponses::class);
 
 class TestTool implements Tool
 {
@@ -70,68 +65,6 @@ class TestTool implements Tool
     }
 }
 
-function buildMockConfig(): array
-{
-    return [
-        'api_key' => 'test-key',
-        'base_url' => 'https://api.example.com/v1',
-        'model' => 'gpt-4',
-        'max_tokens' => 1024,
-        'temperature' => 0.7,
-        'timeout' => 30,
-        'provider_name' => 'test-provider',
-    ];
-}
-
-function buildTestMessage(string $content, string $role = 'user'): Message
-{
-    return new Message(
-        role: $role,
-        content: $content,
-        timestamp: new \DateTimeImmutable,
-    );
-}
-
-function buildAllowAllAuthzMock(): AuthorizationService
-{
-    $mock = Mockery::mock(AuthorizationService::class);
-    $mock->shouldReceive('can')->andReturn(AuthorizationDecision::allow());
-
-    return $mock;
-}
-
-function buildResolvedConfigResolverMock(): ConfigResolver
-{
-    $configResolver = Mockery::mock(ConfigResolver::class);
-    $configResolver->shouldReceive('resolve')->andReturn([buildMockConfig()]);
-
-    return $configResolver;
-}
-
-function buildToolRegistry(Tool ...$tools): DigitalWorkerToolRegistry
-{
-    $registry = new DigitalWorkerToolRegistry(buildAllowAllAuthzMock());
-
-    foreach ($tools as $tool) {
-        $registry->register($tool);
-    }
-
-    return $registry;
-}
-
-function buildRuntime(
-    LlmClient $llmClient,
-    ?ConfigResolver $configResolver = null,
-    ?DigitalWorkerToolRegistry $toolRegistry = null,
-): AgenticRuntime {
-    return new AgenticRuntime(
-        $configResolver ?? buildResolvedConfigResolverMock(),
-        $llmClient,
-        Mockery::mock(GithubCopilotAuthService::class),
-        $toolRegistry ?? buildToolRegistry(),
-    );
-}
-
 function buildGenericTool(
     string $name,
     string $description,
@@ -161,37 +94,11 @@ function buildNavigateActionTool(): Tool
     );
 }
 
-function buildToolCallResponse(string $callId, string $toolName, string $arguments): array
-{
-    return [
-        'content' => null,
-        'latency_ms' => 200,
-        'usage' => ['prompt_tokens' => 20, 'completion_tokens' => 15],
-        'tool_calls' => [
-            [
-                'id' => $callId,
-                'type' => 'function',
-                'function' => [
-                    'name' => $toolName,
-                    'arguments' => $arguments,
-                ],
-            ],
-        ],
-    ];
-}
-
-function buildFinalResponse(string $content): array
-{
-    return [
-        'content' => $content,
-        'latency_ms' => 150,
-        'usage' => ['prompt_tokens' => 30, 'completion_tokens' => 10],
-    ];
-}
-
 describe('AgenticRuntime', function () {
     it('returns direct response when LLM produces no tool calls', function () {
-        $configResolver = buildResolvedConfigResolverMock();
+        $configResolver = $this->mockResolvedConfigResolver([
+            $this->makeConfig('test-provider', 'gpt-4', 'test-key'),
+        ]);
 
         $llmClient = Mockery::mock(LlmClient::class);
         $llmClient->shouldReceive('chat')->once()->andReturn([
@@ -200,8 +107,8 @@ describe('AgenticRuntime', function () {
             'usage' => ['prompt_tokens' => 10, 'completion_tokens' => 8],
         ]);
 
-        $runtime = buildRuntime($llmClient, $configResolver);
-        $result = $runtime->run([buildTestMessage('Hi')], 1, 'You are Lara.');
+        $runtime = $this->makeAgenticRuntime($llmClient, $configResolver);
+        $result = $runtime->run([$this->makeMessage('user', 'Hi')], 1, 'You are Lara.');
 
         expect($result['content'])->toBe('Hello, I am Lara!');
         expect($result['run_id'])->toStartWith('run_');
@@ -211,22 +118,24 @@ describe('AgenticRuntime', function () {
     });
 
     it('executes tool calls and feeds results back to LLM', function () {
-        $configResolver = buildResolvedConfigResolverMock();
+        $configResolver = $this->mockResolvedConfigResolver([
+            $this->makeConfig('test-provider', 'gpt-4', 'test-key'),
+        ]);
 
         $llmClient = Mockery::mock(LlmClient::class);
 
         // First call: LLM wants to call a tool
         $llmClient->shouldReceive('chat')->once()->andReturn(
-            buildToolCallResponse('call_001', 'echo_tool', '{"input": "world"}')
+            $this->makeToolCallResponse('call_001', 'echo_tool', '{"input": "world"}')
         );
 
         // Second call: LLM produces final response after receiving tool result
         $llmClient->shouldReceive('chat')->once()->andReturn(
-            buildFinalResponse('The echo result was: executed:echo_tool:world')
+            $this->makeFinalResponse('The echo result was: executed:echo_tool:world')
         );
 
-        $runtime = buildRuntime($llmClient, $configResolver, buildToolRegistry(buildEchoTool()));
-        $result = $runtime->run([buildTestMessage('Echo world')], 1, 'You are Lara.');
+        $runtime = $this->makeAgenticRuntime($llmClient, $configResolver, $this->makeToolRegistry(buildEchoTool()));
+        $result = $runtime->run([$this->makeMessage('user', 'Echo world')], 1, 'You are Lara.');
 
         expect($result['content'])->toContain('executed:echo_tool:world');
         expect($result['meta']['tool_actions'])->toHaveCount(1);
@@ -235,18 +144,20 @@ describe('AgenticRuntime', function () {
     });
 
     it('prepends client actions collected from tool results to final content', function () {
-        $configResolver = buildResolvedConfigResolverMock();
+        $configResolver = $this->mockResolvedConfigResolver([
+            $this->makeConfig('test-provider', 'gpt-4', 'test-key'),
+        ]);
 
         $llmClient = Mockery::mock(LlmClient::class);
         $llmClient->shouldReceive('chat')->once()->andReturn(
-            buildToolCallResponse('call_002', 'navigate_tool', '{}')
+            $this->makeToolCallResponse('call_002', 'navigate_tool', '{}')
         );
         $llmClient->shouldReceive('chat')->once()->andReturn(
-            buildFinalResponse('Navigated successfully.')
+            $this->makeFinalResponse('Navigated successfully.')
         );
 
-        $runtime = buildRuntime($llmClient, $configResolver, buildToolRegistry(buildNavigateActionTool()));
-        $result = $runtime->run([buildTestMessage('Go to dashboard')], 1, 'You are Lara.');
+        $runtime = $this->makeAgenticRuntime($llmClient, $configResolver, $this->makeToolRegistry(buildNavigateActionTool()));
+        $result = $runtime->run([$this->makeMessage('user', 'Go to dashboard')], 1, 'You are Lara.');
 
         expect($result['content'])->toStartWith('<lara-action>Livewire.navigate(\'/dashboard\')</lara-action>')
             ->and($result['content'])->toContain('Navigated successfully.');
@@ -257,20 +168,22 @@ describe('AgenticRuntime', function () {
         // and having no employee in DB. We mock at the config resolver level.
         $configResolver = Mockery::mock(ConfigResolver::class);
         $configResolver->shouldReceive('resolve')->with(1)->andReturn([]);
-        $configResolver->shouldReceive('resolveDefault')->andReturn(null);
+        $configResolver->shouldReceive('resolvePrimaryWithDefaultFallback')->with(1)->andReturn(null);
 
         $llmClient = Mockery::mock(LlmClient::class);
-        $runtime = buildRuntime($llmClient, $configResolver);
+        $runtime = $this->makeAgenticRuntime($llmClient, $configResolver);
 
         // Employee ID 1 doesn't exist in test DB, so company lookup fails gracefully
-        $result = $runtime->run([buildTestMessage('Hello')], 1, 'Prompt');
+        $result = $runtime->run([$this->makeMessage('user', 'Hello')], 1, 'Prompt');
 
         expect($result['content'])->toContain('⚠');
         expect($result['meta'])->toHaveKey('error');
     });
 
     it('returns error when LLM call fails', function () {
-        $configResolver = buildResolvedConfigResolverMock();
+        $configResolver = $this->mockResolvedConfigResolver([
+            $this->makeConfig('test-provider', 'gpt-4', 'test-key'),
+        ]);
 
         $llmClient = Mockery::mock(LlmClient::class);
         $llmClient->shouldReceive('chat')->once()->andReturn([
@@ -279,8 +192,8 @@ describe('AgenticRuntime', function () {
             'latency_ms' => 50,
         ]);
 
-        $runtime = buildRuntime($llmClient, $configResolver);
-        $result = $runtime->run([buildTestMessage('Hello')], 1, 'Prompt');
+        $runtime = $this->makeAgenticRuntime($llmClient, $configResolver);
+        $result = $runtime->run([$this->makeMessage('user', 'Hello')], 1, 'Prompt');
 
         expect($result['content'])->toContain('⚠');
         expect($result['meta']['error_type'])->toBe('rate_limit');
