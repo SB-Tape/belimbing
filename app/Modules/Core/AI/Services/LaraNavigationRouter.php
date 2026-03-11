@@ -201,12 +201,12 @@ class LaraNavigationRouter
                 'capability' => null,
             ],
             'providers' => [
-                'route' => 'admin.ai.providers.connections',
+                'route' => 'admin.ai.providers',
                 'label' => __('AI Providers'),
                 'capability' => null,
             ],
             'models' => [
-                'route' => 'admin.ai.providers.connections',
+                'route' => 'admin.ai.providers',
                 'label' => __('AI Providers'),
                 'capability' => null,
             ],

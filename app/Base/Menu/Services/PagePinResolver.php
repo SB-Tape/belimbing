@@ -61,9 +61,12 @@ class PagePinResolver
 
         $resolvedId = $baseId.':'.$parameterSignature;
 
-        return strlen($resolvedId) <= 150
-            ? $resolvedId
-            : $baseId.':'.sha1($parameterSignature);
+        if (strlen($resolvedId) <= 150) {
+            return $resolvedId;
+        }
+
+        // Deterministic cache-style key compaction only (non-sensitive context).
+        return $baseId.':'.md5($parameterSignature);
     }
 
     private function buildLabel(string $title, ?MenuItem $menuItem): string

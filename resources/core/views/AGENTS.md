@@ -12,7 +12,7 @@ You are a specialized UI/UX designer focused on responsive design, high-end aest
 4. **Performant** — Target 60fps / <16ms per frame. Animate only `transform` and `opacity` (never layout properties). Respect `prefers-reduced-motion`. Paginate tables/lists by default. Use `wire:key` in lists. Prefer `wire:model.live.debounce` over unthrottled updates. Use `wire:loading` + skeletons over spinners.
 5. **i18n-Ready** — All user-facing strings must use `__()`, `@lang`, or `trans_choice()`. No hard-coded English in Blade (except temporary scaffolding marked with a TODO). Design for variable-length translations: avoid fixed-width buttons/labels. Never concatenate translated fragments; translate whole sentences with placeholders.
 6. **Deep Components** — Components expose simple props (`variant`, `size`, `disabled`, etc.) and hide Tailwind complexity internally. Callers should not need to remember long class strings. Document component APIs (props/slots) for anything non-trivial.
-7. **Icon Consistency** — Always use `<x-icon>` for icons. Favor **Outline** variants (`heroicon-o-*`, 24x24) for primary UI elements and navigation. Use **Solid/Mini** variants (`heroicon-m-*`, 20x20 or 16x16) only for small inline actions or dense lists where the outline stroke might be too noisy. Never use raw `<svg>` tags for common icons; add them to `components/icon.blade.php` instead.
+7. **Icon Consistency** — Always use `<x-icon>` for icons. Favor **Outline** variants (`heroicon-o-*`, 24x24) for primary UI elements and navigation. Use **Solid/Mini** variants (`heroicon-m-*`, 20x20 or 16x16) only for small inline actions or dense lists where the outline stroke might be too noisy. Never use raw `<svg>` tags for common icons; add them to `components/icon.blade.php` instead. When adding a new icon, search https://blade-ui-kit.com/blade-icons for the SVG path data.
 8. **Open-Source Only** — No proprietary icon sets, hosted font services, analytics scripts, or SaaS widgets. Self-host all assets. Any new UI library must be OSS-compatible with AGPLv3.
 9. **Aesthetics** — Professional, clean, compact. Every pixel counts. See Aesthetic Bar below.
 
@@ -91,9 +91,13 @@ Canonical primitives in `resources/core/views/components/ui/`. **Always use thes
 |-----------|-------|
 | `x-ui.button` | All buttons (supports variants, sizes) |
 | `x-ui.input` | Text/email/password inputs with label + error |
+| `x-ui.select` | Select dropdowns with label + error |
+| `x-ui.combobox` | Searchable select/lookup inputs |
+| `x-ui.textarea` | Multi-line text inputs with label + error |
 | `x-ui.search-input` | Search fields with magnifying-glass icon |
 | `x-ui.checkbox` | Checkbox inputs |
 | `x-ui.radio` | Radio inputs |
+| `x-ui.alert` | Informational, warning, success, or danger notices |
 | `x-ui.badge` | Status badges |
 | `x-ui.card` | Card containers |
 | `x-ui.modal` | Modal dialogs |
@@ -101,6 +105,7 @@ Canonical primitives in `resources/core/views/components/ui/`. **Always use thes
 | `x-ui.help` | Standalone "?" toggle button for contextual help |
 | `x-ui.tabs` | Page-level tab container (underline/pill variants, URL hash, ARIA, keyboard nav) |
 | `x-ui.tab` | Individual tab panel (child of `x-ui.tabs`) |
+| `x-icon` | Canonical icon component for all UI icons |
 
 When a needed primitive doesn't exist, create it in `resources/core/views/components/ui/` following the patterns of existing components (props via `@props`, class merging via `$attributes->class([...])`, semantic tokens).
 

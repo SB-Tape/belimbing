@@ -5,11 +5,14 @@
 
 namespace App\Modules\Core\AI\Livewire;
 
+use App\Base\AI\Services\LlmClient;
 use App\Modules\Core\AI\Services\AgenticRuntime;
 use App\Modules\Core\AI\Services\ConfigResolver;
 use App\Modules\Core\AI\Services\LaraOrchestrationService;
 use App\Modules\Core\AI\Services\LaraPromptFactory;
 use App\Modules\Core\AI\Services\MessageManager;
+use App\Modules\Core\AI\Services\RuntimeCredentialResolver;
+use App\Modules\Core\AI\Services\RuntimeMessageBuilder;
 use App\Modules\Core\AI\Services\SessionManager;
 use App\Modules\Core\Company\Models\Company;
 use App\Modules\Core\Employee\Models\Employee;
@@ -26,6 +29,10 @@ class LaraChatOverlay extends Component
 
     /** @var array<string, mixed>|null */
     public ?array $lastRunMeta = null;
+
+    public ?string $editingSessionId = null;
+
+    public string $editingTitle = '';
 
     public function mount(): void
     {
@@ -89,6 +96,109 @@ class LaraChatOverlay extends Component
         }
 
         $this->lastRunMeta = null;
+    }
+
+    /**
+     * Start inline-editing a session title.
+     */
+    public function startEditingTitle(string $sessionId): void
+    {
+        $session = app(SessionManager::class)->get(Employee::LARA_ID, $sessionId);
+        $this->editingSessionId = $sessionId;
+        $this->editingTitle = $session?->title ?? '';
+    }
+
+    /**
+     * Save the edited session title and exit inline-editing mode.
+     */
+    public function saveTitle(): void
+    {
+        if ($this->editingSessionId === null) {
+            return;
+        }
+
+        $title = trim($this->editingTitle);
+
+        if ($title !== '') {
+            app(SessionManager::class)->updateTitle(Employee::LARA_ID, $this->editingSessionId, $title);
+        }
+
+        $this->editingSessionId = null;
+        $this->editingTitle = '';
+    }
+
+    /**
+     * Cancel inline-editing without saving.
+     */
+    public function cancelEditingTitle(): void
+    {
+        $this->editingSessionId = null;
+        $this->editingTitle = '';
+    }
+
+    /**
+     * Ask Lara to generate a session title from the conversation history.
+     */
+    public function generateSessionTitle(string $sessionId): void
+    {
+        if (! $this->isLaraActivated()) {
+            return;
+        }
+
+        $messageManager = app(MessageManager::class);
+        $messages = $messageManager->read(Employee::LARA_ID, $sessionId);
+
+        if (empty($messages)) {
+            return;
+        }
+
+        $configResolver = app(ConfigResolver::class);
+        $config = $configResolver->resolvePrimaryWithDefaultFallback(Employee::LARA_ID);
+
+        if ($config === null) {
+            return;
+        }
+
+        $credentialResolver = app(RuntimeCredentialResolver::class);
+        $credentials = $credentialResolver->resolve($config);
+
+        if (isset($credentials['error'])) {
+            return;
+        }
+
+        $messageBuilder = app(RuntimeMessageBuilder::class);
+        $apiMessages = $messageBuilder->build(
+            $messages,
+            'Generate a concise 3–6 word title summarizing this conversation. Reply with only the title, no quotes or punctuation.',
+        );
+
+        $llmClient = app(LlmClient::class);
+        $response = $llmClient->chat(
+            baseUrl: $credentials['base_url'],
+            apiKey: $credentials['api_key'],
+            model: $config['model'],
+            messages: $apiMessages,
+            maxTokens: 20,
+            temperature: 0.5,
+            timeout: 15,
+            providerName: $config['provider_name'] ?? null,
+        );
+
+        $title = trim($response['content'] ?? '');
+
+        if ($title === '') {
+            return;
+        }
+
+        // Strip surrounding quotes if the LLM wrapped the title
+        $title = trim($title, '"\'');
+
+        app(SessionManager::class)->updateTitle(Employee::LARA_ID, $sessionId, $title);
+
+        // If we're currently editing this session, update the editing state too
+        if ($this->editingSessionId === $sessionId) {
+            $this->editingTitle = $title;
+        }
     }
 
     public function sendMessage(): void
@@ -156,17 +266,6 @@ class LaraChatOverlay extends Component
         $actionJs = $result['meta']['orchestration']['js'] ?? null;
         if (is_string($actionJs) && $actionJs !== '') {
             $this->dispatch('lara-execute-js', js: $actionJs);
-        }
-
-        $session = $sessionManager->get(Employee::LARA_ID, $this->selectedSessionId);
-        if ($session && $session->title === null) {
-            $title = mb_substr($content, 0, 60);
-
-            if (mb_strlen($content) > 60) {
-                $title .= '…';
-            }
-
-            $sessionManager->updateTitle(Employee::LARA_ID, $this->selectedSessionId, $title);
         }
 
         $this->isLoading = false;

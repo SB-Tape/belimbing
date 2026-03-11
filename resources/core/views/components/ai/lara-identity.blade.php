@@ -1,5 +1,4 @@
 @props([
-    'status' => null,
     'compact' => false,
     'showRole' => true,
     'showShortcut' => false,
@@ -10,18 +9,6 @@
     $nameClasses = $compact ? 'text-xs font-medium text-current' : 'text-sm font-medium text-current';
     $badgeClasses = $compact ? 'text-[9px] uppercase tracking-wider font-semibold' : 'text-[10px] uppercase tracking-wider font-semibold';
     $shortcutClasses = $compact ? 'text-[10px] text-muted' : 'text-xs text-muted';
-
-    $statusVariant = match ($status) {
-        'online' => 'success',
-        'inactive' => 'warning',
-        default => null,
-    };
-
-    $statusLabel = match ($status) {
-        'online' => __('Online'),
-        'inactive' => __('Inactive'),
-        default => null,
-    };
 @endphp
 
 <span {{ $attributes->class('inline-flex items-center gap-1.5') }}>
@@ -30,11 +17,6 @@
     @if ($showRole)
         <x-ui.badge variant="accent" class="{{ $badgeClasses }}">
             {{ __('System DW') }}
-        </x-ui.badge>
-    @endif
-    @if ($statusLabel !== null && $statusVariant !== null)
-        <x-ui.badge :variant="$statusVariant" class="{{ $badgeClasses }}">
-            {{ $statusLabel }}
         </x-ui.badge>
     @endif
     @if ($showShortcut)
