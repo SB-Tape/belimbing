@@ -8,10 +8,12 @@ namespace App\Modules\Core\AI\Livewire\Concerns;
 use App\Modules\Core\AI\Models\AiProviderModel;
 
 /**
- * Model CRUD state and actions for the provider manager component.
+ * Model management state and actions for the provider manager component.
  *
- * Handles add/edit/delete of per-provider model entries, including
- * cost overrides and default model selection.
+ * Handles add model (manual), toggle availability, inline cost overrides,
+ * and default model selection. Models discovered via API sync are toggled
+ * on/off rather than deleted — the activation checkbox controls whether a
+ * model is available to Digital Workers.
  */
 trait ManagesModels
 {
@@ -19,39 +21,19 @@ trait ManagesModels
 
     public bool $showModelForm = false;
 
-    public bool $isEditingModel = false;
-
-    public ?int $editingModelId = null;
-
     public ?int $modelProviderId = null;
 
     public string $modelModelName = '';
 
-    public bool $modelIsActive = true;
-
-    public string $modelCostInput = self::ZERO_COST;
-
-    public string $modelCostOutput = self::ZERO_COST;
-
-    public string $modelCostCacheRead = self::ZERO_COST;
-
-    public string $modelCostCacheWrite = self::ZERO_COST;
-
-    public bool $showDeleteModel = false;
-
-    public ?int $deletingModelId = null;
-
-    public string $deletingModelName = '';
-
-    public function openCreateModel(int $providerId): void
-    {
-        $this->resetModelForm();
-        $this->isEditingModel = false;
-        $this->modelProviderId = $providerId;
-        $this->showModelForm = true;
-    }
-
-    public function openEditModel(int $modelId): void
+    /**
+     * Toggle a model's availability for Digital Workers.
+     *
+     * Replaces the former delete action — models are activated/deactivated
+     * rather than removed, since they originate from API discovery.
+     *
+     * @param  int  $modelId  Model to toggle
+     */
+    public function toggleModelActive(int $modelId): void
     {
         $model = AiProviderModel::query()->find($modelId);
 
@@ -59,17 +41,42 @@ trait ManagesModels
             return;
         }
 
-        $this->resetModelForm();
-        $this->isEditingModel = true;
-        $this->editingModelId = $modelId;
-        $this->modelProviderId = $model->ai_provider_id;
-        $this->modelModelName = $model->model_id;
-        $this->modelIsActive = $model->is_active;
+        $model->update(['is_active' => ! $model->is_active]);
+    }
+
+    /**
+     * Update a single cost override field for a model (inline editing).
+     *
+     * @param  int  $modelId  Model to update
+     * @param  string  $field  Cost dimension: input, output, cache_read, cache_write
+     * @param  string|null  $value  New cost value (null or empty clears the override)
+     */
+    public function updateModelCost(int $modelId, string $field, ?string $value): void
+    {
+        $allowed = ['input', 'output', 'cache_read', 'cache_write'];
+
+        if (! in_array($field, $allowed, true)) {
+            return;
+        }
+
+        $model = AiProviderModel::query()->find($modelId);
+
+        if (! $model) {
+            return;
+        }
+
         $cost = $model->cost_override ?? [];
-        $this->modelCostInput = $cost['input'] ?? self::ZERO_COST;
-        $this->modelCostOutput = $cost['output'] ?? self::ZERO_COST;
-        $this->modelCostCacheRead = $cost['cache_read'] ?? self::ZERO_COST;
-        $this->modelCostCacheWrite = $cost['cache_write'] ?? self::ZERO_COST;
+        $cost[$field] = ($value !== null && $value !== '') ? $value : null;
+
+        $hasAnyCost = array_filter($cost, fn ($v) => $v !== null && $v !== '') !== [];
+
+        $model->update(['cost_override' => $hasAnyCost ? $cost : null]);
+    }
+
+    public function openCreateModel(int $providerId): void
+    {
+        $this->resetModelForm();
+        $this->modelProviderId = $providerId;
         $this->showModelForm = true;
     }
 
@@ -81,67 +88,16 @@ trait ManagesModels
 
         $this->validate([
             'modelModelName' => ['required', 'string', 'max:255'],
-            'modelIsActive' => ['boolean'],
-            'modelCostInput' => ['nullable', 'numeric', 'min:0'],
-            'modelCostOutput' => ['nullable', 'numeric', 'min:0'],
-            'modelCostCacheRead' => ['nullable', 'numeric', 'min:0'],
-            'modelCostCacheWrite' => ['nullable', 'numeric', 'min:0'],
         ]);
 
-        $costOverride = [
-            'input' => $this->modelCostInput ?: null,
-            'output' => $this->modelCostOutput ?: null,
-            'cache_read' => $this->modelCostCacheRead ?: null,
-            'cache_write' => $this->modelCostCacheWrite ?: null,
-        ];
-        $hasAnyCost = array_filter($costOverride, fn ($v) => $v !== null && $v !== '') !== [];
-
-        $data = [
+        AiProviderModel::query()->create([
             'ai_provider_id' => $this->modelProviderId,
             'model_id' => $this->modelModelName,
-            'is_active' => $this->modelIsActive,
-            'cost_override' => $hasAnyCost ? $costOverride : null,
-        ];
-
-        if ($this->isEditingModel && $this->editingModelId) {
-            $model = AiProviderModel::query()->find($this->editingModelId);
-
-            if ($model) {
-                unset($data['model_id']);
-                $model->update($data);
-            }
-        } else {
-            AiProviderModel::query()->create($data);
-        }
+            'is_active' => true,
+        ]);
 
         $this->showModelForm = false;
         $this->resetModelForm();
-    }
-
-    public function confirmDeleteModel(int $modelId): void
-    {
-        $model = AiProviderModel::query()->find($modelId);
-
-        if (! $model) {
-            return;
-        }
-
-        $this->deletingModelId = $modelId;
-        $this->deletingModelName = $model->model_id;
-        $this->showDeleteModel = true;
-    }
-
-    public function deleteModel(): void
-    {
-        if ($this->deletingModelId === null) {
-            return;
-        }
-
-        AiProviderModel::query()->where('id', $this->deletingModelId)->delete();
-
-        $this->showDeleteModel = false;
-        $this->deletingModelId = null;
-        $this->deletingModelName = '';
     }
 
     /**
@@ -160,14 +116,8 @@ trait ManagesModels
 
     private function resetModelForm(): void
     {
-        $this->editingModelId = null;
         $this->modelProviderId = null;
         $this->modelModelName = '';
-        $this->modelIsActive = true;
-        $this->modelCostInput = self::ZERO_COST;
-        $this->modelCostOutput = self::ZERO_COST;
-        $this->modelCostCacheRead = self::ZERO_COST;
-        $this->modelCostCacheWrite = self::ZERO_COST;
         $this->resetValidation();
     }
 }

@@ -7,18 +7,29 @@
 <div class="h-full flex flex-col" x-data @lara-focus-composer.window="$nextTick(() => $refs.laraComposer?.focus())" @lara-chat-opened.window="if ($event.detail?.prompt) { $wire.set('messageInput', $event.detail.prompt); $nextTick(() => $refs.laraComposer?.focus()); }">
     <div class="h-11 px-4 border-b border-border-default bg-surface-bar flex items-center justify-between shrink-0">
         <div class="flex items-center gap-2">
-            <x-ai.lara-identity :status="$laraActivated ? 'online' : null" />
+            <x-ai.lara-identity :show-role="false" />
         </div>
 
-        <button
-            type="button"
-            x-on:click="$dispatch('close-lara-chat')"
-            class="text-muted hover:text-ink transition-colors"
-            title="{{ __('Close Lara chat') }}"
-            aria-label="{{ __('Close Lara chat') }}"
-        >
-            <x-icon name="heroicon-o-x-mark" class="w-5 h-5" />
-        </button>
+        <div class="flex items-center gap-1">
+            <a
+                href="{{ route('admin.setup.lara') }}"
+                wire:navigate
+                class="text-muted hover:text-ink transition-colors p-0.5"
+                title="{{ __('Lara settings') }}"
+                aria-label="{{ __('Lara settings') }}"
+            >
+                <x-icon name="heroicon-o-cog-6-tooth" class="w-4 h-4" />
+            </a>
+            <button
+                type="button"
+                x-on:click="$dispatch('close-lara-chat')"
+                class="text-muted hover:text-ink transition-colors p-0.5"
+                title="{{ __('Close Lara chat') }}"
+                aria-label="{{ __('Close Lara chat') }}"
+            >
+                <x-icon name="heroicon-o-x-mark" class="w-5 h-5" />
+            </button>
+        </div>
     </div>
 
     @if (! $laraExists)
@@ -51,25 +62,65 @@
 
                 <div class="flex-1 overflow-y-auto space-y-1">
                     @forelse($sessions as $session)
-                        <div class="group flex items-start gap-1">
-                            <button
-                                wire:key="lara-session-{{ $session->id }}"
-                                wire:click="selectSession('{{ $session->id }}')"
-                                class="flex-1 text-left px-2 py-1.5 rounded-lg text-sm transition-colors
-                                    {{ $selectedSessionId === $session->id ? 'bg-surface-subtle text-ink' : 'text-muted hover:bg-surface-subtle/60 hover:text-ink' }}"
-                            >
-                                <div class="truncate font-medium">{{ $session->title ?? __('Untitled') }}</div>
-                                <div class="text-xs text-muted tabular-nums">{{ $session->lastActivityAt->format('M j, H:i') }}</div>
-                            </button>
-                            <button
-                                type="button"
-                                wire:click="deleteSession('{{ $session->id }}')"
-                                class="opacity-0 group-hover:opacity-100 transition-opacity text-muted hover:text-ink p-1"
-                                title="{{ __('Delete session') }}"
-                                aria-label="{{ __('Delete session') }}"
-                            >
-                                <x-icon name="heroicon-o-trash" class="w-3.5 h-3.5" />
-                            </button>
+                        <div class="group flex items-start gap-1" wire:key="lara-session-{{ $session->id }}">
+                            @if ($editingSessionId === $session->id)
+                                <div class="flex-1 px-2 py-1.5 space-y-1">
+                                    <div class="flex items-center gap-1">
+                                        <input
+                                            type="text"
+                                            wire:model="editingTitle"
+                                            wire:keydown.enter="saveTitle"
+                                            wire:keydown.escape="cancelEditingTitle"
+                                            x-init="$nextTick(() => $el.focus())"
+                                            class="flex-1 min-w-0 text-sm font-medium bg-surface-default border border-border-default rounded px-1.5 py-0.5 text-ink focus:outline-none focus:ring-1 focus:ring-accent"
+                                            placeholder="{{ __('Session title') }}"
+                                        />
+                                        <button
+                                            type="button"
+                                            wire:click="generateSessionTitle('{{ $session->id }}')"
+                                            class="text-muted hover:text-accent transition-colors p-0.5 shrink-0"
+                                            title="{{ __('Ask Lara to suggest a title') }}"
+                                            aria-label="{{ __('Ask Lara to suggest a title') }}"
+                                        >
+                                            <x-icon name="heroicon-o-sparkles" class="w-3.5 h-3.5" />
+                                        </button>
+                                    </div>
+                                    <div class="flex items-center gap-1">
+                                        <button type="button" wire:click="saveTitle" class="text-[10px] text-accent hover:underline">{{ __('Save') }}</button>
+                                        <span class="text-[10px] text-muted">·</span>
+                                        <button type="button" wire:click="cancelEditingTitle" class="text-[10px] text-muted hover:text-ink">{{ __('Cancel') }}</button>
+                                    </div>
+                                </div>
+                            @else
+                                <button
+                                    wire:click="selectSession('{{ $session->id }}')"
+                                    class="flex-1 text-left px-2 py-1.5 rounded-lg text-sm transition-colors
+                                        {{ $selectedSessionId === $session->id ? 'bg-surface-subtle text-ink' : 'text-muted hover:bg-surface-subtle/60 hover:text-ink' }}"
+                                >
+                                    <div class="truncate font-medium">{{ $session->title ?? __('Untitled') }}</div>
+                                    <div class="text-xs text-muted tabular-nums">{{ $session->lastActivityAt->format('M j, H:i') }}</div>
+                                </button>
+                                <div class="flex items-center mt-1">
+                                    <button
+                                        type="button"
+                                        wire:click="startEditingTitle('{{ $session->id }}')"
+                                        class="text-muted hover:text-ink p-1"
+                                        title="{{ __('Edit title') }}"
+                                        aria-label="{{ __('Edit title') }}"
+                                    >
+                                        <x-icon name="heroicon-o-pencil" class="w-3.5 h-3.5" />
+                                    </button>
+                                    <button
+                                        type="button"
+                                        wire:click="deleteSession('{{ $session->id }}')"
+                                        class="text-muted hover:text-ink p-1"
+                                        title="{{ __('Delete session') }}"
+                                        aria-label="{{ __('Delete session') }}"
+                                    >
+                                        <x-icon name="heroicon-o-trash" class="w-3.5 h-3.5" />
+                                    </button>
+                                </div>
+                            @endif
                         </div>
                     @empty
                         <p class="text-sm text-muted py-4 text-center">{{ __('No sessions yet.') }}</p>
@@ -81,96 +132,84 @@
                 x-data="{ pendingMessage: null }"
                 x-on:lara-response-ready.window="pendingMessage = null"
             >
-                @if ($selectedSessionId)
-                    <div
-                        class="flex-1 min-h-0 overflow-y-auto px-4 py-3 space-y-3"
-                        x-ref="laraScroll"
-                        x-init="$nextTick(() => $el.scrollTop = $el.scrollHeight)"
-                        x-effect="$nextTick(() => $refs.laraScroll.scrollTop = $refs.laraScroll.scrollHeight)"
+                <div
+                    class="flex-1 min-h-0 overflow-y-auto px-4 py-3 space-y-3"
+                    x-ref="laraScroll"
+                    x-init="$nextTick(() => $el.scrollTop = $el.scrollHeight)"
+                    x-effect="$nextTick(() => $refs.laraScroll.scrollTop = $refs.laraScroll.scrollHeight)"
+                >
+                    @forelse($messages as $message)
+                        <div class="flex {{ $message->role === 'user' ? 'justify-end' : 'justify-start' }}">
+                            @if ($message->role === 'assistant' && ($message->meta['orchestration']['status'] ?? null) !== null)
+                                {{-- Lara action message (navigation, guide, models, etc.) --}}
+                                <div class="max-w-[80%] rounded-2xl px-3 py-2 text-sm bg-accent/10 text-ink border border-accent/20">
+                                    <div class="flex items-center gap-1.5 mb-0.5">
+                                        <x-icon name="heroicon-o-bolt" class="w-3.5 h-3.5 text-accent" />
+                                        <span class="text-[10px] font-semibold uppercase tracking-wider text-accent">{{ __('Action') }}</span>
+                                    </div>
+                                    <div class="whitespace-pre-wrap break-words">{{ $message->content }}</div>
+                                    <div class="text-[10px] mt-1 text-muted tabular-nums">
+                                        {{ $message->timestamp->format('H:i:s') }}
+                                    </div>
+                                </div>
+                            @else
+                                <div class="max-w-[80%] rounded-2xl px-3 py-2 text-sm
+                                    {{ $message->role === 'user' ? 'bg-accent text-accent-on' : 'bg-surface-subtle text-ink' }}"
+                                >
+                                    <div class="whitespace-pre-wrap break-words">{{ $message->content }}</div>
+                                    <div class="text-[10px] mt-1 {{ $message->role === 'user' ? 'text-accent-on/70' : 'text-muted' }} tabular-nums">
+                                        {{ $message->timestamp->format('H:i:s') }}
+                                    </div>
+                                </div>
+                            @endif
+                        </div>
+                    @empty
+                        <div x-show="!pendingMessage" class="h-full flex items-center justify-center">
+                            <p class="text-sm text-muted">{{ __('Send a message to start chatting with Lara.') }}</p>
+                        </div>
+                    @endforelse
+
+                    {{-- Optimistic user message shown while Livewire processes --}}
+                    <template x-if="pendingMessage">
+                        <div class="flex justify-end">
+                            <div class="max-w-[80%] rounded-2xl px-3 py-2 text-sm bg-accent text-accent-on">
+                                <div class="whitespace-pre-wrap break-words" x-text="pendingMessage"></div>
+                            </div>
+                        </div>
+                    </template>
+
+                    {{-- Loading dots: shown while waiting for Livewire response --}}
+                    <div x-show="pendingMessage" x-cloak class="flex justify-start">
+                        <div class="bg-surface-subtle rounded-2xl px-3 py-2">
+                            <div class="flex gap-1">
+                                <span class="w-2 h-2 bg-muted/50 rounded-full animate-pulse"></span>
+                                <span class="w-2 h-2 bg-muted/50 rounded-full animate-pulse" style="animation-delay: 150ms"></span>
+                                <span class="w-2 h-2 bg-muted/50 rounded-full animate-pulse" style="animation-delay: 300ms"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="border-t border-border-default px-4 py-3">
+                    <form
+                        wire:submit="sendMessage"
+                        x-on:submit="pendingMessage = $refs.laraComposer.value; $refs.laraComposer.value = ''; $nextTick(() => { $refs.laraScroll.scrollTop = $refs.laraScroll.scrollHeight })"
+                        class="flex items-end gap-2"
                     >
-                        @forelse($messages as $message)
-                            <div class="flex {{ $message->role === 'user' ? 'justify-end' : 'justify-start' }}">
-                                @if ($message->role === 'assistant' && ($message->meta['orchestration']['status'] ?? null) !== null)
-                                    {{-- Lara action message (navigation, guide, models, etc.) --}}
-                                    <div class="max-w-[80%] rounded-2xl px-3 py-2 text-sm bg-accent/10 text-ink border border-accent/20">
-                                        <div class="flex items-center gap-1.5 mb-0.5">
-                                            <x-icon name="heroicon-o-bolt" class="w-3.5 h-3.5 text-accent" />
-                                            <span class="text-[10px] font-semibold uppercase tracking-wider text-accent">{{ __('Action') }}</span>
-                                        </div>
-                                        <div class="whitespace-pre-wrap break-words">{{ $message->content }}</div>
-                                        <div class="text-[10px] mt-1 text-muted tabular-nums">
-                                            {{ $message->timestamp->format('H:i:s') }}
-                                        </div>
-                                    </div>
-                                @else
-                                    <div class="max-w-[80%] rounded-2xl px-3 py-2 text-sm
-                                        {{ $message->role === 'user' ? 'bg-accent text-accent-on' : 'bg-surface-subtle text-ink' }}"
-                                    >
-                                        <div class="whitespace-pre-wrap break-words">{{ $message->content }}</div>
-                                        <div class="text-[10px] mt-1 {{ $message->role === 'user' ? 'text-accent-on/70' : 'text-muted' }} tabular-nums">
-                                            {{ $message->timestamp->format('H:i:s') }}
-                                        </div>
-                                    </div>
-                                @endif
-                            </div>
-                        @empty
-                            <div x-show="!pendingMessage" class="h-full flex items-center justify-center">
-                                <p class="text-sm text-muted">{{ __('Send a message to start chatting with Lara.') }}</p>
-                            </div>
-                        @endforelse
-
-                        {{-- Optimistic user message shown while Livewire processes --}}
-                        <template x-if="pendingMessage">
-                            <div class="flex justify-end">
-                                <div class="max-w-[80%] rounded-2xl px-3 py-2 text-sm bg-accent text-accent-on">
-                                    <div class="whitespace-pre-wrap break-words" x-text="pendingMessage"></div>
-                                </div>
-                            </div>
-                        </template>
-
-                        {{-- Loading dots: shown while waiting for Livewire response --}}
-                        <div x-show="pendingMessage" x-cloak class="flex justify-start">
-                            <div class="bg-surface-subtle rounded-2xl px-3 py-2">
-                                <div class="flex gap-1">
-                                    <span class="w-2 h-2 bg-muted/50 rounded-full animate-pulse"></span>
-                                    <span class="w-2 h-2 bg-muted/50 rounded-full animate-pulse" style="animation-delay: 150ms"></span>
-                                    <span class="w-2 h-2 bg-muted/50 rounded-full animate-pulse" style="animation-delay: 300ms"></span>
-                                </div>
-                            </div>
+                        <div class="flex-1 min-w-0">
+                                <x-ui.input
+                                    x-ref="laraComposer"
+                                    wire:model="messageInput"
+                                    placeholder="{{ __('Ask Lara about BLB, use /go <target>, /models <filter>, /guide <topic>, or /delegate <task>...') }}"
+                                    autocomplete="off"
+                                    x-bind:disabled="!!pendingMessage"
+                                />
                         </div>
-                    </div>
-
-                    <div class="border-t border-border-default px-4 py-3">
-                        <form
-                            wire:submit="sendMessage"
-                            x-on:submit="pendingMessage = $refs.laraComposer.value; $refs.laraComposer.value = ''; $nextTick(() => { $refs.laraScroll.scrollTop = $refs.laraScroll.scrollHeight })"
-                            class="flex items-end gap-2"
-                        >
-                            <div class="flex-1 min-w-0">
-                                    <x-ui.input
-                                        x-ref="laraComposer"
-                                        wire:model="messageInput"
-                                        placeholder="{{ __('Ask Lara about BLB, use /go <target>, /models <filter>, /guide <topic>, or /delegate <task>...') }}"
-                                        autocomplete="off"
-                                        x-bind:disabled="!!pendingMessage"
-                                    />
-                            </div>
-                            <x-ui.button type="submit" variant="primary" x-bind:disabled="!!pendingMessage">
-                                <x-icon name="heroicon-o-paper-airplane" class="w-4 h-4" />
-                            </x-ui.button>
-                        </form>
-                    </div>
-                @else
-                    <div class="h-full flex items-center justify-center">
-                        <div class="text-center space-y-2">
-                            <p class="text-sm text-muted">{{ __('Create a session to start chatting with Lara.') }}</p>
-                            <x-ui.button variant="primary" wire:click="createSession">
-                                <x-icon name="heroicon-o-plus" class="w-4 h-4" />
-                                {{ __('New Session') }}
-                            </x-ui.button>
-                        </div>
-                    </div>
-                @endif
+                        <x-ui.button type="submit" variant="primary" x-bind:disabled="!!pendingMessage">
+                            <x-icon name="heroicon-o-paper-airplane" class="w-4 h-4" />
+                        </x-ui.button>
+                    </form>
+                </div>
             </section>
         </div>
     @endif
