@@ -95,6 +95,67 @@ class NotificationTool extends AbstractTool
         return 'ai.tool_notification.execute';
     }
 
+    /**
+     * Human-friendly display name for UI surfaces.
+     */
+    public function displayName(): string
+    {
+        return 'Notification';
+    }
+
+    /**
+     * One-sentence plain-language summary for humans.
+     */
+    public function summary(): string
+    {
+        return 'Send notifications to BLB users via internal channels.';
+    }
+
+    /**
+     * Longer explanation of what this tool does and does not do.
+     */
+    public function explanation(): string
+    {
+        return 'Sends notifications via Laravel\'s notification system (database, email, broadcast). '
+            .'Targeted at internal BLB notifications — not an external messaging platform.';
+    }
+
+    /**
+     * Human-readable setup checklist items.
+     *
+     * @return list<string>
+     */
+    public function setupRequirements(): array
+    {
+        return [
+            'Notification channels configured',
+        ];
+    }
+
+    /**
+     * Descriptions of health probes this tool supports.
+     *
+     * @return list<string>
+     */
+    public function healthChecks(): array
+    {
+        return [
+            'Notification system available',
+        ];
+    }
+
+    /**
+     * Known safety limits users should understand.
+     *
+     * @return list<string>
+     */
+    public function limits(): array
+    {
+        return [
+            'Internal BLB users only',
+        ];
+    }
+
     protected function handle(array $arguments): ToolResult
     {
         $userId = $arguments['user_id'] ?? null;

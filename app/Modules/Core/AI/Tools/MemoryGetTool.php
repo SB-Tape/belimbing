@@ -77,6 +77,84 @@ class MemoryGetTool extends AbstractTool
         return 'ai.tool_memory_get.execute';
     }
 
+    /**
+     * Human-friendly display name for UI surfaces.
+     */
+    public function displayName(): string
+    {
+        return 'Memory Get';
+    }
+
+    /**
+     * One-sentence plain-language summary for humans.
+     */
+    public function summary(): string
+    {
+        return 'Read a specific knowledge file from the DW workspace.';
+    }
+
+    /**
+     * Longer explanation of what this tool does and does not do.
+     */
+    public function explanation(): string
+    {
+        return 'Reads the content of a file within the DW workspace by path. '
+            .'Path validation prevents directory traversal. This tool can only '
+            .'read files within the designated workspace directory.';
+    }
+
+    /**
+     * Human-readable setup checklist items.
+     *
+     * @return list<string>
+     */
+    public function setupRequirements(): array
+    {
+        return [
+            'Workspace directory must exist',
+        ];
+    }
+
+    /**
+     * Sample inputs for the Try-It console.
+     *
+     * @return list<array{label: string, input: array<string, mixed>, runnable?: bool}>
+     */
+    public function testExamples(): array
+    {
+        return [
+            [
+                'label' => 'Read a file',
+                'input' => ['path' => 'MEMORY.md'],
+            ],
+        ];
+    }
+
+    /**
+     * Descriptions of health probes this tool supports.
+     *
+     * @return list<string>
+     */
+    public function healthChecks(): array
+    {
+        return [
+            'Workspace directory accessible',
+        ];
+    }
+
+    /**
+     * Known safety limits users should understand.
+     *
+     * @return list<string>
+     */
+    public function limits(): array
+    {
+        return [
+            'Workspace files only — no arbitrary filesystem access',
+            'Path traversal blocked',
+        ];
+    }
+
     protected function handle(array $arguments): ToolResult
     {
         $path = $this->requireString($arguments, 'path');

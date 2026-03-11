@@ -65,6 +65,43 @@ class WorkerListTool extends AbstractTool
         return 'ai.tool_worker_list.execute';
     }
 
+    /**
+     * Human-friendly display name for UI surfaces.
+     */
+    public function displayName(): string
+    {
+        return 'Worker List';
+    }
+
+    /**
+     * One-sentence plain-language summary for humans.
+     */
+    public function summary(): string
+    {
+        return 'List available Digital Workers that can receive delegated tasks.';
+    }
+
+    /**
+     * Longer explanation of what this tool does and does not do.
+     */
+    public function explanation(): string
+    {
+        return 'Returns a list of Digital Workers the current user supervises, along with '
+            .'their capabilities and status. Useful for deciding which worker to delegate a task to.';
+    }
+
+    /**
+     * Known safety limits users should understand.
+     *
+     * @return list<string>
+     */
+    public function limits(): array
+    {
+        return [
+            'Shows supervised workers only',
+        ];
+    }
+
     protected function handle(array $arguments): ToolResult
     {
         $workers = $this->capabilityMatcher->discoverDelegableWorkersForCurrentUser();

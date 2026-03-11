@@ -61,6 +61,41 @@ class TestTool implements Tool
         return ToolRiskClass::READ_ONLY;
     }
 
+    public function displayName(): string
+    {
+        return $this->toolName;
+    }
+
+    public function summary(): string
+    {
+        return $this->toolDescription;
+    }
+
+    public function explanation(): string
+    {
+        return '';
+    }
+
+    public function setupRequirements(): array
+    {
+        return [];
+    }
+
+    public function testExamples(): array
+    {
+        return [];
+    }
+
+    public function healthChecks(): array
+    {
+        return [];
+    }
+
+    public function limits(): array
+    {
+        return [];
+    }
+
     public function execute(array $arguments): ToolResult
     {
         if (empty($arguments)) {

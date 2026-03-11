@@ -78,6 +78,55 @@ class ImageAnalysisTool extends AbstractTool
         return 'ai.tool_image_analysis.execute';
     }
 
+    /**
+     * Human-friendly display name for UI surfaces.
+     */
+    public function displayName(): string
+    {
+        return 'Image Analysis';
+    }
+
+    /**
+     * One-sentence plain-language summary for humans.
+     */
+    public function summary(): string
+    {
+        return 'Analyze and describe uploaded images.';
+    }
+
+    /**
+     * Longer explanation of what this tool does and does not do.
+     */
+    public function explanation(): string
+    {
+        return 'Processes images to describe content, extract text, or answer questions about '
+            .'visual elements. Images must be uploaded or referenced by the user.';
+    }
+
+    /**
+     * Human-readable setup checklist items.
+     *
+     * @return list<string>
+     */
+    public function setupRequirements(): array
+    {
+        return [
+            'Vision-capable LLM model configured',
+        ];
+    }
+
+    /**
+     * Known safety limits users should understand.
+     *
+     * @return list<string>
+     */
+    public function limits(): array
+    {
+        return [
+            'Read-only image processing',
+        ];
+    }
+
     protected function handle(array $arguments): ToolResult
     {
         $path = $this->requireString($arguments, 'path');

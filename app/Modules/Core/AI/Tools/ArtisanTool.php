@@ -99,6 +99,81 @@ class ArtisanTool extends AbstractTool
         return 'ai.tool_artisan.execute';
     }
 
+    /**
+     * Human-friendly display name for UI surfaces.
+     */
+    public function displayName(): string
+    {
+        return 'Artisan';
+    }
+
+    /**
+     * One-sentence plain-language summary for humans.
+     */
+    public function summary(): string
+    {
+        return 'Execute Laravel artisan commands.';
+    }
+
+    /**
+     * Longer explanation of what this tool does and does not do.
+     */
+    public function explanation(): string
+    {
+        return 'Runs `php artisan` commands within the BLB application. '
+            .'Useful for system administration tasks. This is a powerful tool '
+            .'that can modify application state — use with appropriate authorization.';
+    }
+
+    /**
+     * Sample inputs for the Try-It console.
+     *
+     * @return list<array{label: string, input: array<string, mixed>, runnable?: bool}>
+     */
+    public function testExamples(): array
+    {
+        return [
+            [
+                'label' => 'List routes',
+                'input' => ['command' => 'route:list'],
+            ],
+            [
+                'label' => 'Create a user',
+                'input' => ['command' => 'blb:user:create alice@example.com --name=\'Alice Smith\' --role=core_admin'],
+                'runnable' => false,
+            ],
+            [
+                'label' => '⚠ Wipe database (destroys all data)',
+                'input' => ['command' => 'db:wipe --force'],
+                'runnable' => false,
+            ],
+        ];
+    }
+
+    /**
+     * Descriptions of health probes this tool supports.
+     *
+     * @return list<string>
+     */
+    public function healthChecks(): array
+    {
+        return [
+            'Artisan process available',
+        ];
+    }
+
+    /**
+     * Known safety limits users should understand.
+     *
+     * @return list<string>
+     */
+    public function limits(): array
+    {
+        return [
+            'Commands execute in the application context',
+        ];
+    }
+
     protected function handle(array $arguments): ToolResult
     {
         $command = $this->requireString($arguments, 'command');

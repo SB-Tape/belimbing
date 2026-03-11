@@ -68,6 +68,26 @@ class DigitalWorkerToolRegistry
     }
 
     /**
+     * Get a registered tool by name.
+     *
+     * @param  string  $toolName  Tool machine name
+     */
+    public function get(string $toolName): ?Tool
+    {
+        return $this->tools[$toolName] ?? null;
+    }
+
+    /**
+     * Get all registered tool instances.
+     *
+     * @return array<string, Tool>
+     */
+    public function all(): array
+    {
+        return $this->tools;
+    }
+
+    /**
      * Get OpenAI-format tool definitions for tools the current user can access.
      *
      * @return list<array{type: string, function: array{name: string, description: string, parameters: array<string, mixed>}}>

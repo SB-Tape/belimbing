@@ -90,6 +90,43 @@ class DocumentAnalysisTool extends AbstractTool
         return 'ai.tool_document_analysis.execute';
     }
 
+    /**
+     * Human-friendly display name for UI surfaces.
+     */
+    public function displayName(): string
+    {
+        return 'Document Analysis';
+    }
+
+    /**
+     * One-sentence plain-language summary for humans.
+     */
+    public function summary(): string
+    {
+        return 'Analyze and extract information from uploaded documents.';
+    }
+
+    /**
+     * Longer explanation of what this tool does and does not do.
+     */
+    public function explanation(): string
+    {
+        return 'Processes documents (PDF, text, etc.) to extract content, summarize, or answer '
+            .'questions about them. Documents must be uploaded or referenced by the user.';
+    }
+
+    /**
+     * Known safety limits users should understand.
+     *
+     * @return list<string>
+     */
+    public function limits(): array
+    {
+        return [
+            'Read-only document processing',
+        ];
+    }
+
     protected function handle(array $arguments): ToolResult
     {
         $path = $this->requireString($arguments, 'path');

@@ -69,6 +69,43 @@ class DelegationStatusTool extends AbstractTool
         return 'ai.tool_delegation_status.execute';
     }
 
+    /**
+     * Human-friendly display name for UI surfaces.
+     */
+    public function displayName(): string
+    {
+        return 'Delegation Status';
+    }
+
+    /**
+     * One-sentence plain-language summary for humans.
+     */
+    public function summary(): string
+    {
+        return 'Check the status of a previously dispatched task.';
+    }
+
+    /**
+     * Longer explanation of what this tool does and does not do.
+     */
+    public function explanation(): string
+    {
+        return 'Queries the status of a task dispatched via Delegate Task by its dispatch ID. '
+            .'Returns status (queued/running/completed/failed), timing, and result preview.';
+    }
+
+    /**
+     * Known safety limits users should understand.
+     *
+     * @return list<string>
+     */
+    public function limits(): array
+    {
+        return [
+            'Read-only status check',
+        ];
+    }
+
     protected function handle(array $arguments): ToolResult
     {
         $dispatchId = $this->requireString($arguments, 'dispatch_id');

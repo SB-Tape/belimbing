@@ -5,6 +5,7 @@
 
 namespace App\Modules\Core\AI;
 
+use App\Base\AI\Contracts\Tool;
 use App\Base\AI\Services\WebSearchService;
 use App\Modules\Core\AI\Services\AgenticRuntime;
 use App\Modules\Core\AI\Services\ConfigResolver;
@@ -52,6 +53,13 @@ use Illuminate\Support\ServiceProvider as BaseServiceProvider;
 class ServiceProvider extends BaseServiceProvider
 {
     /**
+     * Cached tool instances shared between execution and metadata registries.
+     *
+     * @var array{always: list<Tool>, conditional: list<?Tool>, metadataFallbacks: list<Tool>}|null
+     */
+    private ?array $toolInstances = null;
+
+    /**
      * Register Core AI services.
      *
      * Config is provided by Base AI (config key 'ai'). Core registers
@@ -83,48 +91,124 @@ class ServiceProvider extends BaseServiceProvider
             return $registry;
         });
 
+        $this->registerToolRegistries();
+
+        $this->app->singleton(AgenticRuntime::class);
+        $this->app->singleton(ToolReadinessService::class);
+    }
+
+    /**
+     * Build all tool instances once and wire both registries.
+     *
+     * The execution registry (DigitalWorkerToolRegistry) receives only tools
+     * that pass runtime availability checks. The metadata registry
+     * (ToolMetadataRegistry) receives ALL 20 tools so the workspace UI can
+     * display setup instructions even for unconfigured tools.
+     */
+    private function registerToolRegistries(): void
+    {
         $this->app->singleton(DigitalWorkerToolRegistry::class, function ($app) {
+            $tools = $this->resolveToolInstances($app);
             $registry = new DigitalWorkerToolRegistry(
                 $app->make(\App\Base\Authz\Contracts\AuthorizationService::class),
             );
 
-            $registry->register(new ArtisanTool);
-            $registry->register(new BashTool);
-            $registry->register($app->make(BrowserTool::class));
-            $registry->register($app->make(DelegateTaskTool::class));
-            $registry->register(new DelegationStatusTool);
-            $registry->register(new DocumentAnalysisTool);
-            $registry->register($app->make(GuideTool::class));
-            $registry->register(new ImageAnalysisTool);
-            $registry->register(new MemoryGetTool);
-            $registry->register($app->make(MessageTool::class));
-            $registry->register(new NavigateTool);
-            $registry->register(new NotificationTool);
-            $registry->register(new QueryDataTool);
-            $registry->register(new ScheduleTaskTool);
-            $registry->register(new SystemInfoTool);
-            $registry->register($app->make(WebFetchTool::class));
-            $registry->register($app->make(WorkerListTool::class));
-            $registry->register(new WriteJsTool);
-
-            $memorySearchTool = MemorySearchTool::createIfAvailable();
-            if ($memorySearchTool !== null) {
-                $registry->register($memorySearchTool);
+            foreach ($tools['always'] as $tool) {
+                $registry->register($tool);
             }
 
-            $webSearchTool = WebSearchTool::createIfConfigured(
-                $app->make(WebSearchService::class)
-            );
-            if ($webSearchTool !== null) {
-                $registry->register($webSearchTool);
+            foreach ($tools['conditional'] as $tool) {
+                if ($tool !== null) {
+                    $registry->register($tool);
+                }
             }
 
             return $registry;
         });
 
-        $this->app->singleton(AgenticRuntime::class);
+        $this->app->singleton(ToolMetadataRegistry::class, function ($app) {
+            $tools = $this->resolveToolInstances($app);
 
-        $this->app->singleton(ToolMetadataRegistry::class);
-        $this->app->singleton(ToolReadinessService::class);
+            $allTools = [...$tools['always'], ...$tools['metadataFallbacks']];
+
+            foreach ($tools['conditional'] as $tool) {
+                if ($tool !== null) {
+                    $allTools[] = $tool;
+                }
+            }
+
+            return new ToolMetadataRegistry($allTools);
+        });
+    }
+
+    /**
+     * Instantiate all 20 Digital Worker tools (memoized).
+     *
+     * Returns three groups:
+     * - 'always': Tools that are always available (18 tools)
+     * - 'conditional': Tools that depend on runtime config (may be null)
+     * - 'metadataFallbacks': Metadata-only instances for conditional tools
+     *   that failed availability checks — safe to call metadata methods on
+     *   but not suitable for execution
+     *
+     * @return array{always: list<Tool>, conditional: list<?Tool>, metadataFallbacks: list<Tool>}
+     */
+    private function resolveToolInstances(\Illuminate\Contracts\Foundation\Application $app): array
+    {
+        if ($this->toolInstances !== null) {
+            return $this->toolInstances;
+        }
+
+        $always = [
+            new ArtisanTool,
+            new BashTool,
+            $app->make(BrowserTool::class),
+            $app->make(DelegateTaskTool::class),
+            new DelegationStatusTool,
+            new DocumentAnalysisTool,
+            $app->make(GuideTool::class),
+            new ImageAnalysisTool,
+            new MemoryGetTool,
+            $app->make(MessageTool::class),
+            new NavigateTool,
+            new NotificationTool,
+            new QueryDataTool,
+            new ScheduleTaskTool,
+            new SystemInfoTool,
+            $app->make(WebFetchTool::class),
+            $app->make(WorkerListTool::class),
+            new WriteJsTool,
+        ];
+
+        $memorySearchTool = MemorySearchTool::createIfAvailable();
+        $webSearchTool = WebSearchTool::createIfConfigured(
+            $app->make(WebSearchService::class),
+        );
+
+        $conditional = [$memorySearchTool, $webSearchTool];
+
+        // Metadata-only fallbacks for conditional tools that aren't available.
+        // These instances are safe to read metadata from (displayName, summary,
+        // etc. return static values) but will not be registered for execution.
+        $metadataFallbacks = [];
+
+        if ($memorySearchTool === null) {
+            $metadataFallbacks[] = new MemorySearchTool;
+        }
+
+        if ($webSearchTool === null) {
+            $metadataFallbacks[] = new WebSearchTool(
+                provider: 'parallel',
+                apiKey: '',
+            );
+        }
+
+        $this->toolInstances = [
+            'always' => $always,
+            'conditional' => $conditional,
+            'metadataFallbacks' => $metadataFallbacks,
+        ];
+
+        return $this->toolInstances;
     }
 }

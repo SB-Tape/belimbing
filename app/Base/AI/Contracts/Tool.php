@@ -16,8 +16,9 @@ use App\Base\AI\Tools\ToolResult;
  * an agentic conversation turn. Tools are registered in a tool registry
  * and gated by authz capabilities before execution.
  *
- * Tools self-declare their category and risk class, eliminating the need
- * for parallel metadata registries to maintain this information separately.
+ * Tools are deep modules: they self-declare identity, classification,
+ * and UI metadata. No external registry needs to know tool-specific
+ * details — each tool fully describes itself.
  */
 interface Tool
 {
@@ -25,6 +26,11 @@ interface Tool
      * Unique tool name (used as the function name in OpenAI tool calling).
      */
     public function name(): string;
+
+    /**
+     * Human-friendly display name for UI surfaces (e.g., 'Query Data').
+     */
+    public function displayName(): string;
 
     /**
      * Human-readable description for the LLM to understand when to use this tool.
@@ -54,6 +60,53 @@ interface Tool
      * Risk classification for safety badges and audit classification.
      */
     public function riskClass(): ToolRiskClass;
+
+    /**
+     * One-sentence plain-language summary for humans (UI catalogs, tooltips).
+     *
+     * Distinct from description(), which is tuned for LLM consumption.
+     * Default implementation may return description() as a fallback.
+     */
+    public function summary(): string;
+
+    /**
+     * Longer explanation of what this tool does and does not do.
+     *
+     * Intended for tool workspace detail panels. Returns empty string
+     * if no extended explanation is needed.
+     */
+    public function explanation(): string;
+
+    /**
+     * Human-readable setup checklist items (e.g., 'API key configured').
+     *
+     * @return list<string>
+     */
+    public function setupRequirements(): array;
+
+    /**
+     * Sample inputs for the Try-It console in the tool workspace.
+     *
+     * Each entry: ['label' => string, 'input' => array, 'runnable' => bool].
+     * The 'runnable' key defaults to true; set to false for display-only examples.
+     *
+     * @return list<array{label: string, input: array<string, mixed>, runnable?: bool}>
+     */
+    public function testExamples(): array;
+
+    /**
+     * Descriptions of health probes this tool supports.
+     *
+     * @return list<string>
+     */
+    public function healthChecks(): array;
+
+    /**
+     * Known safety limits users should understand (e.g., 'Maximum 100 rows').
+     *
+     * @return list<string>
+     */
+    public function limits(): array;
 
     /**
      * Execute the tool with the given arguments.

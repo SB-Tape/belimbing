@@ -116,6 +116,87 @@ class BrowserTool extends AbstractActionTool
     }
 
     /**
+     * Human-friendly display name for UI surfaces.
+     */
+    public function displayName(): string
+    {
+        return 'Browser';
+    }
+
+    /**
+     * One-sentence plain-language summary for humans.
+     */
+    public function summary(): string
+    {
+        return 'Automate headless browser actions for web scraping and RPA.';
+    }
+
+    /**
+     * Longer explanation of what this tool does and does not do.
+     */
+    public function explanation(): string
+    {
+        return 'Server-side headless Chromium automation for navigating, capturing snapshots, '
+            .'clicking, typing, and extracting content from external websites. '
+            .'Enterprise-grade RPA capability. This tool can interact with external websites '
+            .'on behalf of the business.';
+    }
+
+    /**
+     * Human-readable setup checklist items.
+     *
+     * @return list<string>
+     */
+    public function setupRequirements(): array
+    {
+        return [
+            'Headless browser configured',
+            'Browser pool available',
+        ];
+    }
+
+    /**
+     * Sample inputs for the Try-It console.
+     *
+     * @return list<array{label: string, input: array<string, mixed>, runnable?: bool}>
+     */
+    public function testExamples(): array
+    {
+        return [
+            [
+                'label' => 'Navigate to URL',
+                'input' => ['action' => 'navigate', 'url' => 'https://example.com'],
+            ],
+        ];
+    }
+
+    /**
+     * Descriptions of health probes this tool supports.
+     *
+     * @return list<string>
+     */
+    public function healthChecks(): array
+    {
+        return [
+            'Browser pool available',
+            'Chromium process responsive',
+        ];
+    }
+
+    /**
+     * Known safety limits users should understand.
+     *
+     * @return list<string>
+     */
+    public function limits(): array
+    {
+        return [
+            'Company-scoped browser contexts',
+            'Session isolation between DWs',
+        ];
+    }
+
+    /**
      * @return list<string>
      */
     protected function actions(): array

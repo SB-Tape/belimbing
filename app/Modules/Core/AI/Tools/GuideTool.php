@@ -65,6 +65,84 @@ class GuideTool extends AbstractTool
         return 'ai.tool_guide.execute';
     }
 
+    /**
+     * Human-friendly display name for UI surfaces.
+     */
+    public function displayName(): string
+    {
+        return 'Guide';
+    }
+
+    /**
+     * One-sentence plain-language summary for humans.
+     */
+    public function summary(): string
+    {
+        return 'Query BLB framework documentation for reference information.';
+    }
+
+    /**
+     * Longer explanation of what this tool does and does not do.
+     */
+    public function explanation(): string
+    {
+        return 'Searches the BLB documentation directory for relevant sections on a given topic. '
+            .'Returns curated reference material to help answer framework questions. '
+            .'This tool reads documentation only — it cannot modify docs.';
+    }
+
+    /**
+     * Human-readable setup checklist items.
+     *
+     * @return list<string>
+     */
+    public function setupRequirements(): array
+    {
+        return [
+            'Documentation directory must be present',
+        ];
+    }
+
+    /**
+     * Sample inputs for the Try-It console.
+     *
+     * @return list<array{label: string, input: array<string, mixed>, runnable?: bool}>
+     */
+    public function testExamples(): array
+    {
+        return [
+            [
+                'label' => 'Lookup topic',
+                'input' => ['topic' => 'authorization'],
+            ],
+        ];
+    }
+
+    /**
+     * Descriptions of health probes this tool supports.
+     *
+     * @return list<string>
+     */
+    public function healthChecks(): array
+    {
+        return [
+            'Docs directory accessible',
+        ];
+    }
+
+    /**
+     * Known safety limits users should understand.
+     *
+     * @return list<string>
+     */
+    public function limits(): array
+    {
+        return [
+            'Returns up to 5 sections by default',
+            'Read-only access to docs/',
+        ];
+    }
+
     protected function handle(array $arguments): ToolResult
     {
         $topic = $this->requireString($arguments, 'topic');

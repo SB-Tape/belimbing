@@ -85,6 +85,93 @@ class WebFetchTool extends AbstractTool
         return 'ai.tool_web_fetch.execute';
     }
 
+    /**
+     * Human-friendly display name for UI surfaces.
+     */
+    public function displayName(): string
+    {
+        return 'Web Fetch';
+    }
+
+    /**
+     * One-sentence plain-language summary for humans.
+     */
+    public function summary(): string
+    {
+        return 'Fetch and extract content from a public URL with SSRF protection.';
+    }
+
+    /**
+     * Longer explanation of what this tool does and does not do.
+     */
+    public function explanation(): string
+    {
+        return 'Fetches a web page via HTTP GET and extracts readable content as plain text or markdown. '
+            .'SSRF protection blocks requests to private/internal networks by default. '
+            .'Useful for reading documentation, articles, and public web pages. '
+            .'This tool cannot access internal services or bypass network restrictions.';
+    }
+
+    /**
+     * Human-readable setup checklist items.
+     *
+     * @return list<string>
+     */
+    public function setupRequirements(): array
+    {
+        return [
+            'Outbound HTTP access available',
+            'SSRF guard enabled (default)',
+        ];
+    }
+
+    /**
+     * Sample inputs for the Try-It console.
+     *
+     * @return list<array{label: string, input: array<string, mixed>, runnable?: bool}>
+     */
+    public function testExamples(): array
+    {
+        return [
+            [
+                'label' => 'Fetch documentation',
+                'input' => ['url' => 'https://laravel.com/docs/12.x/installation', 'extract_mode' => 'markdown'],
+            ],
+            [
+                'label' => 'Fetch as text',
+                'input' => ['url' => 'https://example.com', 'max_chars' => 1000],
+            ],
+        ];
+    }
+
+    /**
+     * Descriptions of health probes this tool supports.
+     *
+     * @return list<string>
+     */
+    public function healthChecks(): array
+    {
+        return [
+            'HTTP client connectivity',
+            'SSRF guard operational',
+        ];
+    }
+
+    /**
+     * Known safety limits users should understand.
+     *
+     * @return list<string>
+     */
+    public function limits(): array
+    {
+        return [
+            '5 MB maximum response size',
+            '50,000 character content cap (configurable)',
+            '30-second timeout',
+            '5 redirect maximum',
+        ];
+    }
+
     protected function handle(array $arguments): ToolResult
     {
         $url = $this->requireString($arguments, 'url', 'URL');

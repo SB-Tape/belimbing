@@ -66,6 +66,11 @@ function makeSimpleTool(string $name, ?string $capability = null): Tool
             return $this->toolName;
         }
 
+        public function displayName(): string
+        {
+            return $this->toolName;
+        }
+
         public function description(): string
         {
             return 'Test tool: '.$this->toolName;
@@ -89,6 +94,36 @@ function makeSimpleTool(string $name, ?string $capability = null): Tool
         public function riskClass(): ToolRiskClass
         {
             return ToolRiskClass::READ_ONLY;
+        }
+
+        public function summary(): string
+        {
+            return 'Test tool: '.$this->toolName;
+        }
+
+        public function explanation(): string
+        {
+            return '';
+        }
+
+        public function setupRequirements(): array
+        {
+            return [];
+        }
+
+        public function testExamples(): array
+        {
+            return [];
+        }
+
+        public function healthChecks(): array
+        {
+            return [];
+        }
+
+        public function limits(): array
+        {
+            return [];
         }
 
         public function execute(array $arguments): ToolResult
@@ -164,6 +199,11 @@ describe('DigitalWorkerToolRegistry', function () {
                 return 'fails';
             }
 
+            public function displayName(): string
+            {
+                return 'Fails';
+            }
+
             public function description(): string
             {
                 return 'Always fails';
@@ -187,6 +227,36 @@ describe('DigitalWorkerToolRegistry', function () {
             public function riskClass(): ToolRiskClass
             {
                 return ToolRiskClass::READ_ONLY;
+            }
+
+            public function summary(): string
+            {
+                return 'Always fails';
+            }
+
+            public function explanation(): string
+            {
+                return '';
+            }
+
+            public function setupRequirements(): array
+            {
+                return [];
+            }
+
+            public function testExamples(): array
+            {
+                return [];
+            }
+
+            public function healthChecks(): array
+            {
+                return [];
+            }
+
+            public function limits(): array
+            {
+                return [];
             }
 
             public function execute(array $arguments): ToolResult

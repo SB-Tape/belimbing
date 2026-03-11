@@ -80,6 +80,86 @@ class DelegateTaskTool extends AbstractTool
         return 'ai.tool_delegate.execute';
     }
 
+    /**
+     * Human-friendly display name for UI surfaces.
+     */
+    public function displayName(): string
+    {
+        return 'Delegate Task';
+    }
+
+    /**
+     * One-sentence plain-language summary for humans.
+     */
+    public function summary(): string
+    {
+        return 'Dispatch work to another Digital Worker.';
+    }
+
+    /**
+     * Longer explanation of what this tool does and does not do.
+     */
+    public function explanation(): string
+    {
+        return 'Queues a task for execution by another Digital Worker. Returns a dispatch ID '
+            .'immediately. The dispatched DW runs asynchronously via Laravel queues. '
+            .'This tool can only delegate to workers the current user supervises.';
+    }
+
+    /**
+     * Human-readable setup checklist items.
+     *
+     * @return list<string>
+     */
+    public function setupRequirements(): array
+    {
+        return [
+            'At least one other Digital Worker configured',
+            'Laravel queue worker running',
+        ];
+    }
+
+    /**
+     * Sample inputs for the Try-It console.
+     *
+     * @return list<array{label: string, input: array<string, mixed>, runnable?: bool}>
+     */
+    public function testExamples(): array
+    {
+        return [
+            [
+                'label' => 'Delegate a task',
+                'input' => ['task' => 'Summarize today\'s activity'],
+            ],
+        ];
+    }
+
+    /**
+     * Descriptions of health probes this tool supports.
+     *
+     * @return list<string>
+     */
+    public function healthChecks(): array
+    {
+        return [
+            'Queue connection active',
+            'Delegable workers available',
+        ];
+    }
+
+    /**
+     * Known safety limits users should understand.
+     *
+     * @return list<string>
+     */
+    public function limits(): array
+    {
+        return [
+            'Default 300-second timeout per delegation',
+            'Scoped to supervised workers',
+        ];
+    }
+
     protected function handle(array $arguments): ToolResult
     {
         $task = $this->requireString($arguments, 'task');

@@ -76,6 +76,92 @@ class SystemInfoTool extends AbstractTool
         return 'ai.tool_system_info.execute';
     }
 
+    /**
+     * Human-friendly display name for UI surfaces.
+     */
+    public function displayName(): string
+    {
+        return 'System Info';
+    }
+
+    /**
+     * One-sentence plain-language summary for humans.
+     */
+    public function summary(): string
+    {
+        return 'Inspect non-sensitive BLB system state for diagnostics.';
+    }
+
+    /**
+     * Longer explanation of what this tool does and does not do.
+     */
+    public function explanation(): string
+    {
+        return 'Reports structured information about the BLB instance: framework versions, active modules, '
+            .'configured AI providers (keys masked), and health status. Useful for diagnostics and system awareness. '
+            .'This tool cannot modify system configuration or expose secrets.';
+    }
+
+    /**
+     * Human-readable setup checklist items.
+     *
+     * @return list<string>
+     */
+    public function setupRequirements(): array
+    {
+        return [
+            'No external configuration required',
+        ];
+    }
+
+    /**
+     * Sample inputs for the Try-It console.
+     *
+     * @return list<array{label: string, input: array<string, mixed>, runnable?: bool}>
+     */
+    public function testExamples(): array
+    {
+        return [
+            [
+                'label' => 'Full overview',
+                'input' => ['section' => 'all'],
+            ],
+            [
+                'label' => 'Health check',
+                'input' => ['section' => 'health'],
+            ],
+            [
+                'label' => 'Active modules',
+                'input' => ['section' => 'modules'],
+            ],
+        ];
+    }
+
+    /**
+     * Descriptions of health probes this tool supports.
+     *
+     * @return list<string>
+     */
+    public function healthChecks(): array
+    {
+        return [
+            'System data providers available',
+        ];
+    }
+
+    /**
+     * Known safety limits users should understand.
+     *
+     * @return list<string>
+     */
+    public function limits(): array
+    {
+        return [
+            'API keys and secrets are always masked',
+            'Read-only — cannot modify system state',
+        ];
+    }
+
     protected function handle(array $arguments): ToolResult
     {
         $section = $this->requireEnum($arguments, 'section', self::SECTIONS, 'all');
