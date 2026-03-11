@@ -40,7 +40,7 @@ class Playground extends Component
 
             $sessions = app(SessionManager::class)->list($employee->id);
 
-            if (count($sessions) > 0) {
+            if (! empty($sessions)) {
                 $this->selectedSessionId = $sessions[0]->id;
             }
         }
@@ -73,7 +73,7 @@ class Playground extends Component
 
         if ($this->selectedSessionId === $sessionId) {
             $sessions = app(SessionManager::class)->list($this->selectedEmployeeId);
-            $this->selectedSessionId = count($sessions) > 0 ? $sessions[0]->id : null;
+            $this->selectedSessionId = empty($sessions) ? null : $sessions[0]->id;
         }
 
         $this->lastRunMeta = null;
@@ -226,58 +226,38 @@ class Playground extends Component
      */
     public function updatedLlmModels(mixed $value, string $key): void
     {
-        if (! str_ends_with($key, '.provider')) {
-            return;
-        }
+        if (str_ends_with($key, '.provider')) {
+            $index = (int) explode('.', $key)[0];
 
-        // Extract index from key like "0.provider"
-        $index = (int) explode('.', $key)[0];
+            if (! isset($this->llmModels[$index])) {
+                return;
+            }
 
-        if (! isset($this->llmModels[$index])) {
-            return;
-        }
+            $providerName = $this->llmModels[$index]['provider'] ?? '';
 
-        $providerName = $this->llmModels[$index]['provider'] ?? '';
+            if ($providerName === '') {
+                $this->llmModels[$index]['model'] = '';
 
-        if ($providerName === '') {
-            $this->llmModels[$index]['model'] = '';
+                return;
+            }
 
-            return;
-        }
+            $companyId = $this->currentCompanyId();
 
-        // Find the provider's default model
-        $user = auth()->user();
-        $companyId = $user?->employee?->company_id ? (int) $user->employee->company_id : null;
+            if ($companyId === null) {
+                return;
+            }
 
-        if ($companyId === null) {
-            return;
-        }
-
-        $provider = \App\Modules\Core\AI\Models\AiProvider::query()
-            ->forCompany($companyId)
-            ->active()
-            ->where('name', $providerName)
-            ->first();
-
-        if (! $provider) {
-            return;
-        }
-
-        $defaultModel = \App\Modules\Core\AI\Models\AiProviderModel::query()
-            ->where('ai_provider_id', $provider->id)
-            ->active()
-            ->default()
-            ->first();
-
-        if (! $defaultModel) {
-            $defaultModel = \App\Modules\Core\AI\Models\AiProviderModel::query()
-                ->where('ai_provider_id', $provider->id)
+            $provider = \App\Modules\Core\AI\Models\AiProvider::query()
+                ->forCompany($companyId)
                 ->active()
-                ->orderBy('model_id')
+                ->where('name', $providerName)
                 ->first();
-        }
 
-        $this->llmModels[$index]['model'] = $defaultModel?->model_id ?? '';
+            if ($provider !== null) {
+                $defaultModel = $this->resolveDefaultProviderModelId($provider->id);
+                $this->llmModels[$index]['model'] = $defaultModel ?? '';
+            }
+        }
     }
 
     public function saveLlmConfig(): void
@@ -329,9 +309,35 @@ class Playground extends Component
 
         $sessions = app(SessionManager::class)->list($employeeId);
 
-        if (count($sessions) > 0) {
+        if (! empty($sessions)) {
             $this->selectedSessionId = $sessions[0]->id;
         }
+    }
+
+    private function currentCompanyId(): ?int
+    {
+        $user = auth()->user();
+
+        return $user?->employee?->company_id ? (int) $user->employee->company_id : null;
+    }
+
+    private function resolveDefaultProviderModelId(int $providerId): ?string
+    {
+        $defaultModel = \App\Modules\Core\AI\Models\AiProviderModel::query()
+            ->where('ai_provider_id', $providerId)
+            ->active()
+            ->default()
+            ->first();
+
+        if ($defaultModel === null) {
+            $defaultModel = \App\Modules\Core\AI\Models\AiProviderModel::query()
+                ->where('ai_provider_id', $providerId)
+                ->active()
+                ->orderBy('model_id')
+                ->first();
+        }
+
+        return $defaultModel?->model_id;
     }
 
     public function render(): \Illuminate\Contracts\View\View

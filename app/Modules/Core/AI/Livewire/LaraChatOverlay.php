@@ -34,7 +34,7 @@ class LaraChatOverlay extends Component
         }
 
         $sessions = app(SessionManager::class)->list(Employee::LARA_ID);
-        if (count($sessions) > 0) {
+        if (! empty($sessions)) {
             $this->selectedSessionId = $sessions[0]->id;
         }
     }
@@ -48,7 +48,7 @@ class LaraChatOverlay extends Component
 
         if ($this->selectedSessionId === null) {
             $sessions = app(SessionManager::class)->list(Employee::LARA_ID);
-            if (count($sessions) > 0) {
+            if (! empty($sessions)) {
                 $this->selectedSessionId = $sessions[0]->id;
             }
         }
@@ -85,7 +85,7 @@ class LaraChatOverlay extends Component
 
         if ($this->selectedSessionId === $sessionId) {
             $sessions = app(SessionManager::class)->list(Employee::LARA_ID);
-            $this->selectedSessionId = count($sessions) > 0 ? $sessions[0]->id : null;
+            $this->selectedSessionId = empty($sessions) ? null : $sessions[0]->id;
         }
 
         $this->lastRunMeta = null;

@@ -84,14 +84,38 @@ class UrlSafetyGuard
 
     private function checkIpRange(string $host): ?string
     {
+        $ipRangeError = null;
+
         if (filter_var($host, FILTER_VALIDATE_IP)) {
-            return $this->validateResolvedIp($host, $host);
+            $ipRangeError = $this->validateResolvedIp($host, $host);
+        } else {
+            $ips = $this->resolveHostIps($host);
+
+            if ($ips === []) {
+                $ipRangeError = "Blocked: unable to resolve hostname {$host}.";
+            } else {
+                foreach ($ips as $ip) {
+                    $ipRangeError = $this->validateResolvedIp($ip, $host);
+
+                    if ($ipRangeError !== null) {
+                        break;
+                    }
+                }
+            }
         }
 
+        return $ipRangeError;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function resolveHostIps(string $host): array
+    {
         $records = @dns_get_record($host, DNS_A + DNS_AAAA);
 
         if ($records === false || $records === []) {
-            return "Blocked: unable to resolve hostname {$host}.";
+            return [];
         }
 
         $ips = [];
@@ -106,19 +130,7 @@ class UrlSafetyGuard
             }
         }
 
-        if ($ips === []) {
-            return "Blocked: unable to resolve hostname {$host}.";
-        }
-
-        foreach ($ips as $ip) {
-            $ipRangeError = $this->validateResolvedIp($ip, $host);
-
-            if ($ipRangeError !== null) {
-                return $ipRangeError;
-            }
-        }
-
-        return null;
+        return $ips;
     }
 
     private function validateResolvedIp(string $ip, string $host): ?string

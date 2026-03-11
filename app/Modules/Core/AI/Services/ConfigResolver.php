@@ -57,6 +57,42 @@ class ConfigResolver
     }
 
     /**
+     * Resolve LLM configurations for a Digital Worker, falling back to the company's default.
+     *
+     * @param  int  $employeeId  Digital Worker employee ID
+     * @return list<array{api_key: string, base_url: string, model: string, max_tokens: int, temperature: float, timeout: int, provider_name: string|null}>
+     */
+    public function resolveWithDefaultFallback(int $employeeId): array
+    {
+        $configs = $this->resolve($employeeId);
+
+        if ($configs !== []) {
+            return $configs;
+        }
+
+        $companyId = $this->findCompanyIdForFallback($employeeId);
+
+        if ($companyId === null) {
+            return [];
+        }
+
+        $default = $this->resolveDefault($companyId);
+
+        return $default === null ? [] : [$default];
+    }
+
+    /**
+     * Resolve the highest-priority config for a Digital Worker, with company-default fallback.
+     *
+     * @param  int  $employeeId  Digital Worker employee ID
+     * @return array{api_key: string, base_url: string, model: string, max_tokens: int, temperature: float, timeout: int, provider_name: string|null}|null
+     */
+    public function resolvePrimaryWithDefaultFallback(int $employeeId): ?array
+    {
+        return $this->resolveWithDefaultFallback($employeeId)[0] ?? null;
+    }
+
+    /**
      * Read the workspace config.json for a Digital Worker.
      *
      * @param  int  $employeeId  Digital Worker employee ID
@@ -212,5 +248,21 @@ class ConfigResolver
             'temperature' => (float) config('ai.llm.temperature', 0.7),
             'timeout' => (int) config('ai.llm.timeout', 60),
         ];
+    }
+
+    /**
+     * Find the employee's company ID while preserving runtime fallback behavior on lookup failures.
+     *
+     * @param  int  $employeeId  Digital Worker employee ID
+     */
+    private function findCompanyIdForFallback(int $employeeId): ?int
+    {
+        try {
+            $employee = Employee::query()->find($employeeId);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        return $employee?->company_id ? (int) $employee->company_id : null;
     }
 }

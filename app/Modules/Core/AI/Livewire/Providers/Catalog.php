@@ -118,23 +118,21 @@ class Catalog extends Component
      */
     public function formatTokenCount(?int $count): string
     {
-        if ($count === null) {
-            return '—';
+        $formatted = '—';
+
+        if ($count !== null) {
+            if ($count >= 1000000) {
+                $value = $count / 1000000;
+                $formatted = rtrim(rtrim(number_format($value, 1), '0'), '.').'M';
+            } elseif ($count >= 1000) {
+                $value = $count / 1000;
+                $formatted = rtrim(rtrim(number_format($value, 1), '0'), '.').'K';
+            } else {
+                $formatted = (string) $count;
+            }
         }
 
-        if ($count >= 1000000) {
-            $value = $count / 1000000;
-
-            return rtrim(rtrim(number_format($value, 1), '0'), '.').'M';
-        }
-
-        if ($count >= 1000) {
-            $value = $count / 1000;
-
-            return rtrim(rtrim(number_format($value, 1), '0'), '.').'K';
-        }
-
-        return (string) $count;
+        return $formatted;
     }
 
     public function render(): \Illuminate\Contracts\View\View
