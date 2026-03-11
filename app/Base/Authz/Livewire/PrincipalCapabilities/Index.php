@@ -6,19 +6,16 @@
 namespace App\Base\Authz\Livewire\PrincipalCapabilities;
 
 use App\Base\Authz\Models\PrincipalCapability;
+use App\Base\Foundation\Livewire\Concerns\ResetsPaginationOnSearch;
 use Livewire\Component;
 use Livewire\WithPagination;
 
 class Index extends Component
 {
+    use ResetsPaginationOnSearch;
     use WithPagination;
 
     public string $search = '';
-
-    public function updatedSearch(): void
-    {
-        $this->resetPage();
-    }
 
     public function render(): \Illuminate\Contracts\View\View
     {

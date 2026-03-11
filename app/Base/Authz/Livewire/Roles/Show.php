@@ -235,11 +235,7 @@ class Show extends Component
     {
         $authUser = auth()->user();
 
-        $authActor = new Actor(
-            type: PrincipalType::HUMAN_USER,
-            id: (int) $authUser->getAuthIdentifier(),
-            companyId: $authUser->company_id !== null ? (int) $authUser->company_id : null,
-        );
+        $authActor = Actor::forUser($authUser);
 
         $authzService = app(AuthorizationService::class);
 

@@ -5,6 +5,7 @@
 
 namespace App\Modules\Core\Geonames\Livewire\Countries;
 
+use App\Base\Foundation\Livewire\Concerns\ResetsPaginationOnSearch;
 use App\Modules\Core\Geonames\Database\Seeders\CountrySeeder;
 use App\Modules\Core\Geonames\Models\Country;
 use Illuminate\Support\Facades\Session;
@@ -13,6 +14,7 @@ use Livewire\WithPagination;
 
 class Index extends Component
 {
+    use ResetsPaginationOnSearch;
     use WithPagination;
 
     public string $search = '';
@@ -31,11 +33,6 @@ class Index extends Component
     private const SORT_DEFAULT_DIR = [
         'population' => 'desc',
     ];
-
-    public function updatedSearch(): void
-    {
-        $this->resetPage();
-    }
 
     public function sort(string $column): void
     {

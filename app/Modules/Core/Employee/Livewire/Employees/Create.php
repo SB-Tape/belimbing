@@ -5,6 +5,7 @@
 
 namespace App\Modules\Core\Employee\Livewire\Employees;
 
+use App\Base\Foundation\Livewire\Concerns\DecodesJsonFields;
 use App\Modules\Core\Company\Models\Company;
 use App\Modules\Core\Company\Models\Department;
 use App\Modules\Core\Employee\Models\Employee;
@@ -16,6 +17,8 @@ use Livewire\Component;
 
 class Create extends Component
 {
+    use DecodesJsonFields;
+
     public ?int $company_id = null;
 
     public ?int $department_id = null;
@@ -94,17 +97,6 @@ class Create extends Component
         ];
 
         return $rules;
-    }
-
-    protected function decodeJsonField(?string $value): ?array
-    {
-        if ($value === null || trim($value) === '') {
-            return null;
-        }
-
-        $decoded = json_decode($value, true);
-
-        return is_array($decoded) ? $decoded : null;
     }
 
     public function render(): \Illuminate\Contracts\View\View

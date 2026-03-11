@@ -5,6 +5,7 @@
 
 namespace App\Modules\Core\Geonames\Livewire\Postcodes;
 
+use App\Base\Foundation\Livewire\Concerns\ResetsPaginationOnSearch;
 use App\Modules\Core\Geonames\Database\Seeders\PostcodeSeeder;
 use App\Modules\Core\Geonames\Models\Country;
 use App\Modules\Core\Geonames\Models\Postcode;
@@ -15,6 +16,7 @@ use Livewire\WithPagination;
 
 class Index extends Component
 {
+    use ResetsPaginationOnSearch;
     use WithPagination;
 
     public string $search = '';
@@ -23,11 +25,6 @@ class Index extends Component
     public array $selectedCountries = [];
 
     public bool $showCountryPicker = false;
-
-    public function updatedSearch(): void
-    {
-        $this->resetPage();
-    }
 
     public function with(): array
     {

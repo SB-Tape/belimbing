@@ -315,11 +315,7 @@ class Show extends Component
     {
         $authUser = auth()->user();
 
-        $authActor = new Actor(
-            type: PrincipalType::HUMAN_USER,
-            id: (int) $authUser->getAuthIdentifier(),
-            companyId: $authUser->company_id !== null ? (int) $authUser->company_id : null,
-        );
+        $authActor = Actor::forUser($authUser);
 
         $canManageRoles = app(AuthorizationService::class)
             ->can($authActor, 'core.user.update')
@@ -361,11 +357,7 @@ class Show extends Component
         $effectiveKeys = [];
 
         if ($this->user->company_id !== null) {
-            $actor = new Actor(
-                type: PrincipalType::HUMAN_USER,
-                id: $this->user->id,
-                companyId: (int) $this->user->company_id,
-            );
+            $actor = Actor::forUser($this->user);
 
             $permissions = EffectivePermissions::forActor($actor);
             $effectiveKeys = $permissions->allowed();

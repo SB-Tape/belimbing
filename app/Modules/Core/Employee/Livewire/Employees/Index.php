@@ -5,6 +5,7 @@
 
 namespace App\Modules\Core\Employee\Livewire\Employees;
 
+use App\Base\Foundation\Livewire\Concerns\ResetsPaginationOnSearch;
 use App\Modules\Core\Employee\Models\Employee;
 use Illuminate\Support\Facades\Session;
 use Livewire\Component;
@@ -12,16 +13,12 @@ use Livewire\WithPagination;
 
 class Index extends Component
 {
+    use ResetsPaginationOnSearch;
     use WithPagination;
 
     public string $search = '';
 
     public string $type_filter = 'all'; // all | human | digital_worker
-
-    public function updatedSearch(): void
-    {
-        $this->resetPage();
-    }
 
     public function updatedTypeFilter(): void
     {

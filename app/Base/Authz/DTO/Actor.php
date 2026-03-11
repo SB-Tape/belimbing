@@ -7,6 +7,8 @@ namespace App\Base\Authz\DTO;
 
 use App\Base\Authz\Enums\AuthorizationReasonCode;
 use App\Base\Authz\Enums\PrincipalType;
+use App\Base\Foundation\Contracts\CompanyScoped;
+use Illuminate\Contracts\Auth\Authenticatable;
 
 final readonly class Actor
 {
@@ -20,6 +22,26 @@ final readonly class Actor
         public ?int $actingForUserId = null,
         public array $attributes = [],
     ) {}
+
+    /**
+     * Create an actor from an authenticated user.
+     *
+     * @param  array<string, mixed>  $attributes
+     */
+    public static function forUser(
+        Authenticatable $user,
+        PrincipalType $type = PrincipalType::HUMAN_USER,
+        ?int $actingForUserId = null,
+        array $attributes = [],
+    ): self {
+        return new self(
+            type: $type,
+            id: (int) $user->getAuthIdentifier(),
+            companyId: self::resolveUserCompanyId($user),
+            actingForUserId: $actingForUserId,
+            attributes: $attributes,
+        );
+    }
 
     public function isHumanUser(): bool
     {
@@ -61,5 +83,20 @@ final readonly class Actor
     public function cacheKey(): string
     {
         return $this->type->value.':'.$this->id.':'.$this->companyId;
+    }
+
+    private static function resolveUserCompanyId(Authenticatable $user): ?int
+    {
+        if ($user instanceof CompanyScoped) {
+            return $user->getCompanyId();
+        }
+
+        if (! method_exists($user, 'getAttribute')) {
+            return null;
+        }
+
+        $companyId = $user->getAttribute('company_id');
+
+        return $companyId !== null ? (int) $companyId : null;
     }
 }

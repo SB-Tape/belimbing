@@ -9,7 +9,6 @@ use App\Base\AI\Contracts\Tool;
 use App\Base\AI\Tools\ToolResult;
 use App\Base\Authz\Contracts\AuthorizationService;
 use App\Base\Authz\DTO\Actor;
-use App\Base\Authz\Enums\PrincipalType;
 use App\Modules\Core\User\Models\User;
 
 /**
@@ -165,13 +164,7 @@ class DigitalWorkerToolRegistry
             return false;
         }
 
-        $companyId = $user->getAttribute('company_id');
-
-        $actor = new Actor(
-            type: PrincipalType::HUMAN_USER,
-            id: (int) $user->getAuthIdentifier(),
-            companyId: $companyId !== null ? (int) $companyId : null,
-        );
+        $actor = Actor::forUser($user);
 
         return $this->authorizationService->can($actor, $capability)->allowed;
     }

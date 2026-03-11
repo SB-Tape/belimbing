@@ -7,8 +7,6 @@ namespace App\Base\Authz\Services;
 
 use App\Base\Authz\Contracts\AuthorizationService;
 use App\Base\Authz\DTO\Actor;
-use App\Base\Authz\Enums\PrincipalType;
-use App\Base\Foundation\Contracts\CompanyScoped;
 use App\Base\Menu\Contracts\MenuAccessChecker;
 use App\Base\Menu\MenuItem;
 use Illuminate\Contracts\Auth\Authenticatable;
@@ -31,13 +29,7 @@ class AuthzMenuAccessChecker implements MenuAccessChecker
             return true;
         }
 
-        $companyId = $user instanceof CompanyScoped ? $user->getCompanyId() : null;
-
-        $actor = new Actor(
-            type: PrincipalType::HUMAN_USER,
-            id: (int) $user->getAuthIdentifier(),
-            companyId: $companyId,
-        );
+        $actor = Actor::forUser($user);
 
         return $this->authorizationService->can($actor, $item->permission)->allowed;
     }

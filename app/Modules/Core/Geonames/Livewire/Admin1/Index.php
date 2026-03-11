@@ -5,6 +5,7 @@
 
 namespace App\Modules\Core\Geonames\Livewire\Admin1;
 
+use App\Base\Foundation\Livewire\Concerns\ResetsPaginationOnSearch;
 use App\Modules\Core\Geonames\Database\Seeders\Admin1Seeder;
 use App\Modules\Core\Geonames\Models\Admin1;
 use App\Modules\Core\Geonames\Models\Country;
@@ -15,16 +16,12 @@ use Livewire\WithPagination;
 
 class Index extends Component
 {
+    use ResetsPaginationOnSearch;
     use WithPagination;
 
     public string $search = '';
 
     public string $filterCountryIso = '';
-
-    public function updatedSearch(): void
-    {
-        $this->resetPage();
-    }
 
     public function updatedFilterCountryIso(): void
     {

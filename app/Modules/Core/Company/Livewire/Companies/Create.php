@@ -5,6 +5,7 @@
 
 namespace App\Modules\Core\Company\Livewire\Companies;
 
+use App\Base\Foundation\Livewire\Concerns\DecodesJsonFields;
 use App\Modules\Core\Company\Models\Company;
 use App\Modules\Core\Company\Models\LegalEntityType;
 use App\Modules\Core\Geonames\Models\Country;
@@ -14,6 +15,8 @@ use Livewire\Component;
 
 class Create extends Component
 {
+    use DecodesJsonFields;
+
     public ?int $parent_id = null;
 
     public string $name = '';
@@ -87,16 +90,5 @@ class Create extends Component
             'scope_activities_json' => ['nullable', 'json'],
             'metadata_json' => ['nullable', 'json'],
         ];
-    }
-
-    protected function decodeJsonField(?string $value): ?array
-    {
-        if ($value === null || trim($value) === '') {
-            return null;
-        }
-
-        $decoded = json_decode($value, true);
-
-        return is_array($decoded) ? $decoded : null;
     }
 }

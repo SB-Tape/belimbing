@@ -5,6 +5,7 @@
 
 namespace App\Base\Queue\Livewire\FailedJobs;
 
+use App\Base\Foundation\Livewire\Concerns\ResetsPaginationOnSearch;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
@@ -12,14 +13,10 @@ use Livewire\WithPagination;
 
 class Index extends Component
 {
+    use ResetsPaginationOnSearch;
     use WithPagination;
 
     public string $search = '';
-
-    public function updatedSearch(): void
-    {
-        $this->resetPage();
-    }
 
     public function retryJob(string $uuid): void
     {

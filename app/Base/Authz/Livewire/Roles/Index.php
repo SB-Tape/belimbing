@@ -7,31 +7,23 @@ namespace App\Base\Authz\Livewire\Roles;
 
 use App\Base\Authz\Contracts\AuthorizationService;
 use App\Base\Authz\DTO\Actor;
-use App\Base\Authz\Enums\PrincipalType;
 use App\Base\Authz\Models\Role;
+use App\Base\Foundation\Livewire\Concerns\ResetsPaginationOnSearch;
 use Livewire\Component;
 use Livewire\WithPagination;
 
 class Index extends Component
 {
+    use ResetsPaginationOnSearch;
     use WithPagination;
 
     public string $search = '';
-
-    public function updatedSearch(): void
-    {
-        $this->resetPage();
-    }
 
     public function render(): \Illuminate\Contracts\View\View
     {
         $authUser = auth()->user();
 
-        $authActor = new Actor(
-            type: PrincipalType::HUMAN_USER,
-            id: (int) $authUser->getAuthIdentifier(),
-            companyId: $authUser->company_id !== null ? (int) $authUser->company_id : null,
-        );
+        $authActor = Actor::forUser($authUser);
 
         $canCreate = app(AuthorizationService::class)
             ->can($authActor, 'admin.role.create')

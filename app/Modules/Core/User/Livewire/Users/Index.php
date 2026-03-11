@@ -7,8 +7,8 @@ namespace App\Modules\Core\User\Livewire\Users;
 
 use App\Base\Authz\Contracts\AuthorizationService;
 use App\Base\Authz\DTO\Actor;
-use App\Base\Authz\Enums\PrincipalType;
 use App\Base\Authz\Exceptions\AuthorizationDeniedException;
+use App\Base\Foundation\Livewire\Concerns\ResetsPaginationOnSearch;
 use App\Modules\Core\User\Models\User;
 use Illuminate\Support\Facades\Session;
 use Livewire\Component;
@@ -16,24 +16,16 @@ use Livewire\WithPagination;
 
 class Index extends Component
 {
+    use ResetsPaginationOnSearch;
     use WithPagination;
 
     public string $search = '';
-
-    public function updatedSearch(): void
-    {
-        $this->resetPage();
-    }
 
     public function delete(int $userId): void
     {
         $authUser = auth()->user();
 
-        $actor = new Actor(
-            type: PrincipalType::HUMAN_USER,
-            id: (int) $authUser->getAuthIdentifier(),
-            companyId: $authUser->company_id !== null ? (int) $authUser->company_id : null,
-        );
+        $actor = Actor::forUser($authUser);
 
         try {
             app(AuthorizationService::class)->authorize($actor, 'core.user.delete');
@@ -59,11 +51,7 @@ class Index extends Component
     {
         $authUser = auth()->user();
 
-        $actor = new Actor(
-            type: PrincipalType::HUMAN_USER,
-            id: (int) $authUser->getAuthIdentifier(),
-            companyId: $authUser->company_id !== null ? (int) $authUser->company_id : null,
-        );
+        $actor = Actor::forUser($authUser);
 
         $canDelete = app(AuthorizationService::class)
             ->can($actor, 'core.user.delete')

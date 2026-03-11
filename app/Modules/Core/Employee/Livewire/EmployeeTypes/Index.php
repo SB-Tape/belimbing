@@ -7,21 +7,17 @@ namespace App\Modules\Core\Employee\Livewire\EmployeeTypes;
 
 use App\Base\Authz\Contracts\AuthorizationService;
 use App\Base\Authz\DTO\Actor;
-use App\Base\Authz\Enums\PrincipalType;
+use App\Base\Foundation\Livewire\Concerns\ResetsPaginationOnSearch;
 use App\Modules\Core\Employee\Models\EmployeeType;
 use Livewire\Component;
 use Livewire\WithPagination;
 
 class Index extends Component
 {
+    use ResetsPaginationOnSearch;
     use WithPagination;
 
     public string $search = '';
-
-    public function updatedSearch(): void
-    {
-        $this->resetPage();
-    }
 
     public function delete(int $id): void
     {
@@ -41,11 +37,7 @@ class Index extends Component
     public function render(): \Illuminate\Contracts\View\View
     {
         $authUser = auth()->user();
-        $authActor = new Actor(
-            type: PrincipalType::HUMAN_USER,
-            id: (int) $authUser->getAuthIdentifier(),
-            companyId: $authUser->company_id !== null ? (int) $authUser->company_id : null,
-        );
+        $authActor = Actor::forUser($authUser);
         $canCreate = app(AuthorizationService::class)->can($authActor, 'core.employee_type.create')->allowed;
 
         return view('livewire.admin.employee-types.index', [

@@ -28,13 +28,7 @@ class AuthorizeCapability
             abort(401);
         }
 
-        $companyId = $user->getAttribute('company_id');
-
-        $actor = new Actor(
-            type: $this->resolvePrincipalType($user),
-            id: (int) $user->getAuthIdentifier(),
-            companyId: $companyId !== null ? (int) $companyId : null,
-        );
+        $actor = Actor::forUser($user, $this->resolvePrincipalType($user));
 
         try {
             $this->authorizationService->authorize($actor, $capability, context: [

@@ -6,21 +6,18 @@
 namespace App\Base\Authz\Livewire\DecisionLogs;
 
 use App\Base\Authz\Models\DecisionLog;
+use App\Base\Foundation\Livewire\Concerns\ResetsPaginationOnSearch;
 use Livewire\Component;
 use Livewire\WithPagination;
 
 class Index extends Component
 {
+    use ResetsPaginationOnSearch;
     use WithPagination;
 
     public string $search = '';
 
     public string $filterResult = '';
-
-    public function updatedSearch(): void
-    {
-        $this->resetPage();
-    }
 
     public function updatedFilterResult(): void
     {

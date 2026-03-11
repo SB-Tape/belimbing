@@ -5,20 +5,17 @@
 
 namespace App\Base\Queue\Livewire\JobBatches;
 
+use App\Base\Foundation\Livewire\Concerns\ResetsPaginationOnSearch;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 use Livewire\WithPagination;
 
 class Index extends Component
 {
+    use ResetsPaginationOnSearch;
     use WithPagination;
 
     public string $search = '';
-
-    public function updatedSearch(): void
-    {
-        $this->resetPage();
-    }
 
     public function cancelBatch(string $id): void
     {

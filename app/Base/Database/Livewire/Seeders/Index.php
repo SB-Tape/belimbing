@@ -6,19 +6,16 @@
 namespace App\Base\Database\Livewire\Seeders;
 
 use App\Base\Database\Models\SeederRegistry;
+use App\Base\Foundation\Livewire\Concerns\ResetsPaginationOnSearch;
 use Livewire\Component;
 use Livewire\WithPagination;
 
 class Index extends Component
 {
+    use ResetsPaginationOnSearch;
     use WithPagination;
 
     public string $search = '';
-
-    public function updatedSearch(): void
-    {
-        $this->resetPage();
-    }
 
     /**
      * Extract the short class name (basename) from a fully qualified class name.

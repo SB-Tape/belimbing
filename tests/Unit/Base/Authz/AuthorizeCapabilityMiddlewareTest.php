@@ -7,6 +7,7 @@ use App\Base\Authz\DTO\ResourceContext;
 use App\Base\Authz\Enums\AuthorizationReasonCode;
 use App\Base\Authz\Exceptions\AuthorizationDeniedException;
 use App\Base\Authz\Middleware\AuthorizeCapability;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Route;
@@ -35,11 +36,38 @@ it('allows request when capability is authorized', function (): void {
     $middleware = new AuthorizeCapability($service);
 
     $request = Request::create('/admin/users', 'GET');
-    $request->setUserResolver(fn () => new class
+    $request->setUserResolver(fn () => new class implements Authenticatable
     {
+        public function getAuthIdentifierName(): string
+        {
+            return 'id';
+        }
+
         public function getAuthIdentifier(): int
         {
             return 1;
+        }
+
+        public function getAuthPassword(): string
+        {
+            return '';
+        }
+
+        public function getAuthPasswordName(): string
+        {
+            return 'password';
+        }
+
+        public function getRememberToken(): ?string
+        {
+            return null;
+        }
+
+        public function setRememberToken($value): void {}
+
+        public function getRememberTokenName(): string
+        {
+            return 'remember_token';
         }
 
         public function getAttribute(string $key): mixed
@@ -78,11 +106,38 @@ it('aborts with 403 when capability is denied', function (): void {
     $middleware = new AuthorizeCapability($service);
 
     $request = Request::create('/admin/users', 'GET');
-    $request->setUserResolver(fn () => new class
+    $request->setUserResolver(fn () => new class implements Authenticatable
     {
+        public function getAuthIdentifierName(): string
+        {
+            return 'id';
+        }
+
         public function getAuthIdentifier(): int
         {
             return 1;
+        }
+
+        public function getAuthPassword(): string
+        {
+            return '';
+        }
+
+        public function getAuthPasswordName(): string
+        {
+            return 'password';
+        }
+
+        public function getRememberToken(): ?string
+        {
+            return null;
+        }
+
+        public function setRememberToken($value): void {}
+
+        public function getRememberTokenName(): string
+        {
+            return 'remember_token';
         }
 
         public function getAttribute(string $key): mixed
