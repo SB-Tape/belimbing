@@ -5,13 +5,21 @@
 
 namespace App\Base\Queue\Livewire\JobBatches;
 
-use App\Base\Foundation\Livewire\SearchablePaginatedList;
-use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
-use Illuminate\Database\Query\Builder as QueryBuilder;
+use App\Base\Foundation\Livewire\TableSearchablePaginatedList;
 use Illuminate\Support\Facades\DB;
 
-class Index extends SearchablePaginatedList
+class Index extends TableSearchablePaginatedList
 {
+    protected const string TABLE = 'job_batches';
+
+    protected const string VIEW_NAME = 'livewire.admin.system.job-batches.index';
+
+    protected const string VIEW_DATA_KEY = 'batches';
+
+    protected const string SORT_COLUMN = 'created_at';
+
+    protected const array SEARCH_COLUMNS = ['name', 'id'];
+
     public function cancelBatch(string $id): void
     {
         DB::table('job_batches')
@@ -26,33 +34,5 @@ class Index extends SearchablePaginatedList
         DB::table('job_batches')
             ->whereNotNull('finished_at')
             ->delete();
-    }
-
-    protected function query(): EloquentBuilder|QueryBuilder
-    {
-        return DB::table('job_batches');
-    }
-
-    protected function viewName(): string
-    {
-        return 'livewire.admin.system.job-batches.index';
-    }
-
-    protected function viewDataKey(): string
-    {
-        return 'batches';
-    }
-
-    protected function applySearch(EloquentBuilder|QueryBuilder $query, string $search): void
-    {
-        $query->where(function ($builder) use ($search): void {
-            $builder->where('name', 'like', '%'.$search.'%')
-                ->orWhere('id', 'like', '%'.$search.'%');
-        });
-    }
-
-    protected function sortQuery(EloquentBuilder|QueryBuilder $query): void
-    {
-        $query->orderByDesc('created_at');
     }
 }
