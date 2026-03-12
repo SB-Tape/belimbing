@@ -34,7 +34,7 @@ class AddressFactory extends Factory
             'line2' => fake()->optional()->secondaryAddress(),
             'locality' => fake()->city(),
             'postcode' => fake()->postcode(),
-            'countryIso' => fake()->countryCode(),
+            'country_iso' => fake()->countryCode(),
             'verificationStatus' => 'unverified',
             'source' => 'manual',
         ];

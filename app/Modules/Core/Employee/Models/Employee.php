@@ -156,7 +156,7 @@ class Employee extends Model
     {
         return $this->morphToMany(Address::class, 'addressable', 'addressables')
             ->using(Addressable::class)
-            ->withPivot('kind', 'isPrimary', 'priority', 'valid_from', 'valid_to')
+            ->withPivot('kind', 'is_primary', 'priority', 'valid_from', 'valid_to')
             ->withTimestamps();
     }
 

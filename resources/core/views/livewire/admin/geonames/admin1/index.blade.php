@@ -53,7 +53,7 @@
                         @forelse($admin1s as $admin1)
                             <tr wire:key="admin1-{{ $admin1->id }}" class="hover:bg-surface-subtle/50 transition-colors">
                                 <td class="px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted">
-                                    <span class="font-mono text-xs text-muted">{{ $admin1->countryIso }}</span>
+                                    <span class="font-mono text-xs text-muted">{{ $admin1->country_iso }}</span>
                                     <span class="ml-1">{{ $admin1->country_name }}</span>
                                 </td>
                                 <td class="px-table-cell-x py-table-cell-y whitespace-nowrap text-sm font-mono text-ink">{{ $admin1->code }}</td>

@@ -41,7 +41,7 @@ class PostcodeSeeder extends Seeder
         if ($countryCodes === null) {
             $countryCodes = DB::table('geonames_postcodes')
                 ->distinct()
-                ->pluck('countryIso')
+                ->pluck('country_iso')
                 ->all();
         }
 
@@ -118,7 +118,7 @@ class PostcodeSeeder extends Seeder
 
         DB::transaction(function () use ($iso, $records): void {
             DB::table('geonames_postcodes')
-                ->where('countryIso', $iso)
+                ->where('country_iso', $iso)
                 ->delete();
 
             foreach (array_chunk($records, 500) as $chunk) {
@@ -251,7 +251,7 @@ class PostcodeSeeder extends Seeder
             }
 
             $records[] = [
-                'countryIso' => $parts[0],
+                'country_iso' => $parts[0],
                 'postcode' => $parts[1] ?? null,
                 'place_name' => $parts[2] ?? null,
                 'admin1Code' => $parts[4] ?? null,

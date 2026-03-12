@@ -174,7 +174,7 @@ class DevCompanyAddressSeeder extends DevSeeder
                 'line2' => 'Jalan Sultan Ismail',
                 'locality' => 'Kuala Lumpur',
                 'postcode' => '50250',
-                'countryIso' => 'MY',
+                'country_iso' => 'MY',
                 'admin1Code' => 'MY.14',
                 'verificationStatus' => 'verified',
             ],
@@ -185,7 +185,7 @@ class DevCompanyAddressSeeder extends DevSeeder
                 'line2' => 'Jalan Industri 3',
                 'locality' => 'Nilai',
                 'postcode' => '71800',
-                'countryIso' => 'MY',
+                'country_iso' => 'MY',
                 'admin1Code' => 'MY.05',
                 'verificationStatus' => 'verified',
             ],
@@ -196,7 +196,7 @@ class DevCompanyAddressSeeder extends DevSeeder
                 'line2' => '#05-02 Marina Bay Financial Centre',
                 'locality' => 'Singapore',
                 'postcode' => '018981',
-                'countryIso' => 'SG',
+                'country_iso' => 'SG',
                 'verificationStatus' => 'verified',
             ],
             [
@@ -205,7 +205,7 @@ class DevCompanyAddressSeeder extends DevSeeder
                 'line1' => 'Lot 3456, Demak Laut Industrial Park',
                 'locality' => 'Kuching',
                 'postcode' => '93050',
-                'countryIso' => 'MY',
+                'country_iso' => 'MY',
                 'admin1Code' => 'MY.13',
                 'verificationStatus' => 'verified',
             ],
@@ -214,7 +214,7 @@ class DevCompanyAddressSeeder extends DevSeeder
                 'line1' => 'PO Box 1234',
                 'locality' => 'Petaling Jaya',
                 'postcode' => '46000',
-                'countryIso' => 'MY',
+                'country_iso' => 'MY',
                 'admin1Code' => 'MY.12',
                 'verificationStatus' => 'unverified',
             ],
@@ -225,7 +225,7 @@ class DevCompanyAddressSeeder extends DevSeeder
                 'line2' => 'Jl. Jend. Sudirman Kav. 1',
                 'locality' => 'Jakarta Pusat',
                 'postcode' => '10220',
-                'countryIso' => 'ID',
+                'country_iso' => 'ID',
                 'verificationStatus' => 'suggested',
             ],
             [
@@ -233,7 +233,7 @@ class DevCompanyAddressSeeder extends DevSeeder
                 'line1' => '23A, Lebuh Pantai',
                 'locality' => 'George Town',
                 'postcode' => '10300',
-                'countryIso' => 'MY',
+                'country_iso' => 'MY',
                 'admin1Code' => 'MY.07',
                 'verificationStatus' => 'unverified',
             ],
@@ -244,7 +244,7 @@ class DevCompanyAddressSeeder extends DevSeeder
                 'line2' => 'Kawasan Perindustrian Tanjung Langsat',
                 'locality' => 'Pasir Gudang',
                 'postcode' => '81700',
-                'countryIso' => 'MY',
+                'country_iso' => 'MY',
                 'admin1Code' => 'MY.01',
                 'verificationStatus' => 'verified',
             ],
@@ -256,7 +256,7 @@ class DevCompanyAddressSeeder extends DevSeeder
             $addresses[] = Address::query()->firstOrCreate(
                 [
                     'label' => $definition['label'],
-                    'countryIso' => $definition['countryIso'],
+                    'country_iso' => $definition['country_iso'],
                 ],
                 $definition
             );
@@ -290,7 +290,7 @@ class DevCompanyAddressSeeder extends DevSeeder
             [6, 5, ['headquarters'], true, 0, '2022-11-01', null],
         ];
 
-        foreach ($links as [$companyIdx, $addressIdx, $kind, $isPrimary, $priority, $validFrom, $validTo]) {
+        foreach ($links as [$companyIdx, $addressIdx, $kind, $is_primary, $priority, $validFrom, $validTo]) {
             if (! isset($companies[$companyIdx], $addresses[$addressIdx])) {
                 continue;
             }
@@ -305,7 +305,7 @@ class DevCompanyAddressSeeder extends DevSeeder
             if (! $exists) {
                 $company->addresses()->attach($address->id, [
                     'kind' => $kind,
-                    'isPrimary' => $isPrimary,
+                    'is_primary' => $is_primary,
                     'priority' => $priority,
                     'valid_from' => $validFrom,
                     'valid_to' => $validTo,

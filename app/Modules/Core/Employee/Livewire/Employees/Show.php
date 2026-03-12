@@ -138,7 +138,7 @@ class Show extends Component
 
         $this->employee->addresses()->attach($this->attachAddressId, [
             'kind' => $this->attachKind,
-            'isPrimary' => $this->attachIsPrimary,
+            'is_primary' => $this->attachIsPrimary,
             'priority' => $this->attachPriority,
             'valid_from' => now()->toDateString(),
         ]);
@@ -158,12 +158,12 @@ class Show extends Component
 
     public function updateAddressPivot(int $addressId, string $field, mixed $value): void
     {
-        $allowed = ['isPrimary', 'priority'];
+        $allowed = ['is_primary', 'priority'];
         if (! in_array($field, $allowed)) {
             return;
         }
 
-        if ($field === 'isPrimary') {
+        if ($field === 'is_primary') {
             $value = (bool) $value;
         } elseif ($field === 'priority') {
             $value = (int) $value;
@@ -210,7 +210,7 @@ class Show extends Component
             'availableAddresses' => Address::query()
                 ->whereNotIn('id', $this->employee->addresses->pluck('id')->toArray())
                 ->orderBy('label')
-                ->get(['id', 'label', 'line1', 'locality', 'countryIso']),
+                ->get(['id', 'label', 'line1', 'locality', 'country_iso']),
         ]);
     }
 }

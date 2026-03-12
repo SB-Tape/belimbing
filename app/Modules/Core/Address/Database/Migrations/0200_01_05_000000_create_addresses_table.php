@@ -29,7 +29,7 @@ return new class extends Migration
             $table->string('postcode')->nullable();
 
             // Geonames v1 normalization references (optional)
-            $table->string('countryIso', 2)->nullable()->index();
+            $table->string('country_iso', 2)->nullable()->index();
             $table->string('admin1Code', 20)->nullable()->index();
 
             // AI/import provenance
@@ -53,7 +53,7 @@ return new class extends Migration
             $table->softDeletes();
 
             $table
-                ->foreign('countryIso')
+                ->foreign('country_iso')
                 ->references('iso')
                 ->on('geonames_countries')
                 ->nullOnDelete();

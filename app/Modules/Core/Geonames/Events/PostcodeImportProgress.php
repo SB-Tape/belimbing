@@ -19,7 +19,7 @@ class PostcodeImportProgress implements ShouldBroadcastNow
         public string $message,
         public int $current,
         public int $total,
-        public ?string $countryIso = null,
+        public ?string $country_iso = null,
     ) {}
 
     /**

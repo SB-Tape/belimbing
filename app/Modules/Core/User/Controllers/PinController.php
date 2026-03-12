@@ -5,6 +5,7 @@
 
 namespace App\Modules\Core\User\Controllers;
 
+use App\Base\Menu\Services\PinMetadataNormalizer;
 use App\Modules\Core\User\Models\UserPin;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -19,61 +20,101 @@ use Illuminate\Http\Request;
  */
 class PinController
 {
+    public function __construct(
+        private readonly PinMetadataNormalizer $pinMetadataNormalizer,
+    ) {}
+
     /**
      * Toggle a pin for the current user.
      *
-     * If the item is pinned (matched by type + pinnable_id), it is unpinned.
-     * If not pinned, it is added at the end of the pinned list.
+     * Pins are unique by navigation destination, not by source type. If a menu item
+     * pin and a page pin resolve to the same normalized URL, they are treated as the
+     * same pinned destination.
      */
     public function toggle(Request $request): JsonResponse
     {
         $request->validate([
-            'type' => ['required', 'string', 'in:menu_item,page'],
-            'pinnable_id' => ['required', 'string', 'max:150'],
-            'label' => ['required', 'string', 'max:150'],
-            'url' => ['required', 'string', 'max:500'],
-            'icon' => ['nullable', 'string', 'max:100'],
+            "type" => ["required", "string", "in:menu_item,page"],
+            "pinnable_id" => ["required", "string", "max:150"],
+            "label" => ["required", "string", "max:150"],
+            "url" => ["required", "string", "max:500"],
+            "icon" => ["nullable", "string", "max:100"],
         ]);
 
         $user = $request->user();
-        $type = $request->input('type');
-        $pinnableId = $request->input('pinnable_id');
+        $type = $request->input("type");
+        $pinnableId = $request->input("pinnable_id");
+        $normalizedUrl = $this->pinMetadataNormalizer->normalizeUrl(
+            $request->input("url"),
+        );
 
         $existing = UserPin::query()
-            ->where('user_id', $user->id)
-            ->where('type', $type)
-            ->where('pinnable_id', $pinnableId)
+            ->where("user_id", $user->id)
+            ->where("type", $type)
+            ->where("pinnable_id", $pinnableId)
             ->first();
 
         if ($existing) {
             $existing->delete();
-            $user->unsetRelation('pins');
+            $user->unsetRelation("pins");
 
             return response()->json([
-                'pinned' => false,
-                'pins' => $user->getPins(),
+                "pinned" => false,
+                "pins" => $user->getPins(),
             ]);
         }
 
-        $maxOrder = UserPin::query()
-            ->where('user_id', $user->id)
-            ->max('sort_order') ?? -1;
+        $existingByUrl = UserPin::query()
+            ->where("user_id", $user->id)
+            ->get()
+            ->first(
+                fn(
+                    UserPin $pin,
+                ): bool => $this->pinMetadataNormalizer->normalizeUrl(
+                    $pin->url,
+                ) === $normalizedUrl,
+            );
+
+        if ($existingByUrl !== null) {
+            $existingByUrl
+                ->fill([
+                    "label" => $this->pinMetadataNormalizer->normalizeLabel(
+                        $request->input("label"),
+                    ),
+                    "url" => $request->input("url"),
+                    "icon" => $existingByUrl->icon ?? $request->input("icon"),
+                ])
+                ->save();
+
+            $user->unsetRelation("pins");
+
+            return response()->json([
+                "pinned" => true,
+                "pins" => $user->getPins(),
+            ]);
+        }
+
+        $maxOrder =
+            UserPin::query()->where("user_id", $user->id)->max("sort_order") ??
+            -1;
 
         UserPin::query()->create([
-            'user_id' => $user->id,
-            'type' => $type,
-            'pinnable_id' => $pinnableId,
-            'label' => $this->dropTopLevelSegment($request->input('label')),
-            'url' => $request->input('url'),
-            'icon' => $request->input('icon'),
-            'sort_order' => $maxOrder + 1,
+            "user_id" => $user->id,
+            "type" => $type,
+            "pinnable_id" => $pinnableId,
+            "label" => $this->pinMetadataNormalizer->normalizeLabel(
+                $request->input("label"),
+            ),
+            "url" => $request->input("url"),
+            "icon" => $request->input("icon"),
+            "sort_order" => $maxOrder + 1,
         ]);
 
-        $user->unsetRelation('pins');
+        $user->unsetRelation("pins");
 
         return response()->json([
-            'pinned' => true,
-            'pins' => $user->getPins(),
+            "pinned" => true,
+            "pins" => $user->getPins(),
         ]);
     }
 
@@ -86,40 +127,24 @@ class PinController
     public function reorder(Request $request): JsonResponse
     {
         $request->validate([
-            'pins' => ['required', 'array', 'min:1'],
-            'pins.*.type' => ['required', 'string', 'in:menu_item,page'],
-            'pins.*.pinnable_id' => ['required', 'string', 'max:150'],
+            "pins" => ["required", "array", "min:1"],
+            "pins.*.type" => ["required", "string", "in:menu_item,page"],
+            "pins.*.pinnable_id" => ["required", "string", "max:150"],
         ]);
 
         $user = $request->user();
-        $pins = $request->input('pins');
+        $pins = $request->input("pins");
 
         foreach ($pins as $index => $pin) {
             UserPin::query()
-                ->where('user_id', $user->id)
-                ->where('type', $pin['type'])
-                ->where('pinnable_id', $pin['pinnable_id'])
-                ->update(['sort_order' => $index]);
+                ->where("user_id", $user->id)
+                ->where("type", $pin["type"])
+                ->where("pinnable_id", $pin["pinnable_id"])
+                ->update(["sort_order" => $index]);
         }
 
         return response()->json([
-            'pins' => $user->getPins(),
+            "pins" => $user->getPins(),
         ]);
-    }
-
-    /**
-     * Drop the level-0 (top-level) segment from the pin label before persisting,
-     * so pins show e.g. "Employees/Kiat" instead of "Administration/Employees/Kiat".
-     * Callers must use "/" as path separator (no spaces).
-     */
-    private function dropTopLevelSegment(string $label): string
-    {
-        $firstSlash = strpos($label, '/');
-
-        if ($firstSlash !== false) {
-            return substr($label, $firstSlash + 1);
-        }
-
-        return $label;
     }
 }

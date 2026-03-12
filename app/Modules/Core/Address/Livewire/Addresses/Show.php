@@ -19,13 +19,13 @@ class Show extends AbstractAddressForm
     public function mount(Address $address): void
     {
         $this->address = $address->load(['country', 'admin1']);
-        $this->countryIso = $address->countryIso;
+        $this->country_iso = $address->country_iso;
         $this->admin1Code = $address->admin1Code;
         $this->postcode = $address->postcode;
         $this->locality = $address->locality;
 
-        if ($this->countryIso) {
-            $this->admin1Options = $this->loadAdmin1ForCountry($this->countryIso);
+        if ($this->country_iso) {
+            $this->admin1Options = $this->loadAdmin1ForCountry($this->country_iso);
         }
     }
 
@@ -37,14 +37,14 @@ class Show extends AbstractAddressForm
     public function saveCountry(string $iso): void
     {
         if ($iso === '') {
-            $this->address->countryIso = null;
+            $this->address->country_iso = null;
         } else {
             $validated = validator(
-                ['countryIso' => $iso],
-                ['countryIso' => ['string', 'size:2']]
+                ['country_iso' => $iso],
+                ['country_iso' => ['string', 'size:2']]
             )->validate();
 
-            $this->address->countryIso = strtoupper($validated['countryIso']);
+            $this->address->country_iso = strtoupper($validated['country_iso']);
         }
 
         $this->address->save();
@@ -108,7 +108,7 @@ class Show extends AbstractAddressForm
                 'model' => $model,
                 'type' => class_basename($row->addressable_type),
                 'kind' => json_decode($row->kind, true) ?? [],
-                'isPrimary' => $row->isPrimary,
+                'is_primary' => $row->is_primary,
                 'priority' => $row->priority,
                 'valid_from' => $row->valid_from,
                 'valid_to' => $row->valid_to,

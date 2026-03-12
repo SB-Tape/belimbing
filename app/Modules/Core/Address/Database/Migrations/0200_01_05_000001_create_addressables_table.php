@@ -26,7 +26,7 @@ return new class extends Migration
 
             // Relationship metadata (role + ordering + lifecycle)
             $table->json('kind')->default('[]');
-            $table->boolean('isPrimary')->default(false)->index();
+            $table->boolean('is_primary')->default(false)->index();
             $table->unsignedSmallInteger('priority')->default(0);
             $table->date('valid_from')->nullable();
             $table->date('valid_to')->nullable();

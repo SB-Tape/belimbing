@@ -34,12 +34,12 @@ trait HasAddressGeoLookups
      *
      * Returns an array suitable for the x-ui.combobox component.
      *
-     * @param  string  $countryIso  Two-letter ISO country code
+     * @param  string  $country_iso  Two-letter ISO country code
      * @return array<int, array{value: string, label: string}>
      */
-    public function loadAdmin1ForCountry(string $countryIso): array
+    public function loadAdmin1ForCountry(string $country_iso): array
     {
-        $iso = strtoupper($countryIso);
+        $iso = strtoupper($country_iso);
 
         $options = Admin1::query()
             ->forCountry($iso)
@@ -56,7 +56,7 @@ trait HasAddressGeoLookups
         // Fallback when Admin1 seed data is missing: derive options from imported postcodes.
         // Only include codes that exist in geonames_admin1 to avoid FK violations.
         return Postcode::query()
-            ->where('countryIso', $iso)
+            ->where('country_iso', $iso)
             ->whereNotNull('admin1Code')
             ->select('admin1Code')
             ->distinct()
@@ -84,15 +84,15 @@ trait HasAddressGeoLookups
      * Returns an array suitable for the x-ui.combobox component.
      * Limited to 1000 postcodes per country for performance.
      *
-     * @param  string  $countryIso  Two-letter ISO country code
+     * @param  string  $country_iso  Two-letter ISO country code
      * @return array<int, array{value: string, label: string}>
      */
-    public function loadPostcodesForCountry(string $countryIso): array
+    public function loadPostcodesForCountry(string $country_iso): array
     {
-        $iso = strtoupper($countryIso);
+        $iso = strtoupper($country_iso);
 
         return Postcode::query()
-            ->where('countryIso', $iso)
+            ->where('country_iso', $iso)
             ->select('postcode')
             ->distinct()
             ->orderBy('postcode')
@@ -111,17 +111,17 @@ trait HasAddressGeoLookups
      *
      * Returns matching postcodes. No limit on total postcodes per country.
      *
-     * @param  string  $countryIso  Two-letter ISO country code
+     * @param  string  $country_iso  Two-letter ISO country code
      * @param  string  $query  Search query (empty returns first postcodes up to limit)
      * @return array<int, array{value: string, label: string}>
      */
-    public function searchPostcodesInCountry(string $countryIso, string $query): array
+    public function searchPostcodesInCountry(string $country_iso, string $query): array
     {
-        $iso = strtoupper($countryIso);
+        $iso = strtoupper($country_iso);
         $q = trim($query);
 
         $query = Postcode::query()
-            ->where('countryIso', $iso)
+            ->where('country_iso', $iso)
             ->select('postcode')
             ->distinct();
 
@@ -145,13 +145,13 @@ trait HasAddressGeoLookups
     /**
      * Look up a postcode and return the matching locality and admin1 code.
      *
-     * @param  string  $countryIso  Two-letter ISO country code
+     * @param  string  $country_iso  Two-letter ISO country code
      * @param  string  $postcode  Postal code to look up
      * @return array{locality: string, admin1Code: string|null}|null
      */
-    public function lookupPostcode(string $countryIso, string $postcode): ?array
+    public function lookupPostcode(string $country_iso, string $postcode): ?array
     {
-        $result = $this->lookupLocalitiesByPostcode($countryIso, $postcode);
+        $result = $this->lookupLocalitiesByPostcode($country_iso, $postcode);
 
         if (! $result || empty($result['localities'])) {
             return null;
@@ -166,16 +166,16 @@ trait HasAddressGeoLookups
     /**
      * Look up a postcode and return all matching localities (for editable combobox).
      *
-     * @param  string  $countryIso  Two-letter ISO country code
+     * @param  string  $country_iso  Two-letter ISO country code
      * @param  string  $postcode  Postal code to look up
      * @return array{localities: array<int, array{value: string, label: string}>, admin1Code: string|null}|null
      */
-    public function lookupLocalitiesByPostcode(string $countryIso, string $postcode): ?array
+    public function lookupLocalitiesByPostcode(string $country_iso, string $postcode): ?array
     {
-        $iso = strtoupper($countryIso);
+        $iso = strtoupper($country_iso);
 
         $results = Postcode::query()
-            ->where('countryIso', $iso)
+            ->where('country_iso', $iso)
             ->where('postcode', $postcode)
             ->get(['place_name', 'admin1Code']);
 
@@ -219,23 +219,23 @@ trait HasAddressGeoLookups
     /**
      * Dispatch a postcode import job if data is missing for the country.
      *
-     * @param  string  $countryIso  Two-letter ISO country code (uppercase)
+     * @param  string  $country_iso  Two-letter ISO country code (uppercase)
      */
-    protected function ensurePostcodesImported(string $countryIso): void
+    protected function ensurePostcodesImported(string $country_iso): void
     {
-        if (Postcode::query()->where('countryIso', $countryIso)->exists()) {
+        if (Postcode::query()->where('country_iso', $country_iso)->exists()) {
             return;
         }
 
-        ImportPostcodes::dispatch([$countryIso])
+        ImportPostcodes::dispatch([$country_iso])
             ->onQueue(ImportPostcodes::QUEUE);
         ImportPostcodes::runWorkerOnce();
 
-        if (Postcode::query()->where('countryIso', $countryIso)->exists()) {
+        if (Postcode::query()->where('country_iso', $country_iso)->exists()) {
             return;
         }
 
         // Fallback path for environments where queue worker-once does not execute.
-        ImportPostcodes::dispatchSync([$countryIso]);
+        ImportPostcodes::dispatchSync([$country_iso]);
     }
 }

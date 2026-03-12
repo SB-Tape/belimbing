@@ -112,7 +112,7 @@
                 </div>
                 <div>
                     <x-ui.combobox
-                        wire:model.live="countryIso"
+                        wire:model.live="country_iso"
                         label="{{ __('Country') }}"
                         placeholder="{{ __('Search country...') }}"
                         :options="$countryOptions"
@@ -121,7 +121,7 @@
                 <div>
                     <x-ui.combobox
                         wire:model.live="admin1Code"
-                        wire:key="show-admin1-{{ $countryIso ?? 'none' }}"
+                        wire:key="show-admin1-{{ $country_iso ?? 'none' }}"
                         label="{{ __('State / Province') }}"
                         :hint="$admin1IsAuto ? __('(from postcode)') : null"
                         placeholder="{{ __('Search state...') }}"
@@ -131,12 +131,12 @@
                 <div>
                     <x-ui.combobox
                         wire:model.live="postcode"
-                        wire:key="show-postcode-{{ $countryIso ?? 'none' }}"
+                        wire:key="show-postcode-{{ $country_iso ?? 'none' }}"
                         label="{{ __('Postcode') }}"
                         placeholder="{{ __('Search postcode...') }}"
                         :options="$postcodeOptions"
                         :editable="true"
-                        search-url="{{ route('admin.addresses.postcodes.search') }}?country={{ $countryIso ?? '' }}"
+                        search-url="{{ route('admin.addresses.postcodes.search') }}?country={{ $country_iso ?? '' }}"
                     />
                 </div>
                 <div>
@@ -282,7 +282,7 @@
                                         -
                                     @endif
                                 </td>
-                                <td class="px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted">{{ $entity->isPrimary ? __('Yes') : __('No') }}</td>
+                                <td class="px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted">{{ $entity->is_primary ? __('Yes') : __('No') }}</td>
                                 <td class="px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted tabular-nums">{{ $entity->priority ?? '-' }}</td>
                                 <td class="px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted tabular-nums">{{ $entity->valid_from ?? '-' }}</td>
                                 <td class="px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted tabular-nums">{{ $entity->valid_to ?? '-' }}</td>

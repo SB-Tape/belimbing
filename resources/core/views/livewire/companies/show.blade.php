@@ -389,7 +389,7 @@
                                 <td class="px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-ink font-medium">
                                     <button wire:click="openAddressModal({{ $address->id }})" class="text-accent hover:underline cursor-pointer">{{ $address->label ?? '-' }}</button>
                                 </td>
-                                <td class="px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted">{{ collect([$address->line1, $address->locality, $address->countryIso])->filter()->implode(', ') }}</td>
+                                <td class="px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted">{{ collect([$address->line1, $address->locality, $address->country_iso])->filter()->implode(', ') }}</td>
                                 <td class="px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted"
                                     x-data="{ editing: false, selected: @js($address->pivot->kind ?? []) }"
                                 >
@@ -417,11 +417,11 @@
                                 </td>
                                 <td class="px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted">
                                     <button
-                                        wire:click="updateAddressPivot({{ $address->id }}, 'isPrimary', {{ $address->pivot->isPrimary ? '0' : '1' }})"
+                                        wire:click="updateAddressPivot({{ $address->id }}, 'is_primary', {{ $address->pivot->is_primary ? '0' : '1' }})"
                                         class="cursor-pointer"
                                         title="{{ __('Toggle primary') }}"
                                     >
-                                        @if($address->pivot->isPrimary)
+                                        @if($address->pivot->is_primary)
                                             <x-ui.badge variant="success">{{ __('Yes') }}</x-ui.badge>
                                         @else
                                             <span class="text-muted hover:text-ink transition-colors">{{ __('No') }}</span>
@@ -490,7 +490,7 @@
                     <x-ui.select wire:model="attachAddressId">
                         <option value="0">{{ __('Select an address...') }}</option>
                         @foreach($availableAddresses as $addr)
-                            <option value="{{ $addr->id }}">{{ $addr->label }} — {{ collect([$addr->line1, $addr->locality, $addr->countryIso])->filter()->implode(', ') }}</option>
+                            <option value="{{ $addr->id }}">{{ $addr->label }} — {{ collect([$addr->line1, $addr->locality, $addr->country_iso])->filter()->implode(', ') }}</option>
                         @endforeach
                     </x-ui.select>
                 </div>
@@ -538,16 +538,16 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <x-ui.combobox
-                        wire:model.live="countryIso"
+                        wire:model.live="country_iso"
                         label="{{ __('Country') }}"
                         placeholder="{{ __('Search country...') }}"
                         :options="$countries->map(fn($c) => ['value' => $c->iso, 'label' => $c->country])->all()"
-                        :error="$errors->first('countryIso')"
+                        :error="$errors->first('country_iso')"
                     />
 
                     <x-ui.combobox
                         wire:model.live="admin1Code"
-                        wire:key="modal-admin1-{{ $countryIso ?? 'none' }}"
+                        wire:key="modal-admin1-{{ $country_iso ?? 'none' }}"
                         label="{{ __('State / Province') }}"
                         :hint="$admin1IsAuto ? __('(from postcode)') : null"
                         placeholder="{{ __('Search state...') }}"
@@ -559,12 +559,12 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <x-ui.combobox
                         wire:model.live="postcode"
-                        wire:key="modal-postcode-{{ $countryIso ?? 'none' }}"
+                        wire:key="modal-postcode-{{ $country_iso ?? 'none' }}"
                         label="{{ __('Postcode') }}"
                         placeholder="{{ __('Search postcode...') }}"
                         :options="$postcodeOptions"
                         :editable="true"
-                        search-url="{{ route('admin.addresses.postcodes.search') }}?country={{ $countryIso ?? '' }}"
+                        search-url="{{ route('admin.addresses.postcodes.search') }}?country={{ $country_iso ?? '' }}"
                         :error="$errors->first('postcode')"
                     />
 
@@ -600,7 +600,7 @@
                         </div>
                     </div>
                     <div class="mt-3">
-                        <x-ui.checkbox wire:model="isPrimary" label="{{ __('Primary Address') }}" />
+                        <x-ui.checkbox wire:model="is_primary" label="{{ __('Primary Address') }}" />
                     </div>
                 </div>
                 @endif

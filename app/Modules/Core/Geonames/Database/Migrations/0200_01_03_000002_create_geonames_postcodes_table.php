@@ -17,7 +17,7 @@ return new class extends Migration
         Schema::create('geonames_postcodes', function (Blueprint $table) {
             $table->id();
 
-            $table->string('countryIso', 2)->index();
+            $table->string('country_iso', 2)->index();
             $table->string('postcode', 20)->index();
             $table->string('place_name', 180)->index();
             $table->string('admin1Code', 20)->nullable()->index();
@@ -34,14 +34,14 @@ return new class extends Migration
             $table->timestamps();
 
             $table
-                ->foreign('countryIso')
+                ->foreign('country_iso')
                 ->references('iso')
                 ->on('geonames_countries')
                 ->cascadeOnUpdate()
                 ->restrictOnDelete();
 
-            $table->index(['countryIso', 'postcode']);
-            $table->index(['countryIso', 'place_name']);
+            $table->index(['country_iso', 'postcode']);
+            $table->index(['country_iso', 'place_name']);
         });
     }
 

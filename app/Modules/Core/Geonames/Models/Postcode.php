@@ -24,7 +24,7 @@ class Postcode extends Model
      * @var array<int, string>
      */
     protected $fillable = [
-        'countryIso',
+        'country_iso',
         'postcode',
         'place_name',
         'admin1Code',
@@ -62,7 +62,7 @@ class Postcode extends Model
     {
         return $query
             ->selectRaw('geonames_postcodes.*, geonames_countries.country as country_name')
-            ->leftJoin('geonames_countries', 'geonames_postcodes.countryIso', '=', 'geonames_countries.iso');
+            ->leftJoin('geonames_countries', 'geonames_postcodes.country_iso', '=', 'geonames_countries.iso');
     }
 
     /**
@@ -70,7 +70,7 @@ class Postcode extends Model
      */
     public function country(): BelongsTo
     {
-        return $this->belongsTo(Country::class, 'countryIso', 'iso');
+        return $this->belongsTo(Country::class, 'country_iso', 'iso');
     }
 
     /**

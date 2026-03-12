@@ -17,7 +17,7 @@ class AddressCreator
      * and any AI metadata; we persist provenance and timestamps consistently.
      *
      * @param  string  $rawInput  Free-form address block (scan/paste/import)
-     * @param  array  $attributes  Parsed components like line1/locality/postcode/countryIso/admin1Code
+     * @param  array  $attributes  Parsed components like line1/locality/postcode/country_iso/admin1Code
      * @param  string|null  $source  Source of the input (manual, scan, paste, import_api)
      * @param  float|null  $confidence  Parser confidence (0..1)
      */
