@@ -45,7 +45,7 @@ class Show extends AbstractAddressForm
 
     public array $kind = [];
 
-    public bool $isPrimary = false;
+    public bool $is_primary = false;
 
     public int $priority = 0;
 
@@ -143,12 +143,12 @@ class Show extends AbstractAddressForm
 
     public function updateAddressPivot(int $addressId, string $field, mixed $value): void
     {
-        $allowed = ['isPrimary', 'priority'];
+        $allowed = ['is_primary', 'priority'];
         if (! in_array($field, $allowed)) {
             return;
         }
 
-        if ($field === 'isPrimary') {
+        if ($field === 'is_primary') {
             $value = (bool) $value;
         } elseif ($field === 'priority') {
             $value = (int) $value;
@@ -182,7 +182,7 @@ class Show extends AbstractAddressForm
 
         $this->company->addresses()->attach($this->attachAddressId, [
             'kind' => $this->attachKind,
-            'isPrimary' => $this->attachIsPrimary,
+            'is_primary' => $this->attachIsPrimary,
             'priority' => $this->attachPriority,
             'valid_from' => now()->toDateString(),
         ]);
@@ -206,24 +206,24 @@ class Show extends AbstractAddressForm
             $this->line1 = $address->line1;
             $this->line2 = $address->line2;
             $this->line3 = $address->line3;
-            $this->countryIso = $address->countryIso;
+            $this->country_iso = $address->country_iso;
             $this->admin1Code = $address->admin1Code;
             $this->postcode = $address->postcode;
             $this->locality = $address->locality;
             $this->admin1IsAuto = false;
             $this->localityIsAuto = false;
-            $this->admin1Options = $address->countryIso
-                ? $this->loadAdmin1ForCountry($address->countryIso)
+            $this->admin1Options = $address->country_iso
+                ? $this->loadAdmin1ForCountry($address->country_iso)
                 : [];
             $this->postcodeOptions = [];
-            $localityLookup = ($address->countryIso && $address->postcode)
-                ? $this->lookupLocalitiesByPostcode($address->countryIso, $address->postcode)
+            $localityLookup = ($address->country_iso && $address->postcode)
+                ? $this->lookupLocalitiesByPostcode($address->country_iso, $address->postcode)
                 : null;
             $this->localityOptions = $localityLookup ? $localityLookup['localities'] : [];
         }
 
-        if ($this->countryIso) {
-            $this->ensurePostcodesImported(strtoupper($this->countryIso));
+        if ($this->country_iso) {
+            $this->ensurePostcodesImported(strtoupper($this->country_iso));
         }
 
         $this->showAddressModal = true;
@@ -246,7 +246,7 @@ class Show extends AbstractAddressForm
             'availableAddresses' => Address::query()
                 ->whereNotIn('id', $linkedIds)
                 ->orderBy('label')
-                ->get(['id', 'label', 'line1', 'locality', 'countryIso']),
+                ->get(['id', 'label', 'line1', 'locality', 'country_iso']),
             'parentCompanies' => Company::query()
                 ->where('id', '!=', $this->company->id)
                 ->orderBy('name')
@@ -264,10 +264,10 @@ class Show extends AbstractAddressForm
         $this->line2 = null;
         $this->line3 = null;
         $this->kind = [];
-        $this->isPrimary = false;
+        $this->is_primary = false;
         $this->priority = 0;
         $this->resetAddressFormGeoState();
-        $this->countryIso = null;
+        $this->country_iso = null;
     }
 
     protected function createAndAttachAddress(): void
@@ -280,11 +280,11 @@ class Show extends AbstractAddressForm
             'line3' => ['nullable', 'string'],
             'locality' => ['nullable', 'string', 'max:255'],
             'postcode' => ['nullable', 'string', 'max:255'],
-            'countryIso' => ['nullable', 'string', 'size:2'],
+            'country_iso' => ['nullable', 'string', 'size:2'],
             'admin1Code' => ['nullable', 'string', 'max:20'],
             'kind' => ['required', 'array', 'min:1'],
             'kind.*' => ['string', 'in:headquarters,billing,shipping,branch,other'],
-            'isPrimary' => ['boolean'],
+            'is_primary' => ['boolean'],
             'priority' => ['integer'],
         ]);
 
@@ -296,7 +296,7 @@ class Show extends AbstractAddressForm
             'line3' => $validated['line3'],
             'locality' => $validated['locality'],
             'postcode' => $validated['postcode'],
-            'countryIso' => $validated['countryIso'] ? strtoupper($validated['countryIso']) : null,
+            'country_iso' => $validated['country_iso'] ? strtoupper($validated['country_iso']) : null,
             'admin1Code' => $validated['admin1Code'],
             'source' => 'manual',
             'verificationStatus' => 'unverified',
@@ -304,7 +304,7 @@ class Show extends AbstractAddressForm
 
         $this->company->addresses()->attach($address->id, [
             'kind' => $validated['kind'],
-            'isPrimary' => $validated['isPrimary'],
+            'is_primary' => $validated['is_primary'],
             'priority' => $validated['priority'],
             'valid_from' => now()->toDateString(),
         ]);
@@ -325,7 +325,7 @@ class Show extends AbstractAddressForm
             'line3' => ['nullable', 'string'],
             'locality' => ['nullable', 'string', 'max:255'],
             'postcode' => ['nullable', 'string', 'max:255'],
-            'countryIso' => ['nullable', 'string', 'size:2'],
+            'country_iso' => ['nullable', 'string', 'size:2'],
             'admin1Code' => ['nullable', 'string', 'max:20'],
         ]);
 
@@ -338,7 +338,7 @@ class Show extends AbstractAddressForm
             'line3' => $validated['line3'],
             'locality' => $validated['locality'],
             'postcode' => $validated['postcode'],
-            'countryIso' => $validated['countryIso'] ? strtoupper($validated['countryIso']) : null,
+            'country_iso' => $validated['country_iso'] ? strtoupper($validated['country_iso']) : null,
             'admin1Code' => $validated['admin1Code'],
         ]);
 

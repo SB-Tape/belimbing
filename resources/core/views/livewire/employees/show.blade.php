@@ -432,7 +432,7 @@
                                 <td class="px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-ink font-medium">
                                     <a href="{{ route('admin.addresses.show', $address) }}" wire:navigate class="text-accent hover:underline">{{ $address->label ?? '-' }}</a>
                                 </td>
-                                <td class="px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted">{{ collect([$address->line1, $address->locality, $address->countryIso])->filter()->implode(', ') }}</td>
+                                <td class="px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted">{{ collect([$address->line1, $address->locality, $address->country_iso])->filter()->implode(', ') }}</td>
                                 <td class="px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted"
                                     x-data="{ editing: false, selected: @js($address->pivot->kind ?? []) }"
                                 >
@@ -460,12 +460,12 @@
                                 </td>
                                 <td class="px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted">
                                     <button
-                                        wire:click="updateAddressPivot({{ $address->id }}, 'isPrimary', {{ $address->pivot->isPrimary ? '0' : '1' }})"
+                                        wire:click="updateAddressPivot({{ $address->id }}, 'is_primary', {{ $address->pivot->is_primary ? '0' : '1' }})"
                                         class="cursor-pointer"
                                         title="{{ __('Toggle primary') }}"
                                         aria-label="{{ __('Toggle primary') }}"
                                     >
-                                        @if($address->pivot->isPrimary)
+                                        @if($address->pivot->is_primary)
                                             <x-ui.badge variant="success">{{ __('Yes') }}</x-ui.badge>
                                         @else
                                             <span class="text-muted hover:text-ink transition-colors">{{ __('No') }}</span>
@@ -524,7 +524,7 @@
                     <x-ui.select wire:model="attachAddressId">
                         <option value="0">{{ __('Select an address...') }}</option>
                         @foreach($availableAddresses as $addr)
-                            <option value="{{ $addr->id }}">{{ $addr->label }} — {{ collect([$addr->line1, $addr->locality, $addr->countryIso])->filter()->implode(', ') }}</option>
+                            <option value="{{ $addr->id }}">{{ $addr->label }} — {{ collect([$addr->line1, $addr->locality, $addr->country_iso])->filter()->implode(', ') }}</option>
                         @endforeach
                     </x-ui.select>
                 </div>

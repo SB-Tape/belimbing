@@ -12,7 +12,7 @@ abstract class AbstractAddressForm extends Component
 {
     use HasAddressGeoLookups;
 
-    public ?string $countryIso = null;
+    public ?string $country_iso = null;
 
     public ?string $admin1Code = null;
 
@@ -56,9 +56,9 @@ abstract class AbstractAddressForm extends Component
      */
     public function updatedPostcode($value): void
     {
-        $countryIso = $this->getCountryIsoForLookup();
+        $country_iso = $this->getCountryIsoForLookup();
 
-        if (! $countryIso || ! $value) {
+        if (! $country_iso || ! $value) {
             $this->localityOptions = [];
 
             return;
@@ -73,7 +73,7 @@ abstract class AbstractAddressForm extends Component
             $this->localityIsAuto = false;
         }
 
-        $result = $this->lookupLocalitiesByPostcode($countryIso, $value);
+        $result = $this->lookupLocalitiesByPostcode($country_iso, $value);
 
         if (! $result) {
             $this->localityOptions = [];
@@ -93,7 +93,7 @@ abstract class AbstractAddressForm extends Component
             $this->admin1IsAuto = true;
 
             if (empty($this->admin1Options)) {
-                $this->admin1Options = $this->loadAdmin1ForCountry($countryIso);
+                $this->admin1Options = $this->loadAdmin1ForCountry($country_iso);
             }
         }
     }
@@ -113,7 +113,7 @@ abstract class AbstractAddressForm extends Component
      */
     protected function getCountryIsoForLookup(): ?string
     {
-        return $this->countryIso;
+        return $this->country_iso;
     }
 
     /**

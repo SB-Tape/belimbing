@@ -149,8 +149,8 @@
                             @foreach ($countryRecordCounts as $row)
                                 <tr class="hover:bg-surface-subtle/50 transition-colors">
                                     <td class="px-table-cell-x py-table-cell-y whitespace-nowrap text-sm">
-                                        <span class="font-mono text-xs text-muted">{{ $row->countryIso }}</span>
-                                        <span class="ml-1 text-ink">{{ $row->country_name ?? $row->countryIso }}</span>
+                                        <span class="font-mono text-xs text-muted">{{ $row->country_iso }}</span>
+                                        <span class="ml-1 text-ink">{{ $row->country_name ?? $row->country_iso }}</span>
                                     </td>
                                     <td class="px-table-cell-x py-table-cell-y whitespace-nowrap text-right font-medium text-ink tabular-nums">{{ number_format($row->record_count) }}</td>
                                 </tr>
@@ -184,7 +184,7 @@
                         @forelse($postcodes as $postcode)
                             <tr class="hover:bg-surface-subtle/50 transition-colors">
                                 <td class="px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted">
-                                    <span class="font-mono text-xs text-muted">{{ $postcode->countryIso }}</span>
+                                    <span class="font-mono text-xs text-muted">{{ $postcode->country_iso }}</span>
                                     <span class="ml-1">{{ $postcode->country_name ?? '' }}</span>
                                 </td>
                                 <td class="px-table-cell-x py-table-cell-y whitespace-nowrap font-medium text-ink tabular-nums">{{ $postcode->postcode }}</td>

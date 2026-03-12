@@ -37,7 +37,7 @@ class Address extends Model
         'line3',
         'locality',
         'postcode',
-        'countryIso',
+        'country_iso',
         'admin1Code',
         'rawInput',
         'source',
@@ -83,7 +83,7 @@ class Address extends Model
      */
     public function country(): BelongsTo
     {
-        return $this->belongsTo(Country::class, 'countryIso', 'iso');
+        return $this->belongsTo(Country::class, 'country_iso', 'iso');
     }
 
     /**

@@ -59,16 +59,16 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <x-ui.combobox
-                        wire:model.live="countryIso"
+                        wire:model.live="country_iso"
                         label="{{ __('Country') }}"
                         placeholder="{{ __('Search country...') }}"
                         :options="$countryOptions"
-                        :error="$errors->first('countryIso')"
+                        :error="$errors->first('country_iso')"
                     />
 
                     <x-ui.combobox
                         wire:model.live="admin1Code"
-                        wire:key="create-admin1-{{ $countryIso ?? 'none' }}"
+                        wire:key="create-admin1-{{ $country_iso ?? 'none' }}"
                         label="{{ __('State / Province') }}"
                         :hint="$admin1IsAuto ? __('(from postcode)') : null"
                         placeholder="{{ __('Search state...') }}"
@@ -80,12 +80,12 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <x-ui.combobox
                         wire:model.live="postcode"
-                        wire:key="create-postcode-{{ $countryIso ?? 'none' }}"
+                        wire:key="create-postcode-{{ $country_iso ?? 'none' }}"
                         label="{{ __('Postcode') }}"
                         placeholder="{{ __('Search postcode...') }}"
                         :options="$postcodeOptions"
                         :editable="true"
-                        search-url="{{ route('admin.addresses.postcodes.search') }}?country={{ $countryIso ?? '' }}"
+                        search-url="{{ route('admin.addresses.postcodes.search') }}?country={{ $country_iso ?? '' }}"
                         :error="$errors->first('postcode')"
                     />
 

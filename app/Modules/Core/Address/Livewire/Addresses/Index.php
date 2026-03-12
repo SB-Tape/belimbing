@@ -29,7 +29,7 @@ class Index extends Component
                         ->orWhere('line1', 'like', '%'.$search.'%')
                         ->orWhere('locality', 'like', '%'.$search.'%')
                         ->orWhere('postcode', 'like', '%'.$search.'%')
-                        ->orWhere('countryIso', 'like', '%'.$search.'%');
+                        ->orWhere('country_iso', 'like', '%'.$search.'%');
                 })
                 ->latest()
                 ->paginate(15),

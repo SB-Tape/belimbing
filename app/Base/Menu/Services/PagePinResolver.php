@@ -7,6 +7,7 @@ namespace App\Base\Menu\Services;
 
 use App\Base\Menu\MenuItem;
 use App\Base\Menu\MenuRegistry;
+use App\Base\Menu\Services\PinMetadataNormalizer;
 use BackedEnum;
 use Illuminate\Contracts\Routing\UrlRoutable;
 use Illuminate\Routing\Route;
@@ -16,6 +17,7 @@ class PagePinResolver
 {
     public function __construct(
         private readonly MenuRegistry $menuRegistry,
+        private readonly PinMetadataNormalizer $pinMetadataNormalizer,
     ) {}
 
     /**
@@ -24,8 +26,10 @@ class PagePinResolver
      * @param  array{pinnableId: string, label: string, url: string, icon?: string|null}|false|null  $pinnable
      * @return array{pinnableId: string, label: string, url: string, icon?: string|null}|null
      */
-    public function resolve(string $title, array|bool|null $pinnable = null): ?array
-    {
+    public function resolve(
+        string $title,
+        array|bool|null $pinnable = null,
+    ): ?array {
         if ($pinnable !== null) {
             return is_array($pinnable) ? $pinnable : null;
         }
@@ -33,55 +37,55 @@ class PagePinResolver
         $route = request()->route();
         $routeName = $route?->getName();
 
-        if (! $route instanceof Route || ! is_string($routeName)) {
+        if (!$route instanceof Route || !is_string($routeName)) {
             return null;
         }
 
         $menuItem = $this->findMatchingMenuItem($routeName);
 
         return [
-            'pinnableId' => $this->buildPinnableId($route),
-            'label' => $this->buildLabel($title, $menuItem),
-            'url' => request()->url(),
-            'icon' => $menuItem?->icon,
+            "pinnableId" => $this->buildPinnableId($route),
+            "label" => $this->buildLabel($title, $menuItem),
+            "url" => request()->url(),
+            "icon" => $menuItem?->icon,
         ];
     }
 
     private function buildPinnableId(Route $route): string
     {
         $routeName = $route->getName();
-        $baseId = 'page:route:'.$routeName;
+        $baseId = "page:route:" . $routeName;
         $parameterSignature = collect($route->parametersWithoutNulls())
-            ->map(fn (mixed $value, string $key): string => $key.'='.$this->normalizeParameter($value))
-            ->implode(';');
+            ->map(
+                fn(mixed $value, string $key): string => $key .
+                    "=" .
+                    $this->normalizeParameter($value),
+            )
+            ->implode(";");
 
-        if ($parameterSignature === '') {
+        if ($parameterSignature === "") {
             return $baseId;
         }
 
-        $resolvedId = $baseId.':'.$parameterSignature;
+        $resolvedId = $baseId . ":" . $parameterSignature;
 
         if (strlen($resolvedId) <= 150) {
             return $resolvedId;
         }
 
         // Deterministic cache-style key compaction only (non-sensitive context).
-        return $baseId.':'.md5($parameterSignature);
+        return $baseId . ":" . md5($parameterSignature);
     }
 
     private function buildLabel(string $title, ?MenuItem $menuItem): string
     {
-        if ($menuItem === null) {
-            return $title;
+        if ($menuItem !== null) {
+            return $this->pinMetadataNormalizer->normalizeLabel(
+                $menuItem->label,
+            );
         }
 
-        $menuLabel = $this->buildPinLabel($menuItem, $this->menuRegistry->getAll());
-        $lastSegment = strrchr($menuLabel, '/');
-        $leafLabel = $lastSegment === false ? $menuLabel : substr($lastSegment, 1);
-
-        return $leafLabel === $title
-            ? $menuLabel
-            : $menuLabel.'/'.$title;
+        return $this->pinMetadataNormalizer->normalizeLabel($title);
     }
 
     private function findMatchingMenuItem(string $currentRoute): ?MenuItem
@@ -90,47 +94,36 @@ class PagePinResolver
         $items = $this->menuRegistry->getAll();
 
         return $items
-            ->filter(fn (MenuItem $item): bool => $this->routeMatches($item->route, $currentRoute))
-            ->sortByDesc(fn (MenuItem $item): int => strlen((string) $item->route))
+            ->filter(
+                fn(MenuItem $item): bool => $this->routeMatches(
+                    $item->route,
+                    $currentRoute,
+                ),
+            )
+            ->sortByDesc(
+                fn(MenuItem $item): int => strlen((string) $item->route),
+            )
             ->first();
     }
 
-    private function routeMatches(?string $menuRoute, string $currentRoute): bool
-    {
+    private function routeMatches(
+        ?string $menuRoute,
+        string $currentRoute,
+    ): bool {
         $matches = false;
 
         if ($menuRoute !== null) {
             $matches = $menuRoute === $currentRoute;
 
-            if (! $matches && str_ends_with($menuRoute, '.index')) {
-                $matches = str_starts_with($currentRoute, substr($menuRoute, 0, -6));
+            if (!$matches && str_ends_with($menuRoute, ".index")) {
+                $matches = str_starts_with(
+                    $currentRoute,
+                    substr($menuRoute, 0, -6),
+                );
             }
         }
 
         return $matches;
-    }
-
-    /**
-     * @param  Collection<int, MenuItem>  $allItems
-     */
-    private function buildPinLabel(MenuItem $item, Collection $allItems): string
-    {
-        $segments = [];
-        $current = $item;
-
-        while ($current !== null) {
-            array_unshift($segments, $current->label);
-            $current = $current->parent ? $allItems->get($current->parent) : null;
-        }
-
-        $pinLabel = implode('/', $segments);
-        $firstSlash = strpos($pinLabel, '/');
-
-        if ($firstSlash !== false) {
-            return substr($pinLabel, $firstSlash + 1);
-        }
-
-        return $pinLabel;
     }
 
     private function normalizeParameter(mixed $value): string
@@ -142,7 +135,10 @@ class PagePinResolver
         $normalized = match (true) {
             $value instanceof UrlRoutable => (string) $value->getRouteKey(),
             $value instanceof BackedEnum => (string) $value->value,
-            is_array($value) => json_encode($value, JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR),
+            is_array($value) => json_encode(
+                $value,
+                JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR,
+            ),
             is_object($value) => $value::class,
             default => (string) $value,
         };

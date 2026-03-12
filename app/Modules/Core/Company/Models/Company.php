@@ -244,7 +244,7 @@ class Company extends Model
     {
         return $this->morphToMany(Address::class, 'addressable', 'addressables')
             ->using(Addressable::class)
-            ->withPivot('kind', 'isPrimary', 'priority', 'valid_from', 'valid_to')
+            ->withPivot('kind', 'is_primary', 'priority', 'valid_from', 'valid_to')
             ->withTimestamps();
     }
 
@@ -253,7 +253,7 @@ class Company extends Model
      */
     public function primaryAddress(): ?Address
     {
-        $primary = $this->addresses()->wherePivot('isPrimary', true)->first();
+        $primary = $this->addresses()->wherePivot('is_primary', true)->first();
 
         return $primary ?? $this->addresses()->orderByPivot('priority')->first();
     }
@@ -386,7 +386,7 @@ class Company extends Model
             $address->line3,
             $address->locality,
             $address->postcode,
-            $address->countryIso,
+            $address->country_iso,
         ]);
 
         return ! empty($parts) ? implode(', ', $parts) : null;

@@ -45,7 +45,7 @@ test('address can be created from create page component', function (): void {
         ->set('line1', '88 River Road')
         ->set('locality', 'Boston')
         ->set('postcode', '02110')
-        ->set('countryIso', 'us')
+        ->set('country_iso', 'us')
         ->set('verificationStatus', 'verified')
         ->call('store')
         ->assertRedirect(route('admin.addresses.index'));
@@ -58,7 +58,7 @@ test('address can be created from create page component', function (): void {
 
     expect($address)
         ->not()->toBeNull()
-        ->and($address->countryIso)
+        ->and($address->country_iso)
         ->toBe('US')
         ->and($address->verificationStatus)
         ->toBe('verified');
