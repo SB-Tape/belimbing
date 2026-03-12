@@ -17,6 +17,17 @@ abstract class SearchablePaginatedList extends Component
     use ResetsPaginationOnSearch;
     use WithPagination;
 
+    protected const string VIEW_NAME = '';
+
+    protected const string VIEW_DATA_KEY = '';
+
+    protected const string SORT_COLUMN = '';
+
+    /**
+     * @var list<string>
+     */
+    protected const array SEARCH_COLUMNS = [];
+
     public string $search = '';
 
     final public function render(): View
@@ -36,13 +47,36 @@ abstract class SearchablePaginatedList extends Component
 
     abstract protected function query(): EloquentBuilder|QueryBuilder;
 
-    abstract protected function viewName(): string;
+    protected function viewName(): string
+    {
+        return static::VIEW_NAME;
+    }
 
-    abstract protected function viewDataKey(): string;
+    protected function viewDataKey(): string
+    {
+        return static::VIEW_DATA_KEY;
+    }
 
-    abstract protected function applySearch(EloquentBuilder|QueryBuilder $query, string $search): void;
+    protected function applySearch(EloquentBuilder|QueryBuilder $query, string $search): void
+    {
+        $columns = static::SEARCH_COLUMNS;
 
-    abstract protected function sortQuery(EloquentBuilder|QueryBuilder $query): void;
+        if ($columns === []) {
+            return;
+        }
+
+        $query->where(function ($builder) use ($columns, $search): void {
+            foreach ($columns as $index => $column) {
+                $method = $index === 0 ? 'where' : 'orWhere';
+                $builder->{$method}($column, 'like', '%'.$search.'%');
+            }
+        });
+    }
+
+    protected function sortQuery(EloquentBuilder|QueryBuilder $query): void
+    {
+        $query->orderByDesc(static::SORT_COLUMN);
+    }
 
     protected function perPage(): int
     {

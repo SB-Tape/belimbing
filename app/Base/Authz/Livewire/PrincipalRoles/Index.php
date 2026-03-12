@@ -12,6 +12,12 @@ use Illuminate\Database\Query\Builder as QueryBuilder;
 
 class Index extends SearchablePaginatedList
 {
+    protected const string VIEW_NAME = 'livewire.admin.authz.principal-roles.index';
+
+    protected const string VIEW_DATA_KEY = 'assignments';
+
+    protected const string SORT_COLUMN = 'base_authz_principal_roles.created_at';
+
     protected function query(): EloquentBuilder|QueryBuilder
     {
         return PrincipalRole::query()
@@ -29,16 +35,6 @@ class Index extends SearchablePaginatedList
             );
     }
 
-    protected function viewName(): string
-    {
-        return 'livewire.admin.authz.principal-roles.index';
-    }
-
-    protected function viewDataKey(): string
-    {
-        return 'assignments';
-    }
-
     protected function applySearch(EloquentBuilder|QueryBuilder $query, string $search): void
     {
         $query->where(function ($builder) use ($search): void {
@@ -48,10 +44,5 @@ class Index extends SearchablePaginatedList
                     $roleQuery->where('name', 'like', '%'.$search.'%');
                 });
         });
-    }
-
-    protected function sortQuery(EloquentBuilder|QueryBuilder $query): void
-    {
-        $query->orderByDesc('base_authz_principal_roles.created_at');
     }
 }

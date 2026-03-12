@@ -5,14 +5,22 @@
 
 namespace App\Base\Queue\Livewire\FailedJobs;
 
-use App\Base\Foundation\Livewire\SearchablePaginatedList;
-use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
-use Illuminate\Database\Query\Builder as QueryBuilder;
+use App\Base\Foundation\Livewire\TableSearchablePaginatedList;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 
-class Index extends SearchablePaginatedList
+class Index extends TableSearchablePaginatedList
 {
+    protected const string TABLE = 'failed_jobs';
+
+    protected const string VIEW_NAME = 'livewire.admin.system.failed-jobs.index';
+
+    protected const string VIEW_DATA_KEY = 'failedJobs';
+
+    protected const string SORT_COLUMN = 'failed_at';
+
+    protected const array SEARCH_COLUMNS = ['queue', 'uuid', 'exception'];
+
     public function retryJob(string $uuid): void
     {
         Artisan::call('queue:retry', ['id' => [$uuid]]);
@@ -26,34 +34,5 @@ class Index extends SearchablePaginatedList
     public function deleteJob(int $id): void
     {
         DB::table('failed_jobs')->where('id', $id)->delete();
-    }
-
-    protected function query(): EloquentBuilder|QueryBuilder
-    {
-        return DB::table('failed_jobs');
-    }
-
-    protected function viewName(): string
-    {
-        return 'livewire.admin.system.failed-jobs.index';
-    }
-
-    protected function viewDataKey(): string
-    {
-        return 'failedJobs';
-    }
-
-    protected function applySearch(EloquentBuilder|QueryBuilder $query, string $search): void
-    {
-        $query->where(function ($builder) use ($search): void {
-            $builder->where('queue', 'like', '%'.$search.'%')
-                ->orWhere('uuid', 'like', '%'.$search.'%')
-                ->orWhere('exception', 'like', '%'.$search.'%');
-        });
-    }
-
-    protected function sortQuery(EloquentBuilder|QueryBuilder $query): void
-    {
-        $query->orderByDesc('failed_at');
     }
 }

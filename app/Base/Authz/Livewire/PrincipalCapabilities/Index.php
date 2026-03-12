@@ -12,6 +12,18 @@ use Illuminate\Database\Query\Builder as QueryBuilder;
 
 class Index extends SearchablePaginatedList
 {
+    protected const string VIEW_NAME = 'livewire.admin.authz.principal-capabilities.index';
+
+    protected const string VIEW_DATA_KEY = 'capabilities';
+
+    protected const string SORT_COLUMN = 'base_authz_principal_capabilities.created_at';
+
+    protected const array SEARCH_COLUMNS = [
+        'capability_key',
+        'users.name',
+        'users.email',
+    ];
+
     protected function query(): EloquentBuilder|QueryBuilder
     {
         return PrincipalCapability::query()
@@ -26,29 +38,5 @@ class Index extends SearchablePaginatedList
                 'users.email as principal_email',
                 'companies.name as company_name'
             );
-    }
-
-    protected function viewName(): string
-    {
-        return 'livewire.admin.authz.principal-capabilities.index';
-    }
-
-    protected function viewDataKey(): string
-    {
-        return 'capabilities';
-    }
-
-    protected function applySearch(EloquentBuilder|QueryBuilder $query, string $search): void
-    {
-        $query->where(function ($builder) use ($search): void {
-            $builder->where('capability_key', 'like', '%'.$search.'%')
-                ->orWhere('users.name', 'like', '%'.$search.'%')
-                ->orWhere('users.email', 'like', '%'.$search.'%');
-        });
-    }
-
-    protected function sortQuery(EloquentBuilder|QueryBuilder $query): void
-    {
-        $query->orderByDesc('base_authz_principal_capabilities.created_at');
     }
 }
