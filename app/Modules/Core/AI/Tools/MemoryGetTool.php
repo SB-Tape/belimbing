@@ -5,9 +5,7 @@
 
 namespace App\Modules\Core\AI\Tools;
 
-use App\Base\AI\Enums\ToolCategory;
-use App\Base\AI\Enums\ToolRiskClass;
-use App\Base\AI\Tools\AbstractTool;
+use App\Base\AI\Tools\AbstractReadOnlyMemoryTool;
 use App\Base\AI\Tools\Schema\ToolSchemaBuilder;
 use App\Base\AI\Tools\ToolArgumentException;
 use App\Base\AI\Tools\ToolResult;
@@ -25,7 +23,7 @@ use App\Modules\Core\Employee\Models\Employee;
  *
  * Gated by `ai.tool_memory_get.execute` authz capability.
  */
-class MemoryGetTool extends AbstractTool
+class MemoryGetTool extends AbstractReadOnlyMemoryTool
 {
     private const MAX_LINES = 500;
 
@@ -62,96 +60,35 @@ class MemoryGetTool extends AbstractTool
             ->integer('lines', 'Maximum number of lines to return (default: all, capped at 500).', min: 1, max: self::MAX_LINES);
     }
 
-    public function category(): ToolCategory
-    {
-        return ToolCategory::MEMORY;
-    }
-
-    public function riskClass(): ToolRiskClass
-    {
-        return ToolRiskClass::READ_ONLY;
-    }
-
     public function requiredCapability(): ?string
     {
         return 'ai.tool_memory_get.execute';
     }
 
-    /**
-     * Human-friendly display name for UI surfaces.
-     */
-    public function displayName(): string
-    {
-        return 'Memory Get';
-    }
-
-    /**
-     * One-sentence plain-language summary for humans.
-     */
-    public function summary(): string
-    {
-        return 'Read a specific knowledge file from the agent workspace.';
-    }
-
-    /**
-     * Longer explanation of what this tool does and does not do.
-     */
-    public function explanation(): string
-    {
-        return 'Reads the content of a file within the agent workspace by path. '
-            .'Path validation prevents directory traversal. This tool can only '
-            .'read files within the designated workspace directory.';
-    }
-
-    /**
-     * Human-readable setup checklist items.
-     *
-     * @return list<string>
-     */
-    public function setupRequirements(): array
+    protected function metadata(): array
     {
         return [
-            'Workspace directory must exist',
-        ];
-    }
-
-    /**
-     * Sample inputs for the Try-It console.
-     *
-     * @return list<array{label: string, input: array<string, mixed>, runnable?: bool}>
-     */
-    public function testExamples(): array
-    {
-        return [
-            [
-                'label' => 'Read a file',
-                'input' => ['path' => 'MEMORY.md'],
+            'display_name' => 'Memory Get',
+            'summary' => 'Read a specific knowledge file from the agent workspace.',
+            'explanation' => 'Reads the content of a file within the agent workspace by path. '
+                .'Path validation prevents directory traversal. This tool can only '
+                .'read files within the designated workspace directory.',
+            'setup_requirements' => [
+                'Workspace directory must exist',
             ],
-        ];
-    }
-
-    /**
-     * Descriptions of health probes this tool supports.
-     *
-     * @return list<string>
-     */
-    public function healthChecks(): array
-    {
-        return [
-            'Workspace directory accessible',
-        ];
-    }
-
-    /**
-     * Known safety limits users should understand.
-     *
-     * @return list<string>
-     */
-    public function limits(): array
-    {
-        return [
-            'Workspace files only — no arbitrary filesystem access',
-            'Path traversal blocked',
+            'test_examples' => [
+                [
+                    'label' => 'Read a file',
+                    'input' => ['path' => 'MEMORY.md'],
+                ],
+            ],
+            'health_checks' => [
+                'Workspace directory accessible',
+            ],
+            'limits' => [
+                'Workspace files only — no arbitrary filesystem access',
+                'Path traversal blocked',
+            ],
         ];
     }
 

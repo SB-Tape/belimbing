@@ -5,17 +5,20 @@
 
 namespace App\Base\Queue\Livewire\JobBatches;
 
-use App\Base\Foundation\Livewire\Concerns\ResetsPaginationOnSearch;
+use App\Base\Foundation\Livewire\TableSearchablePaginatedList;
 use Illuminate\Support\Facades\DB;
-use Livewire\Component;
-use Livewire\WithPagination;
 
-class Index extends Component
+class Index extends TableSearchablePaginatedList
 {
-    use ResetsPaginationOnSearch;
-    use WithPagination;
+    protected const string TABLE = 'job_batches';
 
-    public string $search = '';
+    protected const string VIEW_NAME = 'livewire.admin.system.job-batches.index';
+
+    protected const string VIEW_DATA_KEY = 'batches';
+
+    protected const string SORT_COLUMN = 'created_at';
+
+    protected const array SEARCH_COLUMNS = ['name', 'id'];
 
     public function cancelBatch(string $id): void
     {
@@ -31,20 +34,5 @@ class Index extends Component
         DB::table('job_batches')
             ->whereNotNull('finished_at')
             ->delete();
-    }
-
-    public function render(): \Illuminate\Contracts\View\View
-    {
-        return view('livewire.admin.system.job-batches.index', [
-            'batches' => DB::table('job_batches')
-                ->when($this->search, function ($query, $search): void {
-                    $query->where(function ($q) use ($search): void {
-                        $q->where('name', 'like', '%'.$search.'%')
-                            ->orWhere('id', 'like', '%'.$search.'%');
-                    });
-                })
-                ->orderByDesc('created_at')
-                ->paginate(25),
-        ]);
     }
 }

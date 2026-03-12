@@ -5,10 +5,7 @@
 
 namespace App\Modules\Core\AI\Tools;
 
-use App\Base\AI\Enums\ToolCategory;
-use App\Base\AI\Enums\ToolRiskClass;
-use App\Base\AI\Tools\AbstractTool;
-use App\Base\AI\Tools\Concerns\FormatsProcessResult;
+use App\Base\AI\Tools\AbstractHighImpactProcessTool;
 use App\Base\AI\Tools\Schema\ToolSchemaBuilder;
 use App\Base\AI\Tools\ToolResult;
 use Illuminate\Support\Facades\Process;
@@ -22,10 +19,8 @@ use Illuminate\Support\Facades\Process;
  * Safety: Timeout enforced per execution. Authz gating is the primary
  * control — only users with explicit bash capability can trigger this.
  */
-class BashTool extends AbstractTool
+class BashTool extends AbstractHighImpactProcessTool
 {
-    use FormatsProcessResult;
-
     private const TIMEOUT_SECONDS = 30;
 
     public function name(): string
@@ -50,88 +45,36 @@ class BashTool extends AbstractTool
             )->required();
     }
 
-    public function category(): ToolCategory
-    {
-        return ToolCategory::SYSTEM;
-    }
-
-    public function riskClass(): ToolRiskClass
-    {
-        return ToolRiskClass::HIGH_IMPACT;
-    }
-
     public function requiredCapability(): ?string
     {
         return 'ai.tool_bash.execute';
     }
 
-    /**
-     * Human-friendly display name for UI surfaces.
-     */
-    public function displayName(): string
-    {
-        return 'Bash';
-    }
-
-    /**
-     * One-sentence plain-language summary for humans.
-     */
-    public function summary(): string
-    {
-        return 'Execute shell commands on the server.';
-    }
-
-    /**
-     * Longer explanation of what this tool does and does not do.
-     */
-    public function explanation(): string
-    {
-        return 'Runs shell commands on the BLB server. Extremely powerful — can modify files, '
-            .'install packages, and interact with the operating system. '
-            .'Requires the highest authorization level.';
-    }
-
-    /**
-     * Sample inputs for the Try-It console.
-     *
-     * @return list<array{label: string, input: array<string, mixed>, runnable?: bool}>
-     */
-    public function testExamples(): array
+    protected function metadata(): array
     {
         return [
-            [
-                'label' => 'Disk usage',
-                'input' => ['command' => 'df -h'],
+            'display_name' => 'Bash',
+            'summary' => 'Execute shell commands on the server.',
+            'explanation' => 'Runs shell commands on the BLB server. Extremely powerful — can modify files, '
+                .'install packages, and interact with the operating system. '
+                .'Requires the highest authorization level.',
+            'test_examples' => [
+                [
+                    'label' => 'Disk usage',
+                    'input' => ['command' => 'df -h'],
+                ],
+                [
+                    'label' => '⚠ Clear application logs (irreversible)',
+                    'input' => ['command' => 'truncate -s 0 storage/logs/laravel.log && echo "Log cleared."'],
+                    'runnable' => false,
+                ],
             ],
-            [
-                'label' => '⚠ Clear application logs (irreversible)',
-                'input' => ['command' => 'truncate -s 0 storage/logs/laravel.log && echo "Log cleared."'],
-                'runnable' => false,
+            'health_checks' => [
+                'Shell access available',
             ],
-        ];
-    }
-
-    /**
-     * Descriptions of health probes this tool supports.
-     *
-     * @return list<string>
-     */
-    public function healthChecks(): array
-    {
-        return [
-            'Shell access available',
-        ];
-    }
-
-    /**
-     * Known safety limits users should understand.
-     *
-     * @return list<string>
-     */
-    public function limits(): array
-    {
-        return [
-            'Full server access — authorize carefully',
+            'limits' => [
+                'Full server access — authorize carefully',
+            ],
         ];
     }
 

@@ -5,18 +5,21 @@
 
 namespace App\Base\Queue\Livewire\FailedJobs;
 
-use App\Base\Foundation\Livewire\Concerns\ResetsPaginationOnSearch;
+use App\Base\Foundation\Livewire\TableSearchablePaginatedList;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
-use Livewire\Component;
-use Livewire\WithPagination;
 
-class Index extends Component
+class Index extends TableSearchablePaginatedList
 {
-    use ResetsPaginationOnSearch;
-    use WithPagination;
+    protected const string TABLE = 'failed_jobs';
 
-    public string $search = '';
+    protected const string VIEW_NAME = 'livewire.admin.system.failed-jobs.index';
+
+    protected const string VIEW_DATA_KEY = 'failedJobs';
+
+    protected const string SORT_COLUMN = 'failed_at';
+
+    protected const array SEARCH_COLUMNS = ['queue', 'uuid', 'exception'];
 
     public function retryJob(string $uuid): void
     {
@@ -31,21 +34,5 @@ class Index extends Component
     public function deleteJob(int $id): void
     {
         DB::table('failed_jobs')->where('id', $id)->delete();
-    }
-
-    public function render(): \Illuminate\Contracts\View\View
-    {
-        return view('livewire.admin.system.failed-jobs.index', [
-            'failedJobs' => DB::table('failed_jobs')
-                ->when($this->search, function ($query, $search): void {
-                    $query->where(function ($q) use ($search): void {
-                        $q->where('queue', 'like', '%'.$search.'%')
-                            ->orWhere('uuid', 'like', '%'.$search.'%')
-                            ->orWhere('exception', 'like', '%'.$search.'%');
-                    });
-                })
-                ->orderByDesc('failed_at')
-                ->paginate(25),
-        ]);
     }
 }

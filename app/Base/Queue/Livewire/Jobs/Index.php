@@ -5,35 +5,23 @@
 
 namespace App\Base\Queue\Livewire\Jobs;
 
-use App\Base\Foundation\Livewire\Concerns\ResetsPaginationOnSearch;
+use App\Base\Foundation\Livewire\TableSearchablePaginatedList;
 use Illuminate\Support\Facades\DB;
-use Livewire\Component;
-use Livewire\WithPagination;
 
-class Index extends Component
+class Index extends TableSearchablePaginatedList
 {
-    use ResetsPaginationOnSearch;
-    use WithPagination;
+    protected const string TABLE = 'jobs';
 
-    public string $search = '';
+    protected const string VIEW_NAME = 'livewire.admin.system.jobs.index';
+
+    protected const string VIEW_DATA_KEY = 'jobs';
+
+    protected const string SORT_COLUMN = 'id';
+
+    protected const array SEARCH_COLUMNS = ['queue', 'payload'];
 
     public function deleteJob(int $id): void
     {
         DB::table('jobs')->where('id', $id)->delete();
-    }
-
-    public function render(): \Illuminate\Contracts\View\View
-    {
-        return view('livewire.admin.system.jobs.index', [
-            'jobs' => DB::table('jobs')
-                ->when($this->search, function ($query, $search): void {
-                    $query->where(function ($q) use ($search): void {
-                        $q->where('queue', 'like', '%'.$search.'%')
-                            ->orWhere('payload', 'like', '%'.$search.'%');
-                    });
-                })
-                ->orderByDesc('id')
-                ->paginate(25),
-        ]);
     }
 }

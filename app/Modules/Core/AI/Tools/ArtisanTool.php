@@ -5,10 +5,7 @@
 
 namespace App\Modules\Core\AI\Tools;
 
-use App\Base\AI\Enums\ToolCategory;
-use App\Base\AI\Enums\ToolRiskClass;
-use App\Base\AI\Tools\AbstractTool;
-use App\Base\AI\Tools\Concerns\FormatsProcessResult;
+use App\Base\AI\Tools\AbstractHighImpactProcessTool;
 use App\Base\AI\Tools\Schema\ToolSchemaBuilder;
 use App\Base\AI\Tools\ToolArgumentException;
 use App\Base\AI\Tools\ToolResult;
@@ -27,10 +24,8 @@ use Illuminate\Support\Facades\Process;
  * class uses proc_open without shell invocation, so metacharacters
  * have no shell-level effect. Timeout enforced per execution.
  */
-class ArtisanTool extends AbstractTool
+class ArtisanTool extends AbstractHighImpactProcessTool
 {
-    use FormatsProcessResult;
-
     /**
      * Default timeout in seconds for foreground execution.
      */
@@ -84,93 +79,41 @@ class ArtisanTool extends AbstractTool
             );
     }
 
-    public function category(): ToolCategory
-    {
-        return ToolCategory::SYSTEM;
-    }
-
-    public function riskClass(): ToolRiskClass
-    {
-        return ToolRiskClass::HIGH_IMPACT;
-    }
-
     public function requiredCapability(): ?string
     {
         return 'ai.tool_artisan.execute';
     }
 
-    /**
-     * Human-friendly display name for UI surfaces.
-     */
-    public function displayName(): string
-    {
-        return 'Artisan';
-    }
-
-    /**
-     * One-sentence plain-language summary for humans.
-     */
-    public function summary(): string
-    {
-        return 'Execute Laravel artisan commands.';
-    }
-
-    /**
-     * Longer explanation of what this tool does and does not do.
-     */
-    public function explanation(): string
-    {
-        return 'Runs `php artisan` commands within the BLB application. '
-            .'Useful for system administration tasks. This is a powerful tool '
-            .'that can modify application state — use with appropriate authorization.';
-    }
-
-    /**
-     * Sample inputs for the Try-It console.
-     *
-     * @return list<array{label: string, input: array<string, mixed>, runnable?: bool}>
-     */
-    public function testExamples(): array
+    protected function metadata(): array
     {
         return [
-            [
-                'label' => 'List routes',
-                'input' => ['command' => 'route:list'],
+            'display_name' => 'Artisan',
+            'summary' => 'Execute Laravel artisan commands.',
+            'explanation' => 'Runs `php artisan` commands within the BLB application. '
+                .'Useful for system administration tasks. This is a powerful tool '
+                .'that can modify application state — use with appropriate authorization.',
+            'test_examples' => [
+                [
+                    'label' => 'List routes',
+                    'input' => ['command' => 'route:list'],
+                ],
+                [
+                    'label' => 'Create a user',
+                    'input' => ['command' => 'blb:user:create alice@example.com --name=\'Alice Smith\' --role=core_admin'],
+                    'runnable' => false,
+                ],
+                [
+                    'label' => '⚠ Wipe database (destroys all data)',
+                    'input' => ['command' => 'db:wipe --force'],
+                    'runnable' => false,
+                ],
             ],
-            [
-                'label' => 'Create a user',
-                'input' => ['command' => 'blb:user:create alice@example.com --name=\'Alice Smith\' --role=core_admin'],
-                'runnable' => false,
+            'health_checks' => [
+                'Artisan process available',
             ],
-            [
-                'label' => '⚠ Wipe database (destroys all data)',
-                'input' => ['command' => 'db:wipe --force'],
-                'runnable' => false,
+            'limits' => [
+                'Commands execute in the application context',
             ],
-        ];
-    }
-
-    /**
-     * Descriptions of health probes this tool supports.
-     *
-     * @return list<string>
-     */
-    public function healthChecks(): array
-    {
-        return [
-            'Artisan process available',
-        ];
-    }
-
-    /**
-     * Known safety limits users should understand.
-     *
-     * @return list<string>
-     */
-    public function limits(): array
-    {
-        return [
-            'Commands execute in the application context',
         ];
     }
 
