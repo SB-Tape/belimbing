@@ -8,7 +8,7 @@ namespace App\Modules\Core\AI\Tools;
 use App\Base\AI\Enums\ToolCategory;
 use App\Base\AI\Enums\ToolRiskClass;
 use App\Base\AI\Tools\AbstractTool;
-use App\Base\AI\Tools\Concerns\HasToolMetadata;
+use App\Base\AI\Tools\Concerns\ProvidesToolMetadata;
 use App\Base\AI\Tools\Schema\ToolSchemaBuilder;
 use App\Base\AI\Tools\ToolArgumentException;
 use App\Base\AI\Tools\ToolResult;
@@ -24,7 +24,7 @@ use App\Base\AI\Tools\ToolResult;
  */
 class WriteJsTool extends AbstractTool
 {
-    use HasToolMetadata;
+    use ProvidesToolMetadata;
 
     private const int MAX_SCRIPT_LENGTH = 10000;
 
