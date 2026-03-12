@@ -10,7 +10,7 @@ use App\Base\AI\Tools\ToolResult;
 use App\Base\Authz\Contracts\AuthorizationService;
 use App\Base\Authz\DTO\AuthorizationDecision;
 use App\Base\Authz\Enums\AuthorizationReasonCode;
-use App\Modules\Core\AI\Services\DigitalWorkerToolRegistry;
+use App\Modules\Core\AI\Services\AgentToolRegistry;
 use App\Modules\Core\AI\Services\LaraCapabilityMatcher;
 use App\Modules\Core\AI\Services\LaraTaskDispatcher;
 use App\Modules\Core\AI\Tools\ArtisanTool;
@@ -133,15 +133,15 @@ function makeSimpleTool(string $name, ?string $capability = null): Tool
     };
 }
 
-describe('DigitalWorkerToolRegistry', function () {
+describe('AgentToolRegistry', function () {
     it('returns empty tool definitions when no tools registered', function () {
-        $registry = new DigitalWorkerToolRegistry(makeAllowAllAuthzService());
+        $registry = new AgentToolRegistry(makeAllowAllAuthzService());
 
         expect($registry->toolDefinitionsForCurrentUser())->toBe([]);
     });
 
     it('returns registered tools in OpenAI format', function () {
-        $registry = new DigitalWorkerToolRegistry(makeAllowAllAuthzService());
+        $registry = new AgentToolRegistry(makeAllowAllAuthzService());
         $registry->register(makeSimpleTool('echo'));
 
         $definitions = $registry->toolDefinitionsForCurrentUser();
@@ -153,7 +153,7 @@ describe('DigitalWorkerToolRegistry', function () {
     });
 
     it('executes a registered tool and returns result', function () {
-        $registry = new DigitalWorkerToolRegistry(makeAllowAllAuthzService());
+        $registry = new AgentToolRegistry(makeAllowAllAuthzService());
         $registry->register(makeSimpleTool('echo'));
 
         $result = $registry->execute('echo', ['input' => 'hello']);
@@ -162,7 +162,7 @@ describe('DigitalWorkerToolRegistry', function () {
     });
 
     it('returns error for unknown tool', function () {
-        $registry = new DigitalWorkerToolRegistry(makeAllowAllAuthzService());
+        $registry = new AgentToolRegistry(makeAllowAllAuthzService());
 
         $result = $registry->execute('nonexistent', []);
 
@@ -171,7 +171,7 @@ describe('DigitalWorkerToolRegistry', function () {
     });
 
     it('filters tools by user authz capabilities', function () {
-        $registry = new DigitalWorkerToolRegistry(makeDenyAllAuthzService());
+        $registry = new AgentToolRegistry(makeDenyAllAuthzService());
         $registry->register(makeSimpleTool('restricted', 'ai.tool_artisan.execute'));
         $registry->register(makeSimpleTool('public', null));
 
@@ -183,7 +183,7 @@ describe('DigitalWorkerToolRegistry', function () {
     });
 
     it('denies execution for tools the user lacks capability for', function () {
-        $registry = new DigitalWorkerToolRegistry(makeDenyAllAuthzService());
+        $registry = new AgentToolRegistry(makeDenyAllAuthzService());
         $registry->register(makeSimpleTool('restricted', 'ai.tool_artisan.execute'));
 
         $result = $registry->execute('restricted', ['input' => 'test']);
@@ -265,7 +265,7 @@ describe('DigitalWorkerToolRegistry', function () {
             }
         };
 
-        $registry = new DigitalWorkerToolRegistry(makeAllowAllAuthzService());
+        $registry = new AgentToolRegistry(makeAllowAllAuthzService());
         $registry->register($failingTool);
 
         $result = $registry->execute('fails', []);
@@ -308,12 +308,12 @@ describe('NavigateTool', function () {
         expect($tool->requiredCapability())->toBe('ai.tool_navigate.execute');
     });
 
-    it('returns lara-action block for valid URL', function () {
+    it('returns agent-action block for valid URL', function () {
         $tool = new NavigateTool;
 
         $result = $tool->execute(['url' => '/admin/users']);
 
-        expect((string) $result)->toContain('<lara-action>');
+        expect((string) $result)->toContain('<agent-action>');
         expect((string) $result)->toContain("Livewire.navigate('/admin/users')");
         expect((string) $result)->toContain('Navigation initiated');
     });
@@ -395,7 +395,7 @@ describe('DelegateTaskTool', function () {
         expect((string) $tool->execute(['task' => '   ']))->toContain(NO_TASK_DESCRIPTION_PROVIDED);
     });
 
-    it('returns error when no worker is available', function () {
+    it('returns error when no agent is available', function () {
         $matcher = Mockery::mock(LaraCapabilityMatcher::class);
         $matcher->shouldReceive('matchBestForTask')->andReturn(null);
 
@@ -404,10 +404,10 @@ describe('DelegateTaskTool', function () {
         $result = $tool->execute(['task' => 'Generate a report']);
 
         expect((string) $result)->toContain('Error');
-        expect((string) $result)->toContain('No suitable Digital Worker');
+        expect((string) $result)->toContain('No suitable Agent');
     });
 
-    it('dispatches task to best matching worker when no worker_id is given', function () {
+    it('dispatches task to best matching agent when no agent_id is given', function () {
         $matcher = Mockery::mock(LaraCapabilityMatcher::class);
         $matcher->shouldReceive('matchBestForTask')->with(GENERATE_Q1_REPORT)->andReturn([
             'employee_id' => 42,
@@ -417,7 +417,7 @@ describe('DelegateTaskTool', function () {
 
         $dispatcher = Mockery::mock(LaraTaskDispatcher::class);
         $dispatcher->shouldReceive('dispatchForCurrentUser')->with(42, GENERATE_Q1_REPORT)->andReturn([
-            'dispatch_id' => 'dw_dispatch_abc123',
+            'dispatch_id' => 'agent_dispatch_abc123',
             'status' => 'queued',
             'employee_id' => 42,
             'employee_name' => REPORT_BOT,
@@ -431,12 +431,12 @@ describe('DelegateTaskTool', function () {
         $result = $tool->execute(['task' => GENERATE_Q1_REPORT]);
 
         expect((string) $result)->toContain(REPORT_BOT);
-        expect((string) $result)->toContain('dw_dispatch_abc123');
+        expect((string) $result)->toContain('agent_dispatch_abc123');
     });
 
-    it('dispatches to a specific worker when worker_id is given', function () {
+    it('dispatches to a specific agent when agent_id is given', function () {
         $matcher = Mockery::mock(LaraCapabilityMatcher::class);
-        $matcher->shouldReceive('findAccessibleWorkerById')->with(7)->andReturn([
+        $matcher->shouldReceive('findAccessibleAgentById')->with(7)->andReturn([
             'employee_id' => 7,
             'name' => DATA_ANALYST,
             'capability_summary' => 'Analytics',
@@ -444,7 +444,7 @@ describe('DelegateTaskTool', function () {
 
         $dispatcher = Mockery::mock(LaraTaskDispatcher::class);
         $dispatcher->shouldReceive('dispatchForCurrentUser')->andReturn([
-            'dispatch_id' => 'dw_dispatch_xyz',
+            'dispatch_id' => 'agent_dispatch_xyz',
             'status' => 'queued',
             'employee_id' => 7,
             'employee_name' => DATA_ANALYST,
@@ -455,10 +455,10 @@ describe('DelegateTaskTool', function () {
 
         $tool = new DelegateTaskTool($dispatcher, $matcher);
 
-        $result = $tool->execute(['task' => 'Run analytics', 'worker_id' => 7]);
+        $result = $tool->execute(['task' => 'Run analytics', 'agent_id' => 7]);
 
         expect((string) $result)->toContain(DATA_ANALYST);
-        expect((string) $result)->toContain('dw_dispatch_xyz');
+        expect((string) $result)->toContain('agent_dispatch_xyz');
     });
 
     it('returns error when dispatcher throws', function () {

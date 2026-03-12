@@ -1,21 +1,21 @@
-# Lara — BLB System Digital Worker
+# Lara — BLB System Agent
 
 **Document Type:** Architecture Specification
 **Status:** Draft
 **Last Updated:** 2026-03-09
-**Related:** `docs/architecture/ai-digital-worker.md`, `docs/architecture/user-employee-company.md`, `docs/Base/AI/tool-framework.md`
+**Related:** `docs/architecture/ai-agent.md`, `docs/architecture/user-employee-company.md`, `docs/Base/AI/tool-framework.md`
 
 ---
 
 ## 1. Problem Essence
 
-BLB is an AI-native framework, but AI activation is currently optional and user-initiated. There is no built-in AI presence that guides users through setup, configuration, and daily operations. Lara fills this gap as a **framework-level system Digital Worker** — always present, provisioned at install, and the default AI touchpoint for every user.
+BLB is an AI-native framework, but AI activation is currently optional and user-initiated. There is no built-in AI presence that guides users through setup, configuration, and daily operations. Lara fills this gap as a **framework-level system Agent** — always present, provisioned at install, and the default AI touchpoint for every user.
 
 ---
 
 ## 2. Decision Summary
 
-1. Lara is a **fixed, system-level Digital Worker** — not a user-provisioned DW.
+1. Lara is a **fixed, system-level Agent** — not a user-provisioned agent.
 2. Her Employee record is seeded during installation, mirroring the Licensee pattern.
 3. She is **delete-protected** and **non-archivable** (same boot-level guard as the Licensee company).
 4. She belongs to the Licensee company (`company_id = Company::LICENSEE_ID`).
@@ -26,34 +26,34 @@ BLB is an AI-native framework, but AI activation is currently optional and user-
 
 ---
 
-## 3. Lara vs Regular Digital Workers
+## 3. Lara vs Regular Agents
 
-Lara and other Digital Workers share the same tool-calling infrastructure (`Tool` contract, `DigitalWorkerToolRegistry`, `AgenticRuntime`). Any tool built for one is available to all — the distinction is **not** in the tools themselves, but in who Lara is and what she's authorized to do.
+Lara and other Agents share the same tool-calling infrastructure (`Tool` contract, `AgentToolRegistry`, `AgenticRuntime`). Any tool built for one is available to all — the distinction is **not** in the tools themselves, but in who Lara is and what she's authorized to do.
 
 ### What makes Lara unique
 
-| Aspect | Lara (System DW) | Regular DWs |
+| Aspect | Lara (System Agent) | Regular agents |
 |--------|-------------------|-------------|
 | **Identity** | Framework-controlled: fixed name, avatar, personality, mission. Seeded at install, delete-protected. | User-provisioned: name, role, and behavior configured by supervisors. |
-| **Prompt & personality** | Immutable core prompt owned by the framework (`system_prompt.md`). Optional append-only extension via `AI_LARA_PROMPT_EXTENSION_PATH`. | Fully configurable prompt per workspace/DW. |
+| **Prompt & personality** | Immutable core prompt owned by the framework (`system_prompt.md`). Optional append-only extension via `AI_LARA_PROMPT_EXTENSION_PATH`. | Fully configurable prompt per workspace/agent. |
 | **Access scope** | Every authenticated user. Lara is the default AI touchpoint for the entire platform. | Scoped to supervisor's workspace — only authorized users interact. |
-| **Admin capabilities** | Typically granted `dw_power_user` role: artisan, bash, navigate, write_js. Lara helps admins configure the platform itself. | Typically granted narrow, task-specific tool access (e.g., `ai.tool_navigate.execute` only). |
-| **Orchestration** | Can discover and delegate work to other DWs. Acts as the AI coordinator layer. | Execute their own tasks. Do not orchestrate other DWs. |
+| **Admin capabilities** | Typically granted `agent_power_user` role: artisan, bash, navigate, write_js. Lara helps admins configure the platform itself. | Typically granted narrow, task-specific tool access (e.g., `ai.tool_navigate.execute` only). |
+| **Orchestration** | Can discover and delegate work to other agents. Acts as the AI coordinator layer. | Execute their own tasks. Do not orchestrate other agents. |
 
-### Tool infrastructure is DW-generic
+### Tool infrastructure is agent-generic
 
 The tool layer is intentionally **not** Lara-specific:
 
-- `Tool` — framework-level contract in `Base/AI/Contracts/` that any DW tool implements
+- `Tool` — framework-level contract in `Base/AI/Contracts/` that any agent tool implements
 - `AbstractTool` / `AbstractActionTool` — base classes in `Base/AI/Tools/` providing sealed execution, argument validation, schema building, and action dispatch
-- `DigitalWorkerToolRegistry` — authz-gated registry shared by all DW runtimes
-- `AgenticRuntime` — agentic loop usable by any DW, not just Lara
+- `AgentToolRegistry` — authz-gated registry shared by all agent runtimes
+- `AgenticRuntime` — agentic loop usable by any agent, not just Lara
 - Authz capabilities use generic `ai.tool_*` prefix (e.g., `ai.tool_artisan.execute`)
-- The `dw_power_user` role bundles all tool capabilities — assign it to Lara or any DW that needs full tool access
+- The `agent_power_user` role bundles all tool capabilities — assign it to Lara or any agent that needs full tool access
 
 > **See** `docs/Base/AI/tool-framework.md` for the complete tool framework reference: contract, base classes, schema builder, result types, and how to create new tools.
 
-**Lara's elevated access is a policy decision (authz role assignment), not a code-level privilege.** A sales-focused DW might only have `ai.tool_navigate.execute` and `ai.tool_query_data.execute`, while Lara — as the system administrator's AI partner — gets the full tool suite. The framework enforces this through the same capability system that governs human users.
+**Lara's elevated access is a policy decision (authz role assignment), not a code-level privilege.** A sales-focused agent might only have `ai.tool_navigate.execute` and `ai.tool_query_data.execute`, while Lara — as the system administrator's AI partner — gets the full tool suite. The framework enforces this through the same capability system that governs human users.
 
 ---
 
@@ -75,7 +75,7 @@ The tool layer is intentionally **not** Lara-specific:
 
 ### 5.1 Employee Record
 
-Lara is an Employee row with `employee_type = 'digital_worker'` and a well-known identifier.
+Lara is an Employee row with `employee_type = 'agent'` and a well-known identifier.
 
 **Constant:**
 
@@ -90,7 +90,7 @@ public const LARA_ID = 1;
 |---|---|
 | `id` | `Employee::LARA_ID` (1) |
 | `company_id` | `Company::LICENSEE_ID` (1) |
-| `employee_type` | `digital_worker` |
+| `employee_type` | `agent` |
 | `employee_number` | `SYS-001` |
 | `full_name` | `Lara Belimbing` |
 | `short_name` | `Lara` |
@@ -105,7 +105,7 @@ Lara is identified by `Employee::LARA_ID = 1`, mirroring the Licensee pattern (`
 
 **Why not an `is_system` flag?**
 - The Licensee pattern proves a well-known ID is sufficient — `Company` has no `is_system` column.
-- Only one system DW exists (Lara). A boolean column where exactly one row is `true` is schema noise.
+- Only one system agent exists (Lara). A boolean column where exactly one row is `true` is schema noise.
 - All guards and queries use the constant directly: `$employee->isLara()`, `Employee::query()->find(Employee::LARA_ID)`.
 
 **Model helpers:**
@@ -174,7 +174,7 @@ Shows a single-action page:
 ### 6.2 Lara Record Exists But No Provider
 
 Shows the LLM configuration step:
-- Select from available company providers (reuse provider selector from DW onboarding §16 of `ai-digital-worker.md`).
+- Select from available company providers (reuse provider selector from agent onboarding §16 of `ai-agent.md`).
 - Pick a model.
 - "Activate" writes `config.json` to Lara's workspace.
 
@@ -208,7 +208,7 @@ Extend the existing status bar with a Lara activation check:
 
 ### 9.1 Global Availability
 
-Unlike regular DWs (scoped to supervisor's playground), Lara is accessible to **every authenticated user**. She is a shared resource.
+Unlike regular agents (scoped to supervisor's playground), Lara is accessible to **every authenticated user**. She is a shared resource.
 
 **Entry points:**
 1. **Status bar trigger** — Small icon/button in the status bar (always visible) that opens a Lara chat panel.
@@ -221,14 +221,14 @@ Each user gets their own session with Lara. To avoid ambiguity, session ownershi
 
 | Worker Type | Session Key | Path Pattern | Access Rule |
 |---|---|---|---|
-| Regular DW | `(employee_id, session_id)` | `workspace/{employee_id}/sessions/{session_id}.{meta|jsonl}` | Supervisor-scoped (current rule) |
+| Regular agent | `(employee_id, session_id)` | `workspace/{employee_id}/sessions/{session_id}.{meta|jsonl}` | Supervisor-scoped (current rule) |
 | Lara | `(Employee::LARA_ID, user_id, session_id)` | `workspace/{LARA_ID}/sessions/{user_id}/{session_id}.{meta|jsonl}` | Any authenticated user, but only for their own `user_id` |
 
 This keeps Lara globally available while preserving per-user session isolation.
 
 ### 9.3 Authorization
 
-Lara acts under `PrincipalType::DIGITAL_WORKER` like any DW. Her `acting_for_user_id` is the **current user** interacting with her (not a fixed supervisor). This means:
+Lara acts under `PrincipalType::AGENT` like any agent. Her `acting_for_user_id` is the **current user** interacting with her (not a fixed supervisor). This means:
 - Lara's effective permissions are bounded by the **current user's** permissions.
 - She cannot escalate beyond what the interacting user can do.
 - This is a natural fit — she's an assistant to whoever is using her.
@@ -248,11 +248,11 @@ Lara is the embodiment of BLB. She carries the framework's vision and spirit —
 - **Quality-minded** — She reflects BLB's obsession with doing things right. She suggests the correct approach, not the quick hack. She respects the user's time by being precise and clear.
 - **Honest** — She tells users what she can and cannot do. She admits when something is a known limitation. She doesn't oversell. BLB rejects vendor lock-in and marketing spin; Lara is the anti-sales AI.
 - **Passionate** — She genuinely cares about the user's success with BLB. She's not a cold FAQ bot — she's a guide who wants you to succeed because your success is BLB's success.
-- **Empathetic** — She listens to what the user is trying to achieve, not just what they literally ask. She anticipates needs, offers suggestions, and proactively proposes approaches. When a user describes a business problem, Lara translates it into actionable BLB steps — and when the work requires hands-on execution, she delegates to the right Digital Worker.
+- **Empathetic** — She listens to what the user is trying to achieve, not just what they literally ask. She anticipates needs, offers suggestions, and proactively proposes approaches. When a user describes a business problem, Lara translates it into actionable BLB steps — and when the work requires hands-on execution, she delegates to the right Agent.
 
 **Lara knows BLB inside and out.** Architecture, modules, conventions, configuration, deployment — she is the perfect guide because BLB is her home. She doesn't just know the docs; she understands the design decisions behind them and can explain the *why*, not just the *how*.
 
-**Lara is an orchestrator.** When a task goes beyond guidance — code generation, module scaffolding, data migration, UI work — Lara identifies the right Digital Worker (subagent) for the job and assigns the task with clear context. She knows each DW's capabilities and matches work to skill. The user talks to Lara; Lara dispatches the work. This makes Lara the single entry point for getting things done in BLB: she guides what she can, delegates what she can't, and follows up on what was dispatched.
+**Lara is an orchestrator.** When a task goes beyond guidance — code generation, module scaffolding, data migration, UI work — Lara identifies the right Agent (subagent) for the job and assigns the task with clear context. She knows each agent's capabilities and matches work to skill. The user talks to Lara; Lara dispatches the work. This makes Lara the single entry point for getting things done in BLB: she guides what she can, delegates what she can't, and follows up on what was dispatched.
 
 ### 10.2 Purpose (Fixed, Not Configurable)
 
@@ -262,8 +262,8 @@ Lara's purpose is hardcoded — she is the BLB framework guide:
 - **Operational help** — Explain features, suggest configurations, troubleshoot issues.
 - **Framework knowledge** — Understands BLB's architecture, modules, and conventions at a depth no external AI can match.
 - **Onboarding companion** — Helps new users discover what BLB can do and how to make it theirs.
-- **Task orchestrator** — When a user needs something built or changed, Lara selects and assigns the right DW subagent for the job, providing it with clear context and following up on results.
-- **AI workforce bootstrap** — On a fresh install with no other DWs, Lara helps users create their first Digital Worker. She bootstraps the AI team — guiding the user through DW onboarding, suggesting roles, and recommending model assignments based on the task.
+- **Task orchestrator** — When a user needs something built or changed, Lara selects and assigns the right agent subagent for the job, providing it with clear context and following up on results.
+- **AI workforce bootstrap** — On a fresh install with no other agents, Lara helps users create their first Agent. She bootstraps the AI team — guiding the user through agent onboarding, suggesting roles, and recommending model assignments based on the task.
 
 ### 10.3 System Prompt
 
@@ -276,9 +276,9 @@ Lara exposes explicit command affordances for power workflows:
 - `/go <target>` for BLB page navigation (same-origin, framework-approved targets),
 - `/guide <topic>` for architecture/module references,
 - `/models <filter>` for advanced model queries with boolean filtering,
-- `/delegate <task>` for Digital Worker delegation.
+- `/delegate <task>` for Agent delegation.
 
-This differs from regular DWs whose identity comes from workspace files. Lara's identity is part of the framework — she evolves with BLB, not independently of it.
+This differs from regular agents whose identity comes from workspace files. Lara's identity is part of the framework — she evolves with BLB, not independently of it.
 
 ### 10.4 LLM Model Recommendation
 
@@ -307,7 +307,7 @@ The setup page should present model recommendations with clear rationale:
 ### 10.5 Workspace
 
 Lara still gets a workspace directory (`workspace/{LARA_ID}/`) for:
-- `config.json` — LLM provider/model selection (same as any DW).
+- `config.json` — LLM provider/model selection (same as any agent).
 - `sessions/{user_id}/` — Per-user Lara conversation history.
 - Future: `MEMORY.md` and memory system.
 
@@ -319,7 +319,7 @@ She does **not** get `IDENTITY.md`, `SOUL.md`, etc. — her identity is framewor
 
 ## 11. Graceful Degradation
 
-Lara is a critical-path component — unlike a regular DW (where downtime only affects one supervisor), Lara being unavailable affects every authenticated user. The system must handle this gracefully:
+Lara is a critical-path component — unlike a regular agent (where downtime only affects one supervisor), Lara being unavailable affects every authenticated user. The system must handle this gracefully:
 
 | Failure | User Experience |
 |---|---|
@@ -348,9 +348,9 @@ Lara is a critical-path component — unlike a regular DW (where downtime only a
 2. Keyboard shortcut integration.
 3. Framework-managed system prompt assembly.
 4. Context injection (installed modules, environment info).
-5. DW orchestration — Lara can query available DWs, match capabilities to tasks, and dispatch work to subagents.
+5. agent orchestration — Lara can query available agents, match capabilities to tasks, and dispatch work to subagents.
 6. **TODO:** Extend `SessionManager` / `MessageManager` with a dual access policy + path strategy:
-   - Regular DW: supervisor-scoped access (existing rule).
+   - Regular agent: supervisor-scoped access (existing rule).
    - Lara: authenticated user-scoped access with per-user session path `sessions/{user_id}/`.
 
 ### 11.2.1 Recommended Execution Order
@@ -359,14 +359,14 @@ Lara is a critical-path component — unlike a regular DW (where downtime only a
 2. **Global chat surface second** — Add the app-wide Lara panel/overlay and wire status-bar entry so users have a single, always-available access point.
 3. **Keyboard shortcut third** — Add a global toggle shortcut for fast access once the overlay exists.
 4. **Prompt + context layer fourth** — Build framework-managed prompt assembly, then inject runtime context (modules, providers, environment) through a dedicated context provider.
-5. **Orchestration primitives fifth** — Add DW discovery/capability matching/dispatch contracts after prompt/context is stable.
+5. **Orchestration primitives fifth** — Add agent discovery/capability matching/dispatch contracts after prompt/context is stable.
 6. **Validation throughout** — Add unit tests for session/path policy and prompt assembly, plus integration tests for setup-to-chat user flows.
 
 ### 11.3 Out of Scope
 
 1. ~~Lara-specific tools or capabilities~~ — **Now in scope**, see §13 Tool Calling.
 2. Multi-language support for Lara's personality.
-3. Lara's memory system (follows general DW memory architecture from `ai-digital-worker.md` §14).
+3. Lara's memory system (follows general agent memory architecture from `ai-agent.md` §14).
 
 ---
 
@@ -380,7 +380,7 @@ Lara is a critical-path component — unlike a regular DW (where downtime only a
    - Core Lara prompt remains framework-managed and immutable.
    - Licensees may provide an append-only extension file for additional local guidance.
 2. **Lara visual identity policy**
-   - Lara is always rendered with a distinct identity marker (`System DW` badge + dedicated icon treatment) across global entry points.
+   - Lara is always rendered with a distinct identity marker (`System Agent` badge + dedicated icon treatment) across global entry points.
    - Styling can follow theme tokens, but identity semantics remain fixed.
 
 ---
@@ -398,7 +398,7 @@ User → Chat Overlay → AgenticRuntime → LlmClient (with tools)
                                               ↓
                                     Tool calls ← LLM response
                                               ↓
-                                    DigitalWorkerToolRegistry → execute tools
+                                    AgentToolRegistry → execute tools
                                               ↓
                                     Tool results → back to LLM
                                               ↓
@@ -411,18 +411,18 @@ The agentic loop runs iteratively: the LLM receives the conversation + tool defi
 
 | Component | Location | Responsibility |
 |-----------|----------|----------------|
-| `DigitalWorkerTool` | `app/Modules/Core/AI/Contracts/DigitalWorkerTool.php` | Interface for all DW tools — name, description, parameters schema, authz capability, execute |
-| `DigitalWorkerToolRegistry` | `app/Modules/Core/AI/Services/DigitalWorkerToolRegistry.php` | Discovers and registers tools, generates OpenAI-format definitions filtered by user authz, dispatches execution |
-| `AgenticRuntime` | `app/Modules/Core/AI/Services/AgenticRuntime.php` | Agentic loop: LLM call → tool execution → feed results → repeat. Uses same config resolution as `DigitalWorkerRuntime` |
+| `AgentTool` | `app/Modules/Core/AI/Contracts/AgentTool.php` | Interface for all agent tools — name, description, parameters schema, authz capability, execute |
+| `AgentToolRegistry` | `app/Modules/Core/AI/Services/AgentToolRegistry.php` | Discovers and registers tools, generates OpenAI-format definitions filtered by user authz, dispatches execution |
+| `AgenticRuntime` | `app/Modules/Core/AI/Services/AgenticRuntime.php` | Agentic loop: LLM call → tool execution → feed results → repeat. Uses same config resolution as `AgentRuntime` |
 | `LlmClient` (updated) | `app/Base/AI/Services/LlmClient.php` | Now supports `tools` and `toolChoice` parameters, parses `tool_calls` from LLM response |
 | `ArtisanTool` | `app/Modules/Core/AI/Tools/ArtisanTool.php` | Execute `php artisan` commands (process-isolated, no shell) |
 | `BashTool` | `app/Modules/Core/AI/Tools/BashTool.php` | Execute arbitrary bash commands (30s timeout, project root) |
-| `NavigateTool` | `app/Modules/Core/AI/Tools/NavigateTool.php` | Browser navigation via `<lara-action>` blocks |
+| `NavigateTool` | `app/Modules/Core/AI/Tools/NavigateTool.php` | Browser navigation via `<agent-action>` blocks |
 
 ### 14.4 Tool Contract
 
 ```php
-interface DigitalWorkerTool
+interface AgentTool
 {
     public function name(): string;              // OpenAI function name
     public function description(): string;        // LLM-facing description
@@ -433,13 +433,13 @@ interface DigitalWorkerTool
 ```
 
 Tools are registered in the AI module's `ServiceProvider`. Adding a new tool requires:
-1. Implement `DigitalWorkerTool` interface
+1. Implement `AgentTool` interface
 2. Register in `ServiceProvider::register()` via `$registry->register(new MyTool)`
 3. Add authz capability to `Config/authz.php` if needed
 
 ### 14.5 Authorization
 
-Each tool declares an optional authz capability. The `DigitalWorkerToolRegistry` checks the current user's capabilities before:
+Each tool declares an optional authz capability. The `AgentToolRegistry` checks the current user's capabilities before:
 - Including the tool in LLM definitions (tool won't appear if user lacks capability)
 - Executing the tool (defense-in-depth)
 
@@ -450,7 +450,7 @@ Each tool declares an optional authz capability. The `DigitalWorkerToolRegistry`
 | `navigate` | `ai.tool_navigate.execute` | Browser page navigation |
 | (future) | `ai.tool_write_js.execute` | Write and execute client-side JS |
 
-System role `dw_power_user` grants all DW tool capabilities. The `digital_worker_operator` role includes navigate but not artisan/bash.
+System role `agent_power_user` grants all agent tool capabilities. The `agent_operator` role includes navigate but not artisan/bash.
 
 ### 14.6 Safety Guardrails
 
@@ -499,4 +499,4 @@ This is fully backward-compatible: existing callers that don't pass tools/toolCh
 | 0.2 | 2026-03-05 | AI + Kiat | Added explicit session ownership/path matrix and TODO to extend SessionManager/MessageManager for Lara user-scoped sessions |
 | 0.3 | 2026-03-06 | AI + Kiat | Finalized prompt extension contract and Lara UI identity policy; narrowed remaining open question to rate limiting |
 | 0.4 | 2026-03-06 | AI + Kiat | Added Lara command affordances (`/go`, `/guide`, `/models`, `/delegate`) and documented navigation/query behavior |
-| 0.5 | 2026-03-07 | AI + Kiat | Added §13 Tool Calling & Agentic Runtime — DigitalWorkerTool contract, DigitalWorkerToolRegistry, AgenticRuntime, ArtisanTool, BashTool, NavigateTool, authz capabilities |
+| 0.5 | 2026-03-07 | AI + Kiat | Added §13 Tool Calling & Agentic Runtime — AgentTool contract, AgentToolRegistry, AgenticRuntime, ArtisanTool, BashTool, NavigateTool, authz capabilities |

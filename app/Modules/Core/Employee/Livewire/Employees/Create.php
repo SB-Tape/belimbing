@@ -55,7 +55,7 @@ class Create extends Component
     {
         $validated = $this->validate($this->rules());
 
-        if (($validated['employeeType'] ?? '') === 'digital_worker') {
+        if (($validated['employeeType'] ?? '') === 'agent') {
             $validated['userId'] = null;
         }
 
@@ -90,7 +90,7 @@ class Create extends Component
             'departmentId' => ['nullable', 'integer', 'exists:company_departments,id'],
             'userId' => ['nullable', 'integer', 'exists:users,id'],
             'supervisorId' => [
-                $this->employeeType === 'digital_worker' ? 'required' : 'nullable',
+                $this->employeeType === 'agent' ? 'required' : 'nullable',
                 'integer',
                 Rule::exists(Employee::class, 'id'),
             ],

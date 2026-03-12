@@ -88,7 +88,7 @@ Employee
 **Relationship to User:**
 - `belongsTo(User)` - Optional link to system user account
 - `nullable` because:
-  - Not all employees need system access (e.g., hourly workers, field staff)
+  - Not all employees need system access (e.g., hourly agents, field staff)
   - External contractors may have employee records but no user account
   - Historical employment records may outlive user accounts
 
@@ -151,7 +151,7 @@ $employee = Employee::create([
 
 ### 2. Internal Employee WITHOUT System Access
 
-**Scenario:** Hourly worker, field staff, or factory worker who doesn't need system access.
+**Scenario:** Hourly agent, field staff, or factory agent who doesn't need system access.
 
 ```php
 // Employee record only (no user account)
@@ -283,7 +283,7 @@ Employee.user_id → User.id (nullOnDelete)
 **Purpose:** Allow HR records to exist independently of system access.
 
 **Benefits:**
-- Not all employees need system access (hourly workers, field staff)
+- Not all employees need system access (hourly agents, field staff)
 - Historical employment records can outlive user accounts
 - External contractors can have employee records without full system access
 - Supports data retention policies (delete user, keep HR record)

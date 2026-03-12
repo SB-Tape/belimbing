@@ -47,11 +47,11 @@ describe('search results', function () {
         expect($lower)->toMatch('/auth(orization)?/');
     });
 
-    it('finds digital worker documentation', function () {
-        $result = (string) $this->tool->execute(['topic' => 'digital worker']);
+    it('finds agent documentation', function () {
+        $result = (string) $this->tool->execute(['topic' => 'agent']);
         $lower = mb_strtolower($result);
 
-        expect($lower)->toContain('digital worker');
+        expect($lower)->toContain('agent');
     });
 
     it('returns no results message for unknown topic', function () {

@@ -15,9 +15,9 @@ use App\Base\AI\Tools\ToolResult;
 use Illuminate\Support\Facades\Process;
 
 /**
- * Artisan command execution tool for Digital Workers.
+ * Artisan command execution tool for Agents.
  *
- * Allows a DW to run `php artisan` commands on behalf of the user.
+ * Allows a agent to run `php artisan` commands on behalf of the user.
  * Supports foreground execution with configurable timeout, and background
  * execution via Laravel queues (stub — pending queue job implementation).
  *

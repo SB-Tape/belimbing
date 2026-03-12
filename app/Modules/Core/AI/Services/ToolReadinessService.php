@@ -10,7 +10,7 @@ use App\Modules\Core\AI\DTO\ToolMetadata;
 use App\Modules\Core\AI\Enums\ToolReadiness;
 
 /**
- * Computes readiness and verification state for Digital Worker tools.
+ * Computes readiness and verification state for Agent tools.
  *
  * Readiness answers "can this tool be used?" by checking registration,
  * configuration, and authorization. Verification state comes from
@@ -19,7 +19,7 @@ use App\Modules\Core\AI\Enums\ToolReadiness;
 class ToolReadinessService
 {
     public function __construct(
-        private readonly DigitalWorkerToolRegistry $toolRegistry,
+        private readonly AgentToolRegistry $toolRegistry,
         private readonly ToolMetadataRegistry $metadataRegistry,
         private readonly SettingsService $settings,
     ) {}

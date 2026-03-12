@@ -13,10 +13,10 @@ use App\Base\AI\Tools\ToolArgumentException;
 use App\Base\AI\Tools\ToolResult;
 
 /**
- * Client-side JavaScript execution tool for Digital Workers.
+ * Client-side JavaScript execution tool for agents.
  *
- * Allows a DW to execute JavaScript in the user's browser via a
- * `<lara-action>` block that the client-side executor handles.
+ * Allows an agent to execute JavaScript in the user's browser via an
+ * `<agent-action>` block that the client-side executor handles.
  * Scripts are validated for safety before execution.
  *
  * Gated by `ai.tool_write_js.execute` authz capability.
@@ -53,7 +53,7 @@ class WriteJsTool extends AbstractTool
     public function description(): string
     {
         return 'Execute client-side JavaScript in the user\'s browser. '
-            .'Returns a lara-action block for safe client-side execution. '
+            .'Returns an agent-action block for safe client-side execution. '
             .'Use for dynamic UI updates, clipboard operations, DOM manipulation, or browser API access. '
             .'Scripts must be CSP-compliant.';
     }
@@ -162,6 +162,6 @@ class WriteJsTool extends AbstractTool
             }
         }
 
-        return ToolResult::success('<lara-action>'.$script.'</lara-action>Script executed: '.$description.'.');
+        return ToolResult::success('<agent-action>'.$script.'</agent-action>Script executed: '.$description.'.');
     }
 }

@@ -10,13 +10,13 @@ use App\Modules\Core\AI\DTO\Message;
 use Illuminate\Support\Str;
 
 /**
- * Agentic runtime for Digital Workers with tool-calling loop.
+ * Agentic runtime for Agents with tool-calling loop.
  *
- * Extends the standard DW runtime pattern with an iterative tool-calling loop:
+ * Extends the standard agent runtime pattern with an iterative tool-calling loop:
  * LLM call → tool execution → feed results back → LLM call → ... until the
  * LLM produces a final text response or the maximum iteration limit is reached.
  *
- * Uses the same config resolution and fallback strategy as DigitalWorkerRuntime
+ * Uses the same config resolution and fallback strategy as AgentRuntime
  * for the initial LLM call. Subsequent loop iterations reuse the resolved
  * provider/model (no mid-loop fallback).
  */
@@ -27,7 +27,7 @@ class AgenticRuntime
     public function __construct(
         private readonly ConfigResolver $configResolver,
         private readonly LlmClient $llmClient,
-        private readonly DigitalWorkerToolRegistry $toolRegistry,
+        private readonly AgentToolRegistry $toolRegistry,
         private readonly RuntimeCredentialResolver $credentialResolver,
         private readonly RuntimeMessageBuilder $messageBuilder,
         private readonly RuntimeResponseFactory $responseFactory,
@@ -78,7 +78,7 @@ class AgenticRuntime
      * is streamed as SSE-compatible events. Yields arrays with 'event' and 'data' keys.
      *
      * @param  list<Message>  $messages  Conversation history
-     * @param  int  $employeeId  Digital Worker employee ID
+     * @param  int  $employeeId  Agent employee ID
      * @param  string|null  $systemPrompt  System prompt
      * @param  string|null  $modelOverride  Optional model ID override
      * @return \Generator<int, array{event: string, data: array<string, mixed>}>
@@ -323,13 +323,13 @@ class AgenticRuntime
     }
 
     /**
-     * Extract Lara client-action blocks from tool output.
+     * Extract agent client-action blocks from tool output.
      *
      * @return list<string>
      */
     private function extractClientActions(string $toolResult): array
     {
-        if (preg_match_all('/<lara-action>.*?<\/lara-action>/s', $toolResult, $matches) < 1) {
+        if (preg_match_all('/<agent-action>.*?<\/agent-action>/s', $toolResult, $matches) < 1) {
             return [];
         }
 

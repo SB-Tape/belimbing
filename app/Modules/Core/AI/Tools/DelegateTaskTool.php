@@ -15,10 +15,10 @@ use App\Modules\Core\AI\Services\LaraCapabilityMatcher;
 use App\Modules\Core\AI\Services\LaraTaskDispatcher;
 
 /**
- * Task delegation tool for Digital Workers.
+ * Task delegation tool for Agents.
  *
- * Dispatches a task to a specific Digital Worker or auto-matches the best
- * available worker based on task description. Uses LaraTaskDispatcher for
+ * Dispatches a task to a specific Agent or auto-matches the best
+ * available agent based on task description. Uses LaraTaskDispatcher for
  * dispatch orchestration and LaraCapabilityMatcher for auto-matching.
  *
  * Returns a dispatch ID that can be used with delegation_status to poll
@@ -42,10 +42,10 @@ class DelegateTaskTool extends AbstractTool
 
     public function description(): string
     {
-        return 'Dispatch a task to a Digital Worker for execution. '
-            .'Provide a task description and optionally a specific worker_id '
-            .'(from worker_list). If no worker_id is given, the best available '
-            .'worker is auto-selected based on the task description. '
+        return 'Dispatch a task to a Agent for execution. '
+            .'Provide a task description and optionally a specific agent_id '
+            .'(from agent_list). If no agent_id is given, the best available '
+            .'agent is auto-selected based on the task description. '
             .'Returns a dispatch_id for tracking status via delegation_status.';
     }
 
@@ -55,13 +55,13 @@ class DelegateTaskTool extends AbstractTool
             ->string(
                 'task',
                 'Description of the task to delegate. Be specific about '
-                    .'what the worker should accomplish.'
+                    .'what the agent should accomplish.'
             )->required()
             ->integer(
-                'worker_id',
-                'Employee ID of the target Digital Worker. '
-                    .'Use worker_list to discover available workers and their IDs. '
-                    .'If omitted, the best-matching worker is auto-selected.'
+                'agent_id',
+                'Employee ID of the target Agent. '
+                    .'Use agent_list to discover available agents and their IDs. '
+                    .'If omitted, the best-matching agent is auto-selected.'
             );
     }
 
@@ -93,7 +93,7 @@ class DelegateTaskTool extends AbstractTool
      */
     public function summary(): string
     {
-        return 'Dispatch work to another Digital Worker.';
+        return 'Dispatch work to another Agent.';
     }
 
     /**
@@ -101,9 +101,9 @@ class DelegateTaskTool extends AbstractTool
      */
     public function explanation(): string
     {
-        return 'Queues a task for execution by another Digital Worker. Returns a dispatch ID '
-            .'immediately. The dispatched DW runs asynchronously via Laravel queues. '
-            .'This tool can only delegate to workers the current user supervises.';
+        return 'Queues a task for execution by another Agent. Returns a dispatch ID '
+            .'immediately. The dispatched agent runs asynchronously via Laravel queues. '
+            .'This tool can only delegate to agents the current user supervises.';
     }
 
     /**
@@ -114,7 +114,7 @@ class DelegateTaskTool extends AbstractTool
     public function setupRequirements(): array
     {
         return [
-            'At least one other Digital Worker configured',
+            'At least one other Agent configured',
             'Laravel queue worker running',
         ];
     }
@@ -143,7 +143,7 @@ class DelegateTaskTool extends AbstractTool
     {
         return [
             'Queue connection active',
-            'Delegable workers available',
+            'Delegable agents available',
         ];
     }
 
@@ -156,7 +156,7 @@ class DelegateTaskTool extends AbstractTool
     {
         return [
             'Default 300-second timeout per delegation',
-            'Scoped to supervised workers',
+            'Scoped to supervised agents',
         ];
     }
 
@@ -170,18 +170,18 @@ class DelegateTaskTool extends AbstractTool
             );
         }
 
-        $workerId = $this->resolveWorkerId($arguments, $task);
+        $agentId = $this->resolveAgentId($arguments, $task);
         $result = null;
 
-        if ($workerId === null) {
+        if ($agentId === null) {
             $result = ToolResult::error(
-                'No suitable Digital Worker found for this task. '
-                    .'Use worker_list to see available workers, then specify a worker_id explicitly.',
-                'no_worker_match',
+                'No suitable Agent found for this task. '
+                    .'Use agent_list to see available agents, then specify an agent_id explicitly.',
+                'no_agent_match',
             );
         } else {
             try {
-                $dispatchResult = $this->dispatcher->dispatchForCurrentUser($workerId, $task);
+                $dispatchResult = $this->dispatcher->dispatchForCurrentUser($agentId, $task);
                 $result = ToolResult::success($this->formatDispatchResult($dispatchResult));
             } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
                 $result = ToolResult::error($e->getMessage(), 'authorization_error');
@@ -194,14 +194,14 @@ class DelegateTaskTool extends AbstractTool
     }
 
     /**
-     * Resolve the target worker ID from explicit argument or auto-matching.
+     * Resolve the target agent ID from explicit argument or auto-matching.
      */
-    private function resolveWorkerId(array $arguments, string $task): ?int
+    private function resolveAgentId(array $arguments, string $task): ?int
     {
-        $workerId = $arguments['worker_id'] ?? null;
+        $agentId = $arguments['agent_id'] ?? null;
 
-        if (is_int($workerId)) {
-            return $workerId;
+        if (is_int($agentId)) {
+            return $agentId;
         }
 
         $match = $this->capabilityMatcher->matchBestForTask($task);

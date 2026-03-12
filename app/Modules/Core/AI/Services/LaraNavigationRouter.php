@@ -14,7 +14,7 @@ use App\Modules\Core\User\Models\User;
  *
  * Resolves navigation targets from explicit `/go <target>` user input only.
  * Natural-language navigation is delegated to the LLM, which outputs
- * `<lara-action>` JS blocks for client-side execution.
+ * `<agent-action>` JS blocks for client-side execution.
  *
  * Each target maps to a named route and an optional authz capability.
  * When a capability is declared, the router checks the current user's

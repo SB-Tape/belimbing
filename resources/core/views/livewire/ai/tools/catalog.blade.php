@@ -5,10 +5,10 @@
 /** @var \App\Modules\Core\AI\Livewire\Tools\Catalog $this */
 ?>
 <div>
-    <x-ui.page-header :title="__('Tools')" :subtitle="__('Tools extend what Digital Workers can do — they let AI take actions, query data, and interact with external systems beyond generating text.')">
+    <x-ui.page-header :title="__('Tools')" :subtitle="__('Tools extend what Agents can do — they let AI take actions, query data, and interact with external systems beyond generating text.')">
         <x-slot name="help">
             <div class="space-y-3">
-                <p>{{ __('This page shows all Digital Worker tools registered in BLB. Each tool is a capability that a DW can use during conversations or automated tasks.') }}</p>
+                <p>{{ __('This page shows all Agent tools registered in BLB. Each tool is a capability that a agent can use during conversations or automated tasks.') }}</p>
 
                 <div>
                     <p class="font-medium text-ink">{{ __('Readiness') }}</p>

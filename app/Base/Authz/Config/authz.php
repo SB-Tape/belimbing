@@ -1,9 +1,9 @@
 <?php
 
-$digitalWorkerOperatorCapabilities = [
+$agentOperatorCapabilities = [
     'ai.chat_attachments.manage',
-    'ai.digital_worker.view',
-    'ai.digital_worker.execute',
+    'ai.agent.view',
+    'ai.agent.execute',
     'ai.tool_delegation_status.execute',
     'ai.tool_document_analysis.execute',
     'ai.tool_guide.execute',
@@ -16,11 +16,11 @@ $digitalWorkerOperatorCapabilities = [
     'ai.tool_system_info.execute',
     'ai.tool_web_fetch.execute',
     'ai.tool_web_search.execute',
-    'ai.tool_worker_list.execute',
+    'ai.tool_agent_list.execute',
     'ai.tool_workspace.view',
 ];
 
-$dwPowerUserAdditionalCapabilities = [
+$agentPowerUserAdditionalCapabilities = [
     'ai.chat_model.manage',
     'ai.tool_artisan.execute',
     'ai.tool_bash.execute',
@@ -37,7 +37,7 @@ return [
     'domains' => [
         'core' => 'Core platform modules',
         'workflow' => 'Workflow and state transitions',
-        'ai' => 'AI and Digital Worker capabilities',
+        'ai' => 'AI and agent capabilities',
         'messaging' => 'Multi-channel messaging capabilities',
         'admin' => 'Administrative operations',
     ],
@@ -70,8 +70,8 @@ return [
     'capabilities' => [
         'ai.chat_attachments.manage',
         'ai.chat_model.manage',
-        'ai.digital_worker.view',
-        'ai.digital_worker.execute',
+        'ai.agent.view',
+        'ai.agent.execute',
         'ai.tool_artisan.execute',
         'ai.tool_bash.execute',
         'ai.tool_browser.execute',
@@ -91,7 +91,7 @@ return [
         'ai.tool_document_analysis.execute',
         'ai.tool_image_analysis.execute',
         'ai.tool_web_search.execute',
-        'ai.tool_worker_list.execute',
+        'ai.tool_agent_list.execute',
         'ai.tool_write_js.execute',
         'ai.tool_workspace.view',
         'ai.tool_workspace.manage',
@@ -205,17 +205,17 @@ return [
                 'admin.system_session.list',
             ],
         ],
-        'digital_worker_operator' => [
-            'name' => 'Digital Worker Operator',
-            'description' => 'View and execute Digital Workers with basic tool access.',
-            'capabilities' => $digitalWorkerOperatorCapabilities,
+        'agent_operator' => [
+            'name' => 'Agent Operator',
+            'description' => 'View and execute agents with basic tool access.',
+            'capabilities' => $agentOperatorCapabilities,
         ],
-        'dw_power_user' => [
-            'name' => 'DW Power User',
-            'description' => 'Full Digital Worker tool access including artisan, bash, delegation, scheduling, media analysis, and JS execution.',
+        'agent_power_user' => [
+            'name' => 'Agent Power User',
+            'description' => 'Full agent tool access including artisan, bash, delegation, scheduling, media analysis, and JS execution.',
             'capabilities' => [
-                ...$digitalWorkerOperatorCapabilities,
-                ...$dwPowerUserAdditionalCapabilities,
+                ...$agentOperatorCapabilities,
+                ...$agentPowerUserAdditionalCapabilities,
             ],
         ],
         'messaging_reader' => [
@@ -227,7 +227,7 @@ return [
         ],
         'messaging_responder' => [
             'name' => 'Messaging Responder',
-            'description' => 'DW that responds to inbound messages — send and react on configured channels.',
+            'description' => 'agent that responds to inbound messages — send and react on configured channels.',
             'capabilities' => [
                 'messaging.whatsapp.send',
                 'messaging.whatsapp.react',
@@ -261,7 +261,7 @@ return [
         ],
         'messaging_admin' => [
             'name' => 'Messaging Admin',
-            'description' => 'Supervisor role for managing channel accounts and DW access grants.',
+            'description' => 'Supervisor role for managing channel accounts and agent access grants.',
             'capabilities' => [
                 'messaging.account.manage',
                 'messaging.account.grant',

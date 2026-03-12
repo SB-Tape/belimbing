@@ -5,9 +5,9 @@
 
 namespace App\Modules\Core\AI\Livewire;
 
+use App\Modules\Core\AI\Services\AgentRuntime;
 use App\Modules\Core\AI\Services\ChatMarkdownRenderer;
 use App\Modules\Core\AI\Services\ConfigResolver;
-use App\Modules\Core\AI\Services\DigitalWorkerRuntime;
 use App\Modules\Core\AI\Services\LaraPromptFactory;
 use App\Modules\Core\AI\Services\MessageManager;
 use App\Modules\Core\AI\Services\SessionManager;
@@ -20,7 +20,7 @@ class Playground extends Component
 
     public ?string $selectedSessionId = null;
 
-    public ?int $selectedEmployeeId = null;
+    public ?int $selectedAgentId = null;
 
     public bool $isLoading = false;
 
@@ -34,12 +34,12 @@ class Playground extends Component
 
     public function mount(): void
     {
-        $employee = $this->getDefaultDigitalWorker();
+        $agent = $this->getDefaultAgent();
 
-        if ($employee) {
-            $this->selectedEmployeeId = $employee->id;
+        if ($agent) {
+            $this->selectedAgentId = $agent->id;
 
-            $sessions = app(SessionManager::class)->list($employee->id);
+            $sessions = app(SessionManager::class)->list($agent->id);
 
             if (! empty($sessions)) {
                 $this->selectedSessionId = $sessions[0]->id;
@@ -49,11 +49,11 @@ class Playground extends Component
 
     public function createSession(): void
     {
-        if (! $this->selectedEmployeeId) {
+        if (! $this->selectedAgentId) {
             return;
         }
 
-        $session = app(SessionManager::class)->create($this->selectedEmployeeId);
+        $session = app(SessionManager::class)->create($this->selectedAgentId);
         $this->selectedSessionId = $session->id;
         $this->lastRunMeta = null;
     }
@@ -66,14 +66,14 @@ class Playground extends Component
 
     public function deleteSession(string $sessionId): void
     {
-        if (! $this->selectedEmployeeId) {
+        if (! $this->selectedAgentId) {
             return;
         }
 
-        app(SessionManager::class)->delete($this->selectedEmployeeId, $sessionId);
+        app(SessionManager::class)->delete($this->selectedAgentId, $sessionId);
 
         if ($this->selectedSessionId === $sessionId) {
-            $sessions = app(SessionManager::class)->list($this->selectedEmployeeId);
+            $sessions = app(SessionManager::class)->list($this->selectedAgentId);
             $this->selectedSessionId = empty($sessions) ? null : $sessions[0]->id;
         }
 
@@ -82,7 +82,7 @@ class Playground extends Component
 
     public function sendMessage(): void
     {
-        if (! $this->selectedEmployeeId || ! $this->selectedSessionId || trim($this->messageInput) === '') {
+        if (! $this->selectedAgentId || ! $this->selectedSessionId || trim($this->messageInput) === '') {
             return;
         }
 
@@ -91,37 +91,37 @@ class Playground extends Component
         $this->messageInput = '';
 
         $messageManager = app(MessageManager::class);
-        $runtime = app(DigitalWorkerRuntime::class);
+        $runtime = app(AgentRuntime::class);
 
         // Append user message
         $messageManager->appendUserMessage(
-            $this->selectedEmployeeId,
+            $this->selectedAgentId,
             $this->selectedSessionId,
             $content,
         );
 
         // Get conversation history for context
         $messages = $messageManager->read(
-            $this->selectedEmployeeId,
+            $this->selectedAgentId,
             $this->selectedSessionId,
         );
 
-        // Get Digital Worker's job description for system prompt
-        $employee = Employee::query()->find($this->selectedEmployeeId);
-        if ($employee?->isLara()) {
+        // Get the agent's job description for the system prompt.
+        $agent = Employee::query()->find($this->selectedAgentId);
+        if ($agent?->isLara()) {
             $systemPrompt = app(LaraPromptFactory::class)->buildForCurrentUser();
         } else {
-            $systemPrompt = $employee?->job_description
-                ? __('You are a Digital Worker. Your role: :role', ['role' => $employee->job_description])
-                : __('You are a helpful Digital Worker assistant.');
+            $systemPrompt = $agent?->job_description
+                ? __('You are an agent. Your role: :role', ['role' => $agent->job_description])
+                : __('You are a helpful agent assistant.');
         }
 
         // Run LLM
-        $result = $runtime->run($messages, $this->selectedEmployeeId, $systemPrompt);
+        $result = $runtime->run($messages, $this->selectedAgentId, $systemPrompt);
 
         // Append assistant message
         $messageManager->appendAssistantMessage(
-            $this->selectedEmployeeId,
+            $this->selectedAgentId,
             $this->selectedSessionId,
             $result['content'],
             $result['run_id'],
@@ -135,7 +135,7 @@ class Playground extends Component
 
         // Auto-title the session from the first user message
         $sessionManager = app(SessionManager::class);
-        $session = $sessionManager->get($this->selectedEmployeeId, $this->selectedSessionId);
+        $session = $sessionManager->get($this->selectedAgentId, $this->selectedSessionId);
 
         if ($session && $session->title === null) {
             $title = mb_substr($content, 0, 60);
@@ -144,7 +144,7 @@ class Playground extends Component
                 $title .= '…';
             }
 
-            $sessionManager->updateTitle($this->selectedEmployeeId, $this->selectedSessionId, $title);
+            $sessionManager->updateTitle($this->selectedAgentId, $this->selectedSessionId, $title);
         }
 
         $this->isLoading = false;
@@ -152,12 +152,12 @@ class Playground extends Component
 
     public function openLlmConfig(): void
     {
-        if (! $this->selectedEmployeeId) {
+        if (! $this->selectedAgentId) {
             return;
         }
 
         $configResolver = app(ConfigResolver::class);
-        $config = $configResolver->readWorkspaceConfig($this->selectedEmployeeId);
+        $config = $configResolver->readWorkspaceConfig($this->selectedAgentId);
         $models = $config['llm']['models'] ?? [];
 
         if ($models === []) {
@@ -263,7 +263,7 @@ class Playground extends Component
 
     public function saveLlmConfig(): void
     {
-        if (! $this->selectedEmployeeId) {
+        if (! $this->selectedAgentId) {
             return;
         }
 
@@ -276,7 +276,7 @@ class Playground extends Component
         ]);
 
         $configResolver = app(ConfigResolver::class);
-        $existingConfig = $configResolver->readWorkspaceConfig($this->selectedEmployeeId) ?? [];
+        $existingConfig = $configResolver->readWorkspaceConfig($this->selectedAgentId) ?? [];
 
         $models = array_map(function ($m) {
             $entry = ['model' => $m['model']];
@@ -297,18 +297,18 @@ class Playground extends Component
         }, $this->llmModels);
 
         $existingConfig['llm'] = ['models' => $models];
-        $configResolver->writeWorkspaceConfig($this->selectedEmployeeId, $existingConfig);
+        $configResolver->writeWorkspaceConfig($this->selectedAgentId, $existingConfig);
 
         $this->showLlmConfig = false;
     }
 
-    public function selectDigitalWorker(int $employeeId): void
+    public function selectAgent(int $agentId): void
     {
-        $this->selectedEmployeeId = $employeeId;
+        $this->selectedAgentId = $agentId;
         $this->selectedSessionId = null;
         $this->lastRunMeta = null;
 
-        $sessions = app(SessionManager::class)->list($employeeId);
+        $sessions = app(SessionManager::class)->list($agentId);
 
         if (! empty($sessions)) {
             $this->selectedSessionId = $sessions[0]->id;
@@ -345,19 +345,19 @@ class Playground extends Component
     {
         $sessions = [];
         $messages = [];
-        $digitalWorkers = collect();
+        $agents = collect();
         $availableProviders = collect();
         $providerModelsMap = [];
 
         $user = auth()->user();
 
         if ($user) {
-            // Get Digital Workers supervised by the current user's employee record
+            // Get agents supervised by the current user's employee record.
             $userEmployee = $user->employee;
 
             if ($userEmployee) {
-                $digitalWorkers = Employee::query()
-                    ->digitalWorker()
+                $agents = Employee::query()
+                    ->agent()
                     ->where('supervisor_id', $userEmployee->id)
                     ->active()
                     ->get();
@@ -382,19 +382,19 @@ class Playground extends Component
             }
         }
 
-        if ($this->selectedEmployeeId) {
-            $sessions = app(SessionManager::class)->list($this->selectedEmployeeId);
+        if ($this->selectedAgentId) {
+            $sessions = app(SessionManager::class)->list($this->selectedAgentId);
         }
 
-        if ($this->selectedEmployeeId && $this->selectedSessionId) {
+        if ($this->selectedAgentId && $this->selectedSessionId) {
             $messages = app(MessageManager::class)->read(
-                $this->selectedEmployeeId,
+                $this->selectedAgentId,
                 $this->selectedSessionId,
             );
         }
 
         return view('livewire.ai.playground', [
-            'digitalWorkers' => $digitalWorkers,
+            'agents' => $agents,
             'sessions' => $sessions,
             'messages' => $messages,
             'availableProviders' => $availableProviders,
@@ -404,9 +404,9 @@ class Playground extends Component
     }
 
     /**
-     * Get the default Digital Worker for the current user.
+     * Get the default Agent for the current user.
      */
-    private function getDefaultDigitalWorker(): ?Employee
+    private function getDefaultAgent(): ?Employee
     {
         $user = auth()->user();
 
@@ -415,7 +415,7 @@ class Playground extends Component
         }
 
         return Employee::query()
-            ->digitalWorker()
+            ->agent()
             ->where('supervisor_id', $user->employee->id)
             ->active()
             ->first();

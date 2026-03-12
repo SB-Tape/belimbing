@@ -1,4 +1,4 @@
-# AI Digital Worker Architecture
+# AI Agent Architecture
 
 **Document Type:** Architecture Specification
 **Status:** Active (Stage 0 core implemented; Stage 1+ planned)
@@ -9,20 +9,20 @@
 
 ## 1. Problem Essence
 
-BLB needs Digital Workers to be managed as first-class employees under the same organizational model and authorization system as humans, with clear delegation boundaries and accountable supervision.
+BLB needs Agents to be managed as first-class employees under the same organizational model and authorization system as humans, with clear delegation boundaries and accountable supervision.
 
 ---
 
 ## 2. Decision Summary
 
-1. Digital Worker is an employee under the same management UI and org structure as human employees.
-2. Human and Digital Worker share one employee model/table.
+1. Agent is an employee under the same management UI and org structure as human employees.
+2. Human and Agent share one employee model/table.
 3. Existing employee attributes are reused; non-applicable fields are nullable.
-4. Add only minimal new employee fields now: `employee_type` (with value `'digital_worker'`) and `job_description` (see §4.5).
+4. Add only minimal new employee fields now: `employee_type` (with value `'agent'`) and `job_description` (see §4.5).
 5. Cost/token accounting is deferred to a future HR module.
-6. Digital Worker permissions are constrained by delegation and cannot exceed supervisor effective permissions.
-7. **Digital Worker context for execution:** OpenClaw-style workspaces (IDENTITY, SOUL, AGENTS, etc.) define “who” and “how”; BLB keeps a single `job_description` field as a short role label for now; full workspace-based context is the target when integrating an OpenClaw-like runtime.
-8. **Per-DW LLM model selection:** Each Digital Worker can use a different LLM provider and model, configured via workspace `config.json` with company-level provider credentials. This enables cost-optimized model assignment by job type (see §15).
+6. Agent permissions are constrained by delegation and cannot exceed supervisor effective permissions.
+7. **Agent context for execution:** OpenClaw-style workspaces (IDENTITY, SOUL, AGENTS, etc.) define “who” and “how”; BLB keeps a single `job_description` field as a short role label for now; full workspace-based context is the target when integrating an OpenClaw-like runtime.
+8. **Per-agent LLM model selection:** Each Agent can use a different LLM provider and model, configured via workspace `config.json` with company-level provider credentials. This enables cost-optimized model assignment by job type (see §15).
 
 ---
 
@@ -32,10 +32,10 @@ BLB needs Digital Workers to be managed as first-class employees under the same 
 
 One subject model for authorization and org operations:
 
-- `Employee` with `employee_type = 'digital_worker'` for Digital Worker; any other value (full_time, part_time, contractor, intern) denotes a human
+- `Employee` with `employee_type = 'agent'` for Agent; any other value (full_time, part_time, contractor, intern) denotes a human
 - Both can be assigned roles and permissions
 - Both can supervise subordinate employees
-- In AuthZ, Digital Worker is represented as principal type `digital_worker` (`PrincipalType::DIGITAL_WORKER`); same capability vocabulary as human actors.
+- In AuthZ, Agent is represented as principal type `agent` (`PrincipalType::AGENT`); same capability vocabulary as human actors.
 
 ### 3.2 Required Operations
 
@@ -48,21 +48,21 @@ One subject model for authorization and org operations:
 7. `setJobDescription(employeeId, text)`
 8. `disableEmployee(employeeId)`
 
-### 3.3 Digital Worker-Specific Management Operations
+### 3.3 Agent-Specific Management Operations
 
-1. `createDigitalWorker(supervisorId, profile)`
-2. `setDigitalWorkerScope(employeeId, scope)`
+1. `createAgent(supervisorId, profile)`
+2. `setAgentScope(employeeId, scope)`
 3. `validateDelegation(supervisorId, subordinateId)`
 
-The UI remains the same employee UI; Digital Worker uses type-aware behavior, not a separate product surface.
+The UI remains the same employee UI; Agent uses type-aware behavior, not a separate product surface.
 
 ### 3.4 Canonical Terms and Naming Alignment
 
 This document follows the AuthZ canonical naming contract in `docs/architecture/authorization.md` §1.1:
-1. Use `Digital Worker` (not `PA`).
-2. AuthZ actor type is `PrincipalType::DIGITAL_WORKER` with persisted value `'digital_worker'`.
-3. Framework AI capabilities use `ai.digital_worker.*`.
-4. Delegation context links Digital Worker actions to a human accountability chain (`actingForUserId` in current DTO, with future support for richer supervision metadata).
+1. Use `Agent` (not `PA`).
+2. AuthZ actor type is `PrincipalType::AGENT` with persisted value `'agent'`.
+3. Framework AI capabilities use `ai.agent.*`.
+4. Delegation context links Agent actions to a human accountability chain (`actingForUserId` in current DTO, with future support for richer supervision metadata).
 
 ---
 
@@ -70,29 +70,29 @@ This document follows the AuthZ canonical naming contract in `docs/architecture/
 
 ### 4.1 Single Table Strategy
 
-Use one `employees` table for both human and Digital Worker records.
+Use one `employees` table for both human and Agent records.
 
 ### 4.2 Minimal Additions
 
-1. **Digital Worker in employee_type:** Add `'digital_worker'` as a valid value for the existing `employee_type` column. When `employee_type === 'digital_worker'`, the row is a Digital Worker; otherwise (full_time, part_time, contractor, intern) it is a human. No additional column. The model exposes `isDigitalWorker(): bool` (e.g. `return $this->employee_type === 'digital_worker'`) and scopes `scopeDigitalWorker()` / `scopeHuman()` for convenience.
-2. **job_description** (`TEXT`, nullable at DB): Short role label or summary for the Digital Worker (e.g. “Customer support Digital Worker”, “Leave approver”). Used for HR/UI and optional display in execution context. Full agent identity and behaviour are defined by an OpenClaw-style workspace when that runtime is adopted (see §4.5 and §13).
+1. **Agent in employee_type:** Add `'agent'` as a valid value for the existing `employee_type` column. When `employee_type === 'agent'`, the row is a Agent; otherwise (full_time, part_time, contractor, intern) it is a human. No additional column. The model exposes `isAgent(): bool` (e.g. `return $this->employee_type === 'agent'`) and scopes `scopeAgent()` / `scopeHuman()` for convenience.
+2. **job_description** (`TEXT`, nullable at DB): Short role label or summary for the Agent (e.g. “Customer support Agent”, “Leave approver”). Used for HR/UI and optional display in execution context. Full agent identity and behaviour are defined by an OpenClaw-style workspace when that runtime is adopted (see §4.5 and §13).
 
 ### 4.3 Attribute Applicability
 
 - Existing attributes remain available for both types.
 - Non-applicable attributes are `NULL`.
-- `phone` remains nullable and valid for Digital Worker (messaging channels now or later).
+- `phone` remains nullable and valid for Agent (messaging channels now or later).
 - `date_of_birth` is interpreted as employee identity birth date.
   - Human: biological date of birth.
-  - Digital Worker: identity creation date.
+  - Agent: identity creation date.
 
-No additional Digital Worker operational or financial fields are added at this stage.
+No additional Agent operational or financial fields are added at this stage.
 
-### 4.4 Indicating Digital Worker in the Employee Module
+### 4.4 Indicating Agent in the Employee Module
 
-- **Schema:** No new column. The existing `employee_type` column accepts `'digital_worker'` as a value; when `employee_type === 'digital_worker'`, the row is a Digital Worker. Other values (full_time, part_time, contractor, intern) denote human employees.
-- **Model:** Expose `isDigitalWorker(): bool` (e.g. `return $this->employee_type === 'digital_worker'`) and query scopes `scopeDigitalWorker($query)`, `scopeHuman($query)` so callers can do `Employee::query()->digitalWorker()->get()` or `$employee->isDigitalWorker()`.
-- **UI:** In employee lists, show a badge (e.g. `<x-ui.badge variant="info">Digital Worker</x-ui.badge>`) when `$employee->isDigitalWorker()`; in create/edit, add a control (e.g. checkbox or radio “Human / Digital Worker”) that sets `employee_type` to 'digital_worker' for a Digital Worker or to an employment kind for a human. Filter the list by “Human only” / “Digital Worker only” / “All” using `employee_type`.
+- **Schema:** No new column. The existing `employee_type` column accepts `'agent'` as a value; when `employee_type === 'agent'`, the row is a Agent. Other values (full_time, part_time, contractor, intern) denote human employees.
+- **Model:** Expose `isAgent(): bool` (e.g. `return $this->employee_type === 'agent'`) and query scopes `scopeAgent($query)`, `scopeHuman($query)` so callers can do `Employee::query()->agent()->get()` or `$employee->isAgent()`.
+- **UI:** In employee lists, show a badge (e.g. `<x-ui.badge variant="info">Agent</x-ui.badge>`) when `$employee->isAgent()`; in create/edit, add a control (e.g. checkbox or radio “Human / Agent”) that sets `employee_type` to 'agent' for a Agent or to an employment kind for a human. Filter the list by “Human only” / “Agent only” / “All” using `employee_type`.
 
 
 ### 4.5 job_description vs OpenClaw-Style Workspace
@@ -113,9 +113,9 @@ No additional Digital Worker operational or financial fields are added at this s
 
 **Decision for BLB:**
 
-- **Keep `job_description`** as a single `TEXT` field on the employee row: short, human-readable role label or summary (e.g. "Customer support Digital Worker", "Leave approver"). Use it for HR/UI and, if needed, as a fallback or one-line hint in execution context. Nullable; not mandatory at create for Digital Worker (can be set before activation or left as summary only).
-- **Do not** replicate the full OpenClaw file set in the DB as separate columns. When integrating an OpenClaw-like runtime, **Digital Worker context for execution should be workspace-based**: each Digital Worker has an associated workspace (directory or virtual file set) containing IDENTITY, SOUL, AGENTS, USER (or company/supervisor context), TOOLS, etc. The runtime loads these files to build the system prompt and behaviour; `job_description` may be displayed in the UI or injected as a short summary, but the authoritative "job" is the workspace content.
-- **Pivot path:** Stage 0 can rely on `job_description` only (or omit it). When adding execution that follows OpenClaw's model, introduce an **Digital Worker workspace** (path or storage key) and treat the workspace as the source of truth for identity and behaviour; keep `job_description` as an optional label for lists and reports.
+- **Keep `job_description`** as a single `TEXT` field on the employee row: short, human-readable role label or summary (e.g. "Customer support Agent", "Leave approver"). Use it for HR/UI and, if needed, as a fallback or one-line hint in execution context. Nullable; not mandatory at create for Agent (can be set before activation or left as summary only).
+- **Do not** replicate the full OpenClaw file set in the DB as separate columns. When integrating an OpenClaw-like runtime, **Agent context for execution should be workspace-based**: each Agent has an associated workspace (directory or virtual file set) containing IDENTITY, SOUL, AGENTS, USER (or company/supervisor context), TOOLS, etc. The runtime loads these files to build the system prompt and behaviour; `job_description` may be displayed in the UI or injected as a short summary, but the authoritative "job" is the workspace content.
+- **Pivot path:** Stage 0 can rely on `job_description` only (or omit it). When adding execution that follows OpenClaw's model, introduce an **Agent workspace** (path or storage key) and treat the workspace as the source of truth for identity and behaviour; keep `job_description` as an optional label for lists and reports.
 
 ---
 
@@ -123,28 +123,28 @@ No additional Digital Worker operational or financial fields are added at this s
 
 ### 5.1 Core Invariants
 
-1. Digital Worker effective permissions must be a strict subset of supervisor effective permissions.
+1. Agent effective permissions must be a strict subset of supervisor effective permissions.
 2. Delegation cannot create new privileges.
 3. Explicit deny always wins.
-4. Every Digital Worker must have a supervision chain that resolves to a human accountable owner.
+4. Every Agent must have a supervision chain that resolves to a human accountable owner.
 5. Supervision graph must be acyclic.
 
 ### 5.2 Supervisor Model
 
-- Supervisor can be human or Digital Worker.
-- Human employees with required capability can create/manage subordinate Digital Workers.
-- One supervisor can manage multiple subordinate Digital Workers, subject to policy limits.
+- Supervisor can be human or Agent.
+- Human employees with required capability can create/manage subordinate Agents.
+- One supervisor can manage multiple subordinate Agents, subject to policy limits.
 
 ### 5.3 Capability Gate (Illustrative)
 
-Capabilities for Digital Worker administration should be explicit in AuthZ, for example:
+Capabilities for Agent administration should be explicit in AuthZ, for example:
 
-1. `employee.digital_worker.create`
-2. `employee.digital_worker.update`
-3. `employee.digital_worker.assign_role`
-4. `employee.digital_worker.assign_permission`
-5. `employee.digital_worker.disable`
-6. `ai.digital_worker.configure_llm` — set or change LLM provider/model for a supervised DW (see §15)
+1. `employee.agent.create`
+2. `employee.agent.update`
+3. `employee.agent.assign_role`
+4. `employee.agent.assign_permission`
+5. `employee.agent.disable`
+6. `ai.agent.configure_llm` — set or change LLM provider/model for a supervised agent (see §15)
 7. `ai.provider.manage` — add, update, disable company-level LLM provider credentials (see §15.4)
 8. `ai.provider.view` — view available providers (name, status; not raw keys)
 
@@ -154,10 +154,10 @@ The final capability vocabulary is owned by the AuthZ module.
 
 ## 6. UI and UX Rules
 
-1. Employee listing includes both human and Digital Worker rows.
-2. Display type badges: `Human` / `Digital Worker`.
+1. Employee listing includes both human and Agent rows.
+2. Display type badges: `Human` / `Agent`.
 3. Employee create/edit flow includes type selector.
-4. Forms render the same base fields; optional guidance can hide non-relevant physical fields for Digital Worker.
+4. Forms render the same base fields; optional guidance can hide non-relevant physical fields for Agent.
 5. Supervisor and role assignment flows are shared.
 6. Delegation policy violations return explicit deny reasons.
 
@@ -174,19 +174,19 @@ The final capability vocabulary is owned by the AuthZ module.
 
 ## 8. Implementation Dependencies
 
-Stage 0 (Digital Worker Playground) requires authorization PRD Stage B (Policy Engine + RBAC) and Stage D (Digital Worker Delegation) from `docs/todo/authorization/00-prd.md`. Stage D is partially complete: `PrincipalType::DIGITAL_WORKER` actor and same RBAC as human are operational. Assignment-time validation and cascade revocation (Stage D remaining items) are not blockers for Stage 0, which is a read-only playground with no sensitive write tools.
+Stage 0 (Agent Playground) requires authorization PRD Stage B (Policy Engine + RBAC) and Stage D (Agent Delegation) from `docs/todo/authorization/00-prd.md`. Stage D is partially complete: `PrincipalType::AGENT` actor and same RBAC as human are operational. Assignment-time validation and cascade revocation (Stage D remaining items) are not blockers for Stage 0, which is a read-only playground with no sensitive write tools.
 
 ---
 
 ## 9. Workspace Configuration
 
-The per-Digital Worker workspace base path is configured in `app/Base/AI/Config/ai.php` (module-level config registered by `AIServiceProvider`):
+The per-Agent workspace base path is configured in `app/Base/AI/Config/ai.php` (module-level config registered by `AIServiceProvider`):
 
 - Config key: `config('ai.workspace_path')`
 - Env override: `AI_WORKSPACE_PATH`
 - Default: `storage_path('app/workspace')` → `storage/app/workspace/`
 
-Each Digital Worker gets a subdirectory: `{workspace_path}/{employee_id}/` containing `config.json` (per-DW LLM config, see §15), `sessions/`, and future `MEMORY.md`, `memory/`, `memory.db` (see §14).
+Each Agent gets a subdirectory: `{workspace_path}/{employee_id}/` containing `config.json` (per-agent LLM config, see §15), `sessions/`, and future `MEMORY.md`, `memory/`, `memory.db` (see §14).
 
 ---
 
@@ -194,15 +194,15 @@ Each Digital Worker gets a subdirectory: `{workspace_path}/{employee_id}/` conta
 
 ### 10.1 In Scope Now
 
-1. Digital Worker as `employee_type = 'digital_worker'` in a unified employee model.
-2. `job_description` as optional short role label (nullable); full Digital Worker context is workspace-based when OpenClaw-like runtime is adopted (§4.5).
+1. Agent as `employee_type = 'agent'` in a unified employee model.
+2. `job_description` as optional short role label (nullable); full Agent context is workspace-based when OpenClaw-like runtime is adopted (§4.5).
 3. Delegation constraints integrated with shared AuthZ.
 4. Unified management UI behavior.
 
 ### 10.2 Out of Scope Now
 
 1. HR-specific compensation, token spend, and cost accounting.
-2. Rich Digital Worker runtime telemetry fields in employee core table.
+2. Rich Agent runtime telemetry fields in employee core table.
 3. Channel-level integration details (Telegram/WhatsApp) as schema drivers.
 
 ---
@@ -211,21 +211,21 @@ Each Digital Worker gets a subdirectory: `{workspace_path}/{employee_id}/` conta
 
 1. Deep module boundary: complexity (delegation, policy checks, audit rules) is hidden in AuthZ + employee domain services.
 2. Simple public interface: managers operate through familiar employee workflows.
-3. Strategic programming: avoid premature Digital Worker-specific schema sprawl while preserving forward compatibility.
+3. Strategic programming: avoid premature Agent-specific schema sprawl while preserving forward compatibility.
 
 ---
 
 ## 12. Open Questions
 
 1. Resolved: `job_description` is optional short label; workspace is source of truth for execution (§4.5).
-2. Should policy set a hard maximum depth for Digital Worker supervision chains?
-3. Should Digital Worker creation require dual approval for high-privilege departments?
+2. Should policy set a hard maximum depth for Agent supervision chains?
+3. Should Agent creation require dual approval for high-privilege departments?
 
 ---
 
 ## 13. OpenClaw Architecture (Research Findings)
 
-*Relevant when designing Digital Worker execution, tooling, or channel integration. Source: OpenClaw agent system research. See also §4.5 for how BLB's `job_description` relates to OpenClaw-style workspace files.*
+*Relevant when designing Agent execution, tooling, or channel integration. Source: OpenClaw agent system research. See also §4.5 for how BLB's `job_description` relates to OpenClaw-style workspace files.*
 
 ### 13.1 High-Level Architecture
 
@@ -364,7 +364,7 @@ Multi-level security constraints
 
 ## 14. Memory and Recall Architecture
 
-*Relevant when implementing Digital Worker semantic memory (long-term recall beyond the chat transcript). See also §4.5 (workspace files) and §13 (OpenClaw).*
+*Relevant when implementing Agent semantic memory (long-term recall beyond the chat transcript). See also §4.5 (workspace files) and §13 (OpenClaw).*
 
 ### 14.1 Transcript vs Memory
 
@@ -375,7 +375,7 @@ Multi-level security constraints
 | **Usage** | Provide last N turns as LLM context | Semantic search: "recall relevant past knowledge" before responding |
 | **Stage** | Stage 0 (Playground) | Post-Stage 0 |
 
-Both are needed for a capable Digital Worker: transcript for immediate context, memory for history.
+Both are needed for a capable Agent: transcript for immediate context, memory for history.
 
 ### 14.2 MemSearch Pattern
 
@@ -397,14 +397,14 @@ Reference: [Milvus blog: We extracted OpenClaw's memory system and open-sourced 
 - Embeddings: HTTP calls to OpenAI, Voyage, or Ollama
 - Vector storage: see §14.4
 
-**Vector backend: SQLite per Digital Worker** — Use a dedicated SQLite database per Digital Worker for vector storage:
+**Vector backend: SQLite per Agent** — Use a dedicated SQLite database per Agent for vector storage:
 
-- Each Digital Worker gets `workspace/{employee_id}/memory.db`
+- Each Agent gets `workspace/{employee_id}/memory.db`
 - Aligns with per-agent workspace isolation (OpenClaw pattern)
 - Strong tenant isolation by design; backup/export = copy one file
 - Requires a vector extension: [sqlite-vec](https://github.com/asg017/sqlite-vec) or [sqlite-vss](https://github.com/asg017/sqlite-vss)
 
-**Workspace layout (per Digital Worker):**
+**Workspace layout (per Agent):**
 
 ```
 workspace/{employee_id}/
@@ -412,10 +412,10 @@ workspace/{employee_id}/
 ├── memory/
 │   ├── 2026-02-07.md      # Daily log
 │   └── 2026-02-09.md
-└── memory.db              # Vector index for this DW's markdown (derived, rebuildable)
+└── memory.db              # Vector index for this agent's markdown (derived, rebuildable)
 ```
 
-**Alternative:** pgvector in the main PostgreSQL database with `employee_id` for tenancy. Simpler ops (one DB, standard migrations) but less natural per-DW isolation. Choose based on scale and deployment constraints.
+**Alternative:** pgvector in the main PostgreSQL database with `employee_id` for tenancy. Simpler ops (one DB, standard migrations) but less natural per-agent isolation. Choose based on scale and deployment constraints.
 
 ### 14.4 Search Strategy: Hybrid Vector + BM25
 
@@ -424,7 +424,7 @@ MemSearch demonstrates that hybrid retrieval outperforms pure vector search for 
 - **Vector search (70%):** Semantic matching — a query for "Redis cache config" finds chunks about "Redis L1 cache with 5min TTL" even with different wording.
 - **BM25 keyword search (30%):** Exact matching — a query for "PostgreSQL 16" does not return results about "PostgreSQL 15". Critical for error codes, function names, version-specific facts.
 
-The 70/30 split is MemSearch's empirically tuned default. For workflows heavy on exact matches (code references, IDs), raise BM25 weight to 50%. BLB's PHP-native implementation should support configurable weights per Digital Worker or globally.
+The 70/30 split is MemSearch's empirically tuned default. For workflows heavy on exact matches (code references, IDs), raise BM25 weight to 50%. BLB's PHP-native implementation should support configurable weights per Agent or globally.
 
 ### 14.5 Compaction: Daily Logs → Long-Term Memory
 
@@ -436,7 +436,7 @@ MemSearch includes a **compact** workflow that distills older daily logs (`memor
 3. Archive or delete processed daily logs (or keep as raw history if storage allows).
 4. Re-index after compaction.
 
-**BLB consideration:** Compaction can run as a scheduled Laravel command per Digital Worker. The human supervisor should be able to review and edit `MEMORY.md` directly (transparency principle). Compaction is post–Stage 0 but should be designed alongside the initial memory implementation to avoid rework.
+**BLB consideration:** Compaction can run as a scheduled Laravel command per Agent. The human supervisor should be able to review and edit `MEMORY.md` directly (transparency principle). Compaction is post–Stage 0 but should be designed alongside the initial memory implementation to avoid rework.
 
 ### 14.6 Implementation Scope (Future)
 
@@ -450,9 +450,9 @@ MemSearch includes a **compact** workflow that distills older daily logs (`memor
 
 ---
 
-## 15. Per-DW LLM Configuration
+## 15. Per-agent LLM Configuration
 
-Each Digital Worker can use a different LLM provider and model. This enables cost-optimized model assignment by job type: a design-focused DW might use Gemini for multimodal, a coding DW might use Claude Opus, a research DW might use GPT, and a general-purpose DW might use an open-weight model. The architecture separates **provider credentials** (company-level, sensitive) from **model selection** (per-DW, in workspace).
+Each Agent can use a different LLM provider and model. This enables cost-optimized model assignment by job type: a design-focused agent might use Gemini for multimodal, a coding agent might use Claude Opus, a research agent might use GPT, and a general-purpose agent might use an open-weight model. The architecture separates **provider credentials** (company-level, sensitive) from **model selection** (per-agent, in workspace).
 
 ### 15.1 Provider Credentials (Company-Level)
 
@@ -468,25 +468,25 @@ API keys are sensitive and should not be stored in workspace files (plaintext on
 | `display_name` | string | Human-readable label (e.g. "OpenAI GPT", "Local Ollama") |
 | `base_url` | string | API endpoint (e.g. `https://api.openai.com/v1`) |
 | `api_key` | encrypted | Provider API key (Laravel encrypted cast) |
-| `is_active` | boolean | Whether available for DW assignment |
+| `is_active` | boolean | Whether available for agent assignment |
 | `created_by` | FK (employee) | Who configured this provider |
 | `timestamps` | | |
 
 **Design rationale:**
-- Company-level scoping: the company pays for API access; all DWs in that company share the pool of configured providers.
+- Company-level scoping: the company pays for API access; all agents in that company share the pool of configured providers.
 - A company can have multiple providers (OpenAI for general, Anthropic for coding, a self-hosted Ollama for cost-sensitive tasks).
 - Keys are encrypted at rest via Laravel's `encrypted` cast — never stored in workspace files or config.
-- The `name` column is a stable reference key used in DW workspace `config.json`.
+- The `name` column is a stable reference key used in agent workspace `config.json`.
 
-### 15.2 Per-DW Model Selection (Workspace Config)
+### 15.2 Per-agent Model Selection (Workspace Config)
 
-Each Digital Worker's workspace contains a `config.json` that specifies which provider and model to use. This file is part of the workspace, not the database.
+Each Agent's workspace contains a `config.json` that specifies which provider and model to use. This file is part of the workspace, not the database.
 
 **Workspace layout (updated):**
 
 ```
 workspace/{employee_id}/
-├── config.json                # DW-specific runtime configuration
+├── config.json                # agent-specific runtime configuration
 ├── sessions/
 │   ├── {uuid}.jsonl
 │   └── {uuid}.meta.json
@@ -519,20 +519,20 @@ workspace/{employee_id}/
 ```
 
 - `models`: ordered list of model configurations. First entry is primary; subsequent entries are fallbacks tried on transient failures (connection error, HTTP 429, 5xx).
-- `provider`: references `ai_providers.name` within the DW's company.
+- `provider`: references `ai_providers.name` within the agent's company.
 - `model`: the specific model within that provider.
-- `max_tokens`, `temperature`: optional per-DW overrides; fall back to global `config('ai.llm.*')` defaults.
+- `max_tokens`, `temperature`: optional per-agent overrides; fall back to global `config('ai.llm.*')` defaults.
 
 ### 15.3 Config Resolution Order
 
 The runtime resolves LLM configuration with a cascade:
 
-1. **DW workspace `config.json`** — per-DW overrides (provider, model, temperature, max_tokens)
+1. **agent workspace `config.json`** — per-agent overrides (provider, model, temperature, max_tokens)
 2. **Company provider credentials** — `ai_providers` row matching the provider name + company_id (supplies `base_url` and `api_key`)
 3. **Global defaults** — `config('ai.llm.*')` from `app/Base/AI/Config/ai.php` / `.env` (fallback runtime parameters like `max_tokens`, `temperature`, `timeout`)
 
 **Resolution rules:**
-- If `config.json` specifies a provider → look up `ai_providers` by `(company_id, name)` → use that row's `base_url` and `api_key`, merged with per-DW model/params.
+- If `config.json` specifies a provider → look up `ai_providers` by `(company_id, name)` → use that row's `base_url` and `api_key`, merged with per-agent model/params.
 - If workspace config is missing (or `llm.models[]` is empty) → resolve company default provider+model (`ConfigResolver::resolveDefault()`), then apply runtime defaults for parameters.
 - If a configured provider cannot be resolved (inactive/not found) or has missing credentials → runtime returns `config_error` for that model (non-transient), and fallback stops at that point.
 
@@ -541,15 +541,15 @@ The runtime resolves LLM configuration with a cascade:
 | Capability | Who | Purpose |
 |------------|-----|---------|
 | `ai.provider.manage` | Company admin | Add, update, disable LLM provider credentials |
-| `ai.provider.view` | DW supervisors | See available providers (but not raw API keys) when configuring DWs |
+| `ai.provider.view` | agent supervisors | See available providers (but not raw API keys) when configuring agents |
 
-Provider management is a company-level operation, separate from DW onboarding. Only users with `ai.provider.manage` can create or edit provider entries. DW supervisors can see the list of available providers (name, display_name, is_active) but never the raw API key.
+Provider management is a company-level operation, separate from agent onboarding. Only users with `ai.provider.manage` can create or edit provider entries. agent supervisors can see the list of available providers (name, display_name, is_active) but never the raw API key.
 
 > Stage 0 implementation note: routes currently use `auth` middleware; capability-specific middleware for `ai.provider.manage` / `ai.provider.view` is planned hardening work.
 
 ### 15.5 Fallback Attempt Trace (Runtime Observability)
 
-Inspired by OpenClaw's `FallbackAttempt` type (`openclaw/src/agents/model-fallback.ts`), the Digital Worker runtime captures structured trace metadata for every model attempted during a conversation turn.
+Inspired by OpenClaw's `FallbackAttempt` type (`openclaw/src/agents/model-fallback.ts`), the Agent runtime captures structured trace metadata for every model attempted during a conversation turn.
 
 **Trace entry structure (per attempt):**
 
@@ -574,33 +574,33 @@ Inspired by OpenClaw's `FallbackAttempt` type (`openclaw/src/agents/model-fallba
 
 ---
 
-## 16. Digital Worker Onboarding
+## 16. Agent Onboarding
 
 ### 16.1 Onboarding Flow
 
-Setting up a Digital Worker is a multi-step process that spans the employee module and AI module. The onboarding UI provides a guided flow (tabbed or wizard-style) within the existing employee management surface.
+Setting up a Agent is a multi-step process that spans the employee module and AI module. The onboarding UI provides a guided flow (tabbed or wizard-style) within the existing employee management surface.
 
 **Steps:**
 
-1. **Identity** — Create employee with `employee_type = 'digital_worker'`. Set name, job description, supervisor (defaults to current user). Employee module handles this.
-2. **LLM Configuration** — Select provider from the company's available providers, pick model, optionally override temperature/max_tokens. Writes `config.json` to the DW workspace.
+1. **Identity** — Create employee with `employee_type = 'agent'`. Set name, job description, supervisor (defaults to current user). Employee module handles this.
+2. **LLM Configuration** — Select provider from the company's available providers, pick model, optionally override temperature/max_tokens. Writes `config.json` to the agent workspace.
 3. **Authorization** — Assign roles and capabilities. Scoped by what the supervisor has (existing AuthZ Stage D constraint: supervisor can only assign what they have).
-4. **Review & Activate** — Summary of the DW setup. Set status to active. DW appears in supervisor's playground.
+4. **Review & Activate** — Summary of the agent setup. Set status to active. agent appears in supervisor's playground.
 
 ### 16.2 Authorization for Onboarding
 
 | Capability | Who | Purpose |
 |------------|-----|---------|
-| `employee.digital_worker.create` | Supervisor | Create a new DW employee record |
-| `employee.digital_worker.update` | Supervisor | Edit DW identity, job description |
-| `ai.digital_worker.configure_llm` | Supervisor | Set or change LLM provider/model for a DW they supervise |
-| `employee.digital_worker.assign_role` | Supervisor | Assign roles (existing AuthZ, supervisor-scoped) |
-| `employee.digital_worker.assign_permission` | Supervisor | Grant capabilities (existing AuthZ, supervisor-scoped) |
-| `employee.digital_worker.disable` | Supervisor | Deactivate a DW |
+| `employee.agent.create` | Supervisor | Create a new agent employee record |
+| `employee.agent.update` | Supervisor | Edit agent identity, job description |
+| `ai.agent.configure_llm` | Supervisor | Set or change LLM provider/model for a agent they supervise |
+| `employee.agent.assign_role` | Supervisor | Assign roles (existing AuthZ, supervisor-scoped) |
+| `employee.agent.assign_permission` | Supervisor | Grant capabilities (existing AuthZ, supervisor-scoped) |
+| `employee.agent.disable` | Supervisor | Deactivate a agent |
 
 **Constraints:**
-- A supervisor can only onboard DWs under their own supervision (not other users' DWs).
-- Roles/capabilities assigned to the DW must be a subset of the supervisor's effective permissions (existing AuthZ Stage D invariant).
+- A supervisor can only onboard agents under their own supervision (not other users' agents).
+- Roles/capabilities assigned to the agent must be a subset of the supervisor's effective permissions (existing AuthZ Stage D invariant).
 - LLM provider must be active and belong to the same company.
 - The onboarding flow reuses existing employee creation and AuthZ assignment UIs — it is a guided orchestration, not a separate product surface.
 
@@ -609,14 +609,14 @@ Setting up a Digital Worker is a multi-step process that spans the employee modu
 | Concern | Owner | Scope |
 |---------|-------|-------|
 | Provider credentials (API keys, base URLs) | Company admin (`ai.provider.manage`) | Company-wide |
-| DW identity (name, job, supervisor) | Employee module (`employee.digital_worker.*`) | Per-DW |
-| DW model selection (provider, model, params) | AI module (`ai.digital_worker.configure_llm`) | Per-DW workspace |
-| Roles and permissions | AuthZ module (`employee.digital_worker.assign_role/permission`) | Per-DW |
+| agent identity (name, job, supervisor) | Employee module (`employee.agent.*`) | Per-agent |
+| agent model selection (provider, model, params) | AI module (`ai.agent.configure_llm`) | Per-agent workspace |
+| Roles and permissions | AuthZ module (`employee.agent.assign_role/permission`) | Per-agent |
 
 This separation means:
 - **Company admin** sets up which LLM providers are available (one-time or occasional).
-- **DW supervisor** picks from pre-approved providers when onboarding a DW — they don't need to know API keys.
-- **Cost control** is natural: the company admin controls which providers (and thus cost tiers) are available; the supervisor picks the best fit for the DW's job.
+- **agent supervisor** picks from pre-approved providers when onboarding a agent — they don't need to know API keys.
+- **Cost control** is natural: the company admin controls which providers (and thus cost tiers) are available; the supervisor picks the best fit for the agent's job.
 
 ---
 
@@ -624,10 +624,10 @@ This separation means:
 
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
-| 0.1 | 2026-02-25 | AI + Kiat | Pivoted from PA document to Digital Worker architecture; unified employee model and delegation invariants |
-| 0.2 | 2026-02-26 | AI + Kiat | Added §14 Memory and Recall: transcript vs memory, MemSearch pattern, PHP-native direction, SQLite per DW |
-| 0.3 | 2026-02-27 | AI + Kiat | Renamed §3.3 operations to Digital Worker; added §14.4 hybrid search strategy (vector 70% + BM25 30%); added §14.5 compaction workflow |
+| 0.1 | 2026-02-25 | AI + Kiat | Pivoted from PA document to Agent architecture; unified employee model and delegation invariants |
+| 0.2 | 2026-02-26 | AI + Kiat | Added §14 Memory and Recall: transcript vs memory, MemSearch pattern, PHP-native direction, SQLite per agent |
+| 0.3 | 2026-02-27 | AI + Kiat | Renamed §3.3 operations to Agent; added §14.4 hybrid search strategy (vector 70% + BM25 30%); added §14.5 compaction workflow |
 | 0.4 | 2026-02-27 | AI + Kiat | Added §8 Implementation Dependencies, §9 Workspace Configuration; renumbered §8–12 → §10–14 |
-| 0.5 | 2026-02-28 | AI + Kiat | Added §15 Per-DW LLM Configuration (provider credentials, workspace config.json, config resolution); §16 Digital Worker Onboarding (flow, authorization, separation of concerns) |
+| 0.5 | 2026-02-28 | AI + Kiat | Added §15 Per-agent LLM Configuration (provider credentials, workspace config.json, config resolution); §16 Agent Onboarding (flow, authorization, separation of concerns) |
 | 0.6 | 2026-02-28 | AI + Kiat | Updated §15.2 config.json to multi-model format (`llm.models[]`); added §15.5 Fallback Attempt Trace (OpenClaw-inspired runtime observability) |
 | 0.7 | 2026-03-04 | AI + Kiat | Refined §15.3 to match current resolver/runtime behavior and added Stage 0 hardening notes for capability middleware |

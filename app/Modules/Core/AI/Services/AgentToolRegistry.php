@@ -12,12 +12,12 @@ use App\Base\Authz\DTO\Actor;
 use App\Modules\Core\User\Models\User;
 
 /**
- * Registry and executor for Digital Worker tools.
+ * Registry and executor for Agent tools.
  *
  * Manages tool discovery, builds OpenAI-format tool definitions filtered by
  * the current user's authz capabilities, and dispatches tool execution.
  */
-class DigitalWorkerToolRegistry
+class AgentToolRegistry
 {
     /** @var array<string, Tool> */
     private array $tools = [];

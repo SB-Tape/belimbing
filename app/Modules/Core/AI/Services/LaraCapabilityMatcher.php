@@ -13,11 +13,11 @@ use App\Modules\Core\User\Models\User;
 class LaraCapabilityMatcher
 {
     /**
-     * Return Digital Workers the current authenticated user can delegate to.
+     * Return Agents the current authenticated user can delegate to.
      *
      * @return list<array{employee_id: int, name: string, capability_summary: string}>
      */
-    public function discoverDelegableWorkersForCurrentUser(): array
+    public function discoverDelegableAgentsForCurrentUser(): array
     {
         $user = auth()->user();
 
@@ -25,7 +25,7 @@ class LaraCapabilityMatcher
             return [];
         }
 
-        return $user->getDigitalWorkers()
+        return $user->getAgents()
             ->map(fn (Employee $employee): array => [
                 'employee_id' => $this->employeeId($employee),
                 'name' => $employee->displayName(),
@@ -36,15 +36,15 @@ class LaraCapabilityMatcher
     }
 
     /**
-     * Find a specific accessible Digital Worker by ID.
+     * Find a specific accessible Agent by ID.
      *
      * @return array{employee_id: int, name: string, capability_summary: string}|null
      */
-    public function findAccessibleWorkerById(int $employeeId): ?array
+    public function findAccessibleAgentById(int $employeeId): ?array
     {
-        foreach ($this->discoverDelegableWorkersForCurrentUser() as $worker) {
-            if ($worker['employee_id'] === $employeeId) {
-                return $worker;
+        foreach ($this->discoverDelegableAgentsForCurrentUser() as $agent) {
+            if ($agent['employee_id'] === $employeeId) {
+                return $agent;
             }
         }
 
@@ -52,26 +52,26 @@ class LaraCapabilityMatcher
     }
 
     /**
-     * Match the best available Digital Worker for a free-text task.
+     * Match the best available Agent for a free-text task.
      *
      * @return array{employee_id: int, name: string, capability_summary: string, match_score: int}|null
      */
     public function matchBestForTask(string $task): ?array
     {
-        $workers = $this->discoverDelegableWorkersForCurrentUser();
+        $agents = $this->discoverDelegableAgentsForCurrentUser();
 
-        if ($workers === []) {
+        if ($agents === []) {
             return null;
         }
 
         $best = null;
         $bestScore = -1;
 
-        foreach ($workers as $worker) {
-            $score = $this->scoreTask($task, $worker['capability_summary']);
+        foreach ($agents as $agent) {
+            $score = $this->scoreTask($task, $agent['capability_summary']);
 
             if ($score > $bestScore) {
-                $best = $worker;
+                $best = $agent;
                 $bestScore = $score;
             }
         }
@@ -87,7 +87,7 @@ class LaraCapabilityMatcher
     }
 
     /**
-     * Build a concise capability summary for a Digital Worker.
+     * Build a concise capability summary for a Agent.
      */
     private function capabilitySummary(Employee $employee): string
     {
@@ -95,7 +95,7 @@ class LaraCapabilityMatcher
         $description = trim((string) ($employee->job_description ?? ''));
 
         if ($designation === '' && $description === '') {
-            return __('General Digital Worker');
+            return __('General Agent');
         }
 
         if ($designation !== '' && $description !== '') {
@@ -132,8 +132,8 @@ class LaraCapabilityMatcher
     {
         if (! is_int($employee->id)) {
             throw new BlbDataContractException(
-                'Invalid Digital Worker identifier type.',
-                BlbErrorCode::LARA_DIGITAL_WORKER_ID_TYPE_INVALID,
+                'Invalid Agent identifier type.',
+                BlbErrorCode::LARA_AGENT_ID_TYPE_INVALID,
                 ['employee_id' => $employee->id]
             );
         }

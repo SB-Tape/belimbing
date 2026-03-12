@@ -142,11 +142,11 @@ class User extends Authenticatable implements CompanyScoped
     }
 
     /**
-     * Get active Digital Workers directly supervised by this user's employee.
+     * Get active Agents directly supervised by this user's employee.
      *
      * @return EloquentCollection<int, Employee>
      */
-    public function getDigitalWorkers(): EloquentCollection
+    public function getAgents(): EloquentCollection
     {
         $supervisorId = $this->employee?->id;
 
@@ -155,7 +155,7 @@ class User extends Authenticatable implements CompanyScoped
         }
 
         return Employee::query()
-            ->digitalWorker()
+            ->agent()
             ->where('id', '!=', Employee::LARA_ID)
             ->where('supervisor_id', $supervisorId)
             ->active()
@@ -164,11 +164,11 @@ class User extends Authenticatable implements CompanyScoped
     }
 
     /**
-     * Check whether this user can access a supervised Digital Worker.
+     * Check whether this user can access a supervised Agent.
      *
      * Lara is excluded; Lara access uses a dedicated system path/policy.
      */
-    public function canAccessSupervisedDigitalWorker(int $employeeId): bool
+    public function canAccessSupervisedAgent(int $employeeId): bool
     {
         if ($employeeId === Employee::LARA_ID) {
             return false;
@@ -181,7 +181,7 @@ class User extends Authenticatable implements CompanyScoped
         }
 
         return Employee::query()
-            ->digitalWorker()
+            ->agent()
             ->whereKey($employeeId)
             ->where('supervisor_id', $supervisorId)
             ->exists();

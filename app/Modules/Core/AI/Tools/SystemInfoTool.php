@@ -13,7 +13,7 @@ use App\Base\AI\Tools\ToolResult;
 use Illuminate\Support\Facades\DB;
 
 /**
- * System information reporting tool for Digital Workers.
+ * System information reporting tool for Agents.
  *
  * Provides structured JSON about the BLB instance including framework
  * details, active modules, configured AI providers, and health checks.

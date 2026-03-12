@@ -14,7 +14,7 @@
 | A – Core Capability Vocabulary | Done | `CapabilityRegistry`, `CapabilityKey`, `CapabilityCatalog`; unknown capability fails tests |
 | B – Policy Engine + RBAC | Done | Schema, models, `AuthorizationService`, company scope, deny-by-default |
 | C – App Integration Surface | Done | `AuthorizeCapability` middleware, `AuthzMenuAccessChecker`, role UI, impersonation |
-| D – Digital Worker Delegation | Partial | Actor with `PrincipalType::DIGITAL_WORKER` + `actingForUserId`; same RBAC as human (principal_id = employee_id). **Remaining:** assignment-time validation + cascade revocation (see §3.1) |
+| D – Agent Delegation | Partial | Actor with `PrincipalType::AGENT` + `actingForUserId`; same RBAC as human (principal_id = employee_id). **Remaining:** assignment-time validation + cascade revocation (see §3.1) |
 | E – Audit, DX, Hardening | Partial | `DatabaseDecisionLogger`, `AuditingAuthorizationService`, reason codes. **Gap:** No decision log query endpoint/console tooling; no performance assertions |
 
 **Implemented components:**
@@ -31,14 +31,14 @@
 ---
 
 ## 1. Product Goal
-Ship a production-usable AuthZ foundation that enforces identical rules for users and their Digital Workers before Digital Worker approval workflows are built.
+Ship a production-usable AuthZ foundation that enforces identical rules for users and their Agents before Agent approval workflows are built.
 
 ## 2. Success Criteria
 
 1. Every protected action can be traced to a capability key.
-2. Policy decisions are consistent across web, API, and Digital Worker runtime.
+2. Policy decisions are consistent across web, API, and Agent runtime.
 3. Deny-by-default is enforced system-wide.
-4. Digital Worker cannot perform any action its supervisor cannot perform.
+4. Agent cannot perform any action its supervisor cannot perform.
 
 ## 3. Scope
 
@@ -48,7 +48,7 @@ Ship a production-usable AuthZ foundation that enforces identical rules for user
 3. Unified authorization service (`can`, `authorize`, `filterAllowed`)
 4. Decision logging with reason codes
 5. Menu integration as consumer
-6. Digital Worker delegated actor evaluation
+6. Agent delegated actor evaluation
 
 ### Out of Scope
 1. Complex policy builder UI
@@ -56,19 +56,19 @@ Ship a production-usable AuthZ foundation that enforces identical rules for user
 3. External IdP policy synchronization
 
 ### Naming Contract (Locked)
-1. Term: `Digital Worker` (not `PA`)
-2. Principal type values: `human_user` and `digital_worker`
-3. Framework AI capability prefix: `ai.digital_worker.*`
+1. Term: `Agent` (not `PA`)
+2. Principal type values: `human_user` and `agent`
+3. Framework AI capability prefix: `ai.agent.*`
 4. Delegation context field in current actor DTO: `actingForUserId` (may later be complemented by richer supervision context)
 
-### 3.1 Digital Worker Permission Model (Locked)
+### 3.1 Agent Permission Model (Locked)
 
-- **Same RBAC as human:** Digital Worker uses the same roles and permissions (principal_roles, principal_capabilities). `principal_type = 'digital_worker'`, `principal_id = employee_id`.
-- **Assignment-only:** No runtime policy that intersects with supervisor. Supervisor assigns roles/capabilities to Digital Worker; we validate at assignment time that supervisor can only assign what they have.
+- **Same RBAC as human:** Agent uses the same roles and permissions (principal_roles, principal_capabilities). `principal_type = 'agent'`, `principal_id = employee_id`.
+- **Assignment-only:** No runtime policy that intersects with supervisor. Supervisor assigns roles/capabilities to Agent; we validate at assignment time that supervisor can only assign what they have.
 - **Cascade revocation:** When a supervisor loses a permission, all subordinates lose it too. Enforced programmatically:
   - When role R is removed from principal P → cascade removal of role R to all subordinates (recursively via Employee.supervisor_id).
   - When direct capability X is removed from principal P → cascade removal of X to all subordinates.
-- **No runtime intersection policy:** The Digital Worker ≤ supervisor invariant is maintained by assignment validation + cascade revocation, not by loading supervisor effective permissions at decision time.
+- **No runtime intersection policy:** The Agent ≤ supervisor invariant is maintained by assignment validation + cascade revocation, not by loading supervisor effective permissions at decision time.
 
 ## 4. Staged Delivery
 
@@ -106,17 +106,17 @@ Acceptance:
 1. Menu visibility matches policy decisions
 2. Backend endpoints remain enforced even if menu hidden
 
-## Stage D - Digital Worker Delegation Integration
+## Stage D - Agent Delegation Integration
 
 Deliverables:
-1. Digital Worker actor mapping (same RBAC; `principal_id = employee_id`)
+1. Agent actor mapping (same RBAC; `principal_id = employee_id`)
 2. Assignment-time validation: supervisor can only assign roles/capabilities they have
 3. Cascade revocation: when supervisor loses role/capability, cascade to all subordinates (Employee.supervisor_id)
-4. Decision logs include actor type (`human_user` / `digital_worker`)
+4. Decision logs include actor type (`human_user` / `agent`)
 
 Acceptance:
-1. Digital Worker ≤ supervisor invariant via assignment validation + cascade (no runtime policy)
-2. Audit records can differentiate Digital Worker vs user decisions
+1. Agent ≤ supervisor invariant via assignment validation + cascade (no runtime policy)
+2. Audit records can differentiate Agent vs user decisions
 
 ## Stage E - Audit, DX, and Hardening
 
@@ -138,7 +138,7 @@ Acceptance:
 3. ~~Implement models for roles/capabilities/assignments~~
 4. ~~Implement `AuthorizationService` and policy pipeline~~
 5. ~~Add policy integration (role UI, impersonation, middleware, menu)~~
-6. ~~Digital Worker actor model (`Actor` with `PrincipalType::DIGITAL_WORKER`, `actingForUserId`)~~
+6. ~~Agent actor model (`Actor` with `PrincipalType::AGENT`, `actingForUserId`)~~
 7. ~~Decision logging and reason code enums~~
 8. ~~Pest unit + feature coverage~~
 
@@ -163,7 +163,7 @@ Acceptance:
 2. Protected endpoint deny path
 3. Cross-company denial
 4. Menu item visibility by capability
-5. Digital Worker authorization uses same RBAC; revocation cascades to subordinates
+5. Agent authorization uses same RBAC; revocation cascades to subordinates
 
 ### Security/Regression
 1. Fail-closed on service exceptions
@@ -181,13 +181,13 @@ Acceptance:
 
 1. Capability owner required per bounded context
 2. Lint/static check for direct bypass patterns
-3. Shared integration test harness for web/API/Digital Worker paths
+3. Shared integration test harness for web/API/Agent paths
 4. Keep early schema simple and evolvable (destructive changes acceptable now)
 
-## 9. Exit Gate for Digital Worker Stage 2 (Approve/Reject)
+## 9. Exit Gate for Agent Stage 2 (Approve/Reject)
 
-Do not implement Digital Worker approval inbox until all are true:
+Do not implement Agent approval inbox until all are true:
 1. ~~Stage B complete (engine + RBAC)~~
-2. Stage D complete (Digital Worker delegation) — **blocker:** assignment validation + cascade revocation
+2. Stage D complete (Agent delegation) — **blocker:** assignment validation + cascade revocation
 3. ~~Decision logging operational~~
 4. At least one sensitive workflow validated end-to-end with AuthZ enforcement

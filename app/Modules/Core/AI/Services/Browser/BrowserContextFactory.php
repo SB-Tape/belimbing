@@ -54,7 +54,7 @@ class BrowserContextFactory
      * is managed by BrowserPoolManager.
      *
      * @param  int  $companyId  Company scope for isolation
-     * @param  string  $sessionId  DW session identifier
+     * @param  string  $sessionId  agent session identifier
      * @return string Unique context identifier
      */
     public function createContextId(int $companyId, string $sessionId): string

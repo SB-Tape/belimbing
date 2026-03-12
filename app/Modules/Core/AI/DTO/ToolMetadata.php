@@ -9,7 +9,7 @@ use App\Base\AI\Enums\ToolCategory;
 use App\Base\AI\Enums\ToolRiskClass;
 
 /**
- * Rich UI metadata for a Digital Worker tool.
+ * Rich UI metadata for a Agent tool.
  *
  * Separate from the runtime Tool contract — this holds
  * display-oriented information for the Tool Workspace UI.

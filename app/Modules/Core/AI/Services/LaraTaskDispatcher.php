@@ -15,7 +15,7 @@ class LaraTaskDispatcher
     ) {}
 
     /**
-     * Dispatch a task to an accessible Digital Worker.
+     * Dispatch a task to an accessible Agent.
      *
      * @return array{dispatch_id: string, status: string, employee_id: int, employee_name: string, task: string, acting_for_user_id: int, created_at: string}
      *
@@ -23,18 +23,18 @@ class LaraTaskDispatcher
      */
     public function dispatchForCurrentUser(int $employeeId, string $task): array
     {
-        $worker = $this->capabilityMatcher->findAccessibleWorkerById($employeeId);
+        $agent = $this->capabilityMatcher->findAccessibleAgentById($employeeId);
         $actingForUserId = auth()->id();
 
-        if ($worker === null || ! is_int($actingForUserId)) {
-            throw new AuthorizationException(__('Unauthorized Digital Worker dispatch target.'));
+        if ($agent === null || ! is_int($actingForUserId)) {
+            throw new AuthorizationException(__('Unauthorized Agent dispatch target.'));
         }
 
         return [
-            'dispatch_id' => 'dw_dispatch_'.Str::random(12),
+            'dispatch_id' => 'agent_dispatch_'.Str::random(12),
             'status' => 'queued',
-            'employee_id' => $worker['employee_id'],
-            'employee_name' => $worker['name'],
+            'employee_id' => $agent['employee_id'],
+            'employee_name' => $agent['name'],
             'task' => trim($task),
             'acting_for_user_id' => $actingForUserId,
             'created_at' => now()->toIso8601String(),

@@ -34,7 +34,7 @@ describe('input validation', function () {
     });
 
     it('rejects dispatch_id with prefix only', function () {
-        $result = (string) $this->tool->execute(['dispatch_id' => 'dw_dispatch_']);
+        $result = (string) $this->tool->execute(['dispatch_id' => 'agent_dispatch_']);
         expect($result)->toContain('Error')
             ->and($result)->toContain('Invalid dispatch_id format');
     });
@@ -42,30 +42,30 @@ describe('input validation', function () {
 
 describe('status lookup', function () {
     it('returns queued status for valid dispatch_id', function () {
-        $result = (string) $this->tool->execute(['dispatch_id' => 'dw_dispatch_abc123xyz']);
+        $result = (string) $this->tool->execute(['dispatch_id' => 'agent_dispatch_abc123xyz']);
         $data = json_decode($result, true);
 
         expect($data)->not->toBeNull()
-            ->and($data['dispatch_id'])->toBe('dw_dispatch_abc123xyz')
+            ->and($data['dispatch_id'])->toBe('agent_dispatch_abc123xyz')
             ->and($data['status'])->toBe('queued')
             ->and($data)->toHaveKey('checked_at')
             ->and($data)->toHaveKey('message');
     });
 
     it('returns valid JSON', function () {
-        $result = (string) $this->tool->execute(['dispatch_id' => 'dw_dispatch_test123']);
+        $result = (string) $this->tool->execute(['dispatch_id' => 'agent_dispatch_test123']);
 
         expect(json_decode($result, true))->not->toBeNull();
     });
 
     it('returns pretty-printed JSON', function () {
-        $result = (string) $this->tool->execute(['dispatch_id' => 'dw_dispatch_test123']);
+        $result = (string) $this->tool->execute(['dispatch_id' => 'agent_dispatch_test123']);
 
         expect($result)->toContain("\n");
     });
 
     it('preserves dispatch_id in response', function () {
-        $dispatchId = 'dw_dispatch_unique42';
+        $dispatchId = 'agent_dispatch_unique42';
         $result = (string) $this->tool->execute(['dispatch_id' => $dispatchId]);
         $data = json_decode($result, true);
 
@@ -73,7 +73,7 @@ describe('status lookup', function () {
     });
 
     it('includes checked_at timestamp', function () {
-        $result = (string) $this->tool->execute(['dispatch_id' => 'dw_dispatch_time']);
+        $result = (string) $this->tool->execute(['dispatch_id' => 'agent_dispatch_time']);
         $data = json_decode($result, true);
 
         expect($data['checked_at'])->toMatch('/^\d{4}-\d{2}-\d{2}T/');

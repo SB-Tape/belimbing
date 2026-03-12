@@ -11,8 +11,8 @@ uses(TestCase::class, MakesRuntimeResponses::class);
 function makeRuntime(
     ConfigResolver $configResolver,
     LlmClient $llmClient,
-): \App\Modules\Core\AI\Services\DigitalWorkerRuntime {
-    return test()->makeDigitalWorkerRuntime($configResolver, $llmClient);
+): \App\Modules\Core\AI\Services\AgentRuntime {
+    return test()->makeAgentRuntime($configResolver, $llmClient);
 }
 
 function stubResolvedConfigs(ConfigResolver $configResolver, array $configs): void

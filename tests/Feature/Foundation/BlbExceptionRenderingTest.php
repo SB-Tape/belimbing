@@ -16,8 +16,8 @@ it('renders BLB data contract exceptions as structured 422 JSON in debug mode', 
 
     Route::get('/_test/blb-exception/data-contract', function (): void {
         throw new BlbDataContractException(
-            'Invalid Digital Worker identifier type.',
-            BlbErrorCode::LARA_DIGITAL_WORKER_ID_TYPE_INVALID,
+            'Invalid Agent identifier type.',
+            BlbErrorCode::LARA_AGENT_ID_TYPE_INVALID,
             ['employee_id' => 'abc']
         );
     });
@@ -25,8 +25,8 @@ it('renders BLB data contract exceptions as structured 422 JSON in debug mode', 
     $response = $this->getJson('/_test/blb-exception/data-contract');
 
     $response->assertStatus(422)
-        ->assertJsonPath('reason_code', BlbErrorCode::LARA_DIGITAL_WORKER_ID_TYPE_INVALID->value)
-        ->assertJsonPath('message', 'Invalid Digital Worker identifier type.')
+        ->assertJsonPath('reason_code', BlbErrorCode::LARA_AGENT_ID_TYPE_INVALID->value)
+        ->assertJsonPath('message', 'Invalid Agent identifier type.')
         ->assertJsonPath('context.employee_id', 'abc');
 });
 

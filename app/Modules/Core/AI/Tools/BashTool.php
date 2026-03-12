@@ -14,9 +14,9 @@ use App\Base\AI\Tools\ToolResult;
 use Illuminate\Support\Facades\Process;
 
 /**
- * Bash CLI execution tool for Digital Workers.
+ * Bash CLI execution tool for Agents.
  *
- * Allows a DW to run arbitrary bash commands on behalf of the user.
+ * Allows a agent to run arbitrary bash commands on behalf of the user.
  * This is the most powerful tool — gated by `ai.tool_bash.execute`.
  *
  * Safety: Timeout enforced per execution. Authz gating is the primary

@@ -13,7 +13,7 @@ use App\Modules\Core\AI\Models\AiProviderModel;
  * Handles add model (manual), toggle availability, inline cost overrides,
  * and default model selection. Models discovered via API sync are toggled
  * on/off rather than deleted — the activation checkbox controls whether a
- * model is available to Digital Workers.
+ * model is available to Agents.
  */
 trait ManagesModels
 {
@@ -26,7 +26,7 @@ trait ManagesModels
     public string $modelModelName = '';
 
     /**
-     * Toggle a model's availability for Digital Workers.
+     * Toggle a model's availability for Agents.
      *
      * Replaces the former delete action — models are activated/deactivated
      * rather than removed, since they originate from API discovery.

@@ -27,7 +27,7 @@ return new class extends Migration
             $table->string('full_name'); // Official/Legal name (Passport/ID)
             $table->string('short_name')->nullable(); // Preferred/Display name
             $table->string('designation')->nullable(); // Job title (e.g., "Senior Software Engineer")
-            $table->string('employee_type')->default('full_time')->index(); // full_time, part_time, contractor, intern, digital_worker
+            $table->string('employee_type')->default('full_time')->index(); // full_time, part_time, contractor, intern, agent
             $table->text('job_description')->nullable(); // Short role label or summary
 
             // Primary Contact

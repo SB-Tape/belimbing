@@ -3,28 +3,28 @@
 **Document Type:** Architecture Specification
 **Status:** Implemented
 **Last Updated:** 2026-02-26
-**Related:** `docs/architecture/user-employee-company.md`, `docs/architecture/ai-digital-worker.md`, `docs/architecture/database.md`
+**Related:** `docs/architecture/user-employee-company.md`, `docs/architecture/ai-agent.md`, `docs/architecture/database.md`
 
 ---
 
 ## 1. Problem Essence
 
-BLB needs one authorization system that consistently decides what both humans and Digital Workers are allowed to do across UI, APIs, tools, and workflows.
+BLB needs one authorization system that consistently decides what both humans and Agents are allowed to do across UI, APIs, tools, and workflows.
 
 ### 1.1 Canonical Terms and Naming
 
 | Term | Canonical Meaning |
 |------|-------------------|
-| Digital Worker | Digital Worker; the non-human employee actor type in BLB. |
+| Agent | Agent; the non-human employee actor type in BLB. |
 | Human User | A human principal represented by `PrincipalType::HUMAN_USER` and stored as `'human_user'`. |
-| Supervisor | The immediate principal responsible for a Digital Worker (human or Digital Worker). |
-| Supervision Chain | Directed chain from a Digital Worker to an accountable human. Must be acyclic. |
-| Delegation Context | Execution context linking Digital Worker actions to a human accountability chain (`actingForUserId` in current actor DTO; may evolve to richer supervision metadata). |
+| Supervisor | The immediate principal responsible for a Agent (human or Agent). |
+| Supervision Chain | Directed chain from a Agent to an accountable human. Must be acyclic. |
+| Delegation Context | Execution context linking Agent actions to a human accountability chain (`actingForUserId` in current actor DTO; may evolve to richer supervision metadata). |
 
 Naming rules locked for AuthZ v1:
-1. Principal enum: `PrincipalType::DIGITAL_WORKER` and `PrincipalType::HUMAN_USER`.
-2. Persisted principal type values: `'digital_worker'` and `'human_user'`.
-3. Capability namespace for framework AI operations: `ai.digital_worker.*`.
+1. Principal enum: `PrincipalType::AGENT` and `PrincipalType::HUMAN_USER`.
+2. Persisted principal type values: `'agent'` and `'human_user'`.
+3. Capability namespace for framework AI operations: `ai.agent.*`.
 
 ---
 
@@ -41,14 +41,14 @@ Decision:
 
 Rationale:
 1. BLB rules are cross-cutting (company scope, role, workflow state, delegation).
-2. Digital Worker approvals and tool execution need policy evaluation, not menu-only checks.
+2. Agent approvals and tool execution need policy evaluation, not menu-only checks.
 3. ACL-first would couple implementation to resource lists too early and create rework.
 
 ---
 
 ## 3. Public Interface
 
-All callers (web, API, Digital Worker runtime, jobs, menu rendering) use one decision contract.
+All callers (web, API, Agent runtime, jobs, menu rendering) use one decision contract.
 
 ```php
 interface AuthorizationService
@@ -69,7 +69,7 @@ interface AuthorizationService
 final readonly class Actor
 {
     public function __construct(
-        public PrincipalType $type,  // PrincipalType::HUMAN_USER | PrincipalType::DIGITAL_WORKER
+        public PrincipalType $type,  // PrincipalType::HUMAN_USER | PrincipalType::AGENT
         public int $id,
         public ?int $companyId,
         public ?int $actingForUserId = null,
@@ -81,9 +81,9 @@ final readonly class Actor
 `$type` is a backed enum (`App\Base\Authz\Enums\PrincipalType`), not a raw string. The Actor carries a `validate()` method that encapsulates context validation rules (ID > 0, company required, agent delegation).
 
 Rules:
-1. A Digital Worker is a delegated actor chained to a human (supervision chain).
-2. Digital Worker cannot exceed supervisor effective permissions.
-3. Same capability vocabulary applies to human and Digital Worker actors.
+1. A Agent is a delegated actor chained to a human (supervision chain).
+2. Agent cannot exceed supervisor effective permissions.
+3. Same capability vocabulary applies to human and Agent actors.
 4. Every decision carries actor type for audit.
 
 ### 3.2 Resource Context
@@ -239,7 +239,7 @@ Validated by `CapabilityKey` value object (`app/Base/Authz/Capability/Capability
 - Pattern: `/^[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*$/`
 - Always lowercase.
 - Parseable into `{domain, resource, action}`.
-- Digital Worker-specific framework capabilities must use `ai.digital_worker.<action>` or module-owned `*.digital_worker.<action>` patterns.
+- Agent-specific framework capabilities must use `ai.agent.<action>` or module-owned `*.agent.<action>` patterns.
 
 ### 5.2 Module-Owned Capabilities
 
@@ -264,11 +264,11 @@ return [
 
 The base `Config/authz.php` holds only:
 - Grammar rules (domains, verbs)
-- Framework-level capabilities not yet owned by a module (e.g., `ai.digital_worker.*`)
+- Framework-level capabilities not yet owned by a module (e.g., `ai.agent.*`)
 - System role definitions that aggregate capabilities across modules
 - Decision log retention config
 
-**Adding capabilities for a new module:** Create `Config/authz.php` in the module directory. No service provider changes needed — the file is auto-discovered. For **Digital Worker** administration capabilities (e.g. `employee.digital_worker.create`, `employee.digital_worker.update`), the vocabulary is defined in [docs/architecture/ai-digital-worker.md](ai-digital-worker.md) §5.3; AuthZ owns registration and enforcement.
+**Adding capabilities for a new module:** Create `Config/authz.php` in the module directory. No service provider changes needed — the file is auto-discovered. For **Agent** administration capabilities (e.g. `employee.agent.create`, `employee.agent.update`), the vocabulary is defined in [docs/architecture/ai-agent.md](ai-agent.md) §5.3; AuthZ owns registration and enforcement.
 
 ### 5.3 Catalog and Registry
 
@@ -286,7 +286,7 @@ The base `Config/authz.php` holds only:
 **Domains** (configurable in `authz.php`):
 - `core` — Core platform modules
 - `workflow` — Workflow and state transitions
-- `ai` — AI and digital worker capabilities
+- `ai` — AI and agent capabilities
 - `admin` — Administrative operations
 
 **Verbs** (configurable in `authz.php`):
@@ -318,7 +318,7 @@ base_authz_role_capabilities
 base_authz_principal_roles
 ├── id (PK)
 ├── company_id (nullable, index)
-├── principal_type (varchar 40) — 'human_user' | 'digital_worker'
+├── principal_type (varchar 40) — 'human_user' | 'agent'
 ├── principal_id (unsigned bigint)
 ├── role_id (FK → roles, cascade delete)
 ├── index(principal_type, principal_id)
@@ -375,7 +375,7 @@ Current system roles:
 
 | Code | Name | Capabilities |
 |------|------|-------------|
-| `core_admin` | Core Administrator | All `core.*` and `ai.digital_worker.*` |
+| `core_admin` | Core Administrator | All `core.*` and `ai.agent.*` |
 | `user_viewer` | User Viewer | `core.user.list`, `core.user.view` |
 | `user_editor` | User Editor | All `core.user.*` |
 
@@ -417,33 +417,33 @@ Implemented as a composable policy pipeline (not hardcoded):
 
 Future policies (resource ownership, workflow state, delegation constraints) can be inserted into the pipeline without modifying existing code.
 
-### 9.2 Delegation Rules for Digital Worker
+### 9.2 Delegation Rules for Agent
 
-1. Digital Worker actor must include `actingForUserId` (or equivalent supervision context) so the chain to a human is explicit.
+1. Agent actor must include `actingForUserId` (or equivalent supervision context) so the chain to a human is explicit.
 2. Effective permissions = intersection of:
-   - supervisor effective permissions (Digital Worker cannot exceed)
-   - Digital Worker safety policy (tool/channel limits)
+   - supervisor effective permissions (Agent cannot exceed)
+   - Agent safety policy (tool/channel limits)
 3. High-risk actions may still require human approval even if allowed.
 
 ### 9.3 Delegation Invariant Test Requirement
 
-The following invariant must be covered consistently in web, API, and Digital Worker runtime integration tests:
-1. If supervisor is denied capability `X`, Digital Worker is denied `X`.
-2. If supervisor is allowed `X` but Digital Worker safety policy denies `X`, Digital Worker is denied `X`.
-3. If supervisor is allowed `X` and Digital Worker safety policy allows `X`, Digital Worker may be allowed `X` (subject to other policies).
+The following invariant must be covered consistently in web, API, and Agent runtime integration tests:
+1. If supervisor is denied capability `X`, Agent is denied `X`.
+2. If supervisor is allowed `X` but Agent safety policy denies `X`, Agent is denied `X`.
+3. If supervisor is allowed `X` and Agent safety policy allows `X`, Agent may be allowed `X` (subject to other policies).
 
-### 9.4 Digital Workers
+### 9.4 Agents
 
-Digital Workers are first-class employees under the same org and AuthZ model as humans. **Full specification:** [docs/architecture/ai-digital-worker.md](ai-digital-worker.md).
+Agents are first-class employees under the same org and AuthZ model as humans. **Full specification:** [docs/architecture/ai-agent.md](ai-agent.md).
 
-**AuthZ contract for Digital Worker:**
+**AuthZ contract for Agent:**
 
-1. **Delegation constraint:** Digital Worker effective permissions must be a strict subset of the supervisor’s effective permissions. Delegation cannot create new privileges. A policy (or pipeline stage) enforces this when the actor or resource is a Digital Worker.
-2. **Explicit deny wins:** Same as Digital Worker and human; explicit deny always overrides role or delegated allow.
-3. **Capability gates for Digital Worker administration:** The Digital Worker spec defines capability keys for managing Digital Workers (e.g. `employee.digital_worker.create`, `employee.digital_worker.update`, `employee.digital_worker.assign_role`, `employee.digital_worker.assign_permission`, `employee.digital_worker.disable`). The final vocabulary is owned by the AuthZ module and declared in `Config/authz.php` (or module configs) when implemented.
-4. **Supervision chain:** Every Digital Worker must have a supervision chain that resolves to a human accountable owner; the supervision graph must be acyclic. AuthZ may need to evaluate “can this supervisor delegate to this subordinate?” using the same engine.
+1. **Delegation constraint:** Agent effective permissions must be a strict subset of the supervisor’s effective permissions. Delegation cannot create new privileges. A policy (or pipeline stage) enforces this when the actor or resource is a Agent.
+2. **Explicit deny wins:** Same as Agent and human; explicit deny always overrides role or delegated allow.
+3. **Capability gates for Agent administration:** The Agent spec defines capability keys for managing Agents (e.g. `employee.agent.create`, `employee.agent.update`, `employee.agent.assign_role`, `employee.agent.assign_permission`, `employee.agent.disable`). The final vocabulary is owned by the AuthZ module and declared in `Config/authz.php` (or module configs) when implemented.
+4. **Supervision chain:** Every Agent must have a supervision chain that resolves to a human accountable owner; the supervision graph must be acyclic. AuthZ may need to evaluate “can this supervisor delegate to this subordinate?” using the same engine.
 
-For delegation invariants, supervisor model, and UI/audit rules, see [docs/architecture/ai-digital-worker.md](ai-digital-worker.md) §5–§7.
+For delegation invariants, supervisor model, and UI/audit rules, see [docs/architecture/ai-agent.md](ai-agent.md) §5–§7.
 
 ### 9.5 Menu Integration Rule
 
@@ -469,8 +469,8 @@ Pattern:
 
 1. **Web Controller/Livewire Action**
    - `authorize(actor, capability, resource)` before service call.
-2. **Digital Worker Tool Execution**
-   - Evaluate as Digital Worker actor with delegation/supervision context.
+2. **Agent Tool Execution**
+   - Evaluate as Agent actor with delegation/supervision context.
 3. **Menu Rendering**
    - `can(...)` checks only for visibility hints.
 4. **Batch Jobs/Queue Workers**
@@ -532,7 +532,7 @@ app/Base/Authz/
 │   ├── AuthorizationDecision.php     # Decision DTO with reason code
 │   └── ResourceContext.php           # Resource context DTO
 ├── Enums/
-│   ├── PrincipalType.php             # human_user | digital_worker
+│   ├── PrincipalType.php             # human_user | agent
 │   └── AuthorizationReasonCode.php   # Decision reason codes
 ├── Exceptions/
 │   ├── AuthorizationDeniedException.php
@@ -582,7 +582,7 @@ app/Modules/Core/Company/Config/authz.php    # core.company.*
 ## 14. Complexity Hotspots
 
 1. Multi-company users and company context switching.
-2. Manager-subordinate conditional policies and **Digital Worker delegation** (Digital Worker permissions ≤ supervisor; see [ai-digital-worker.md](ai-digital-worker.md)).
+2. Manager-subordinate conditional policies and **Agent delegation** (Agent permissions ≤ supervisor; see [ai-agent.md](ai-agent.md)).
 3. Workflow-state-dependent permissions.
 4. Consistency between synchronous UI checks and async job execution.
 5. Future ACL overrides without policy ambiguity.
@@ -594,7 +594,7 @@ app/Modules/Core/Company/Config/authz.php    # core.company.*
 
 1. Full visual policy builder UI.
 2. Arbitrary ABAC DSL exposed to adopters.
-3. Cross-company delegation for Digital Worker.
+3. Cross-company delegation for Agent.
 4. External federated identity policy mapping.
 5. Resource-level (row-level) ACL entries.
 
@@ -603,9 +603,9 @@ app/Modules/Core/Company/Config/authz.php    # core.company.*
 ## 16. Acceptance Conditions
 
 1. ✅ One API for all authorization decisions (`can/authorize/filterAllowed`).
-2. ✅ Same capability key can be evaluated for both human and Digital Worker actors.
+2. ✅ Same capability key can be evaluated for both human and Agent actors.
 3. ✅ Deny-by-default proven through tests.
-4. ✅ UI, API, and Digital Worker tool path all call the same policy engine.
+4. ✅ UI, API, and Agent tool path all call the same policy engine.
 5. ✅ Decision logs include actor type and reason code.
 6. ✅ Policy pipeline is composable — new policies added without modifying engine.
 7. ✅ Capabilities are module-owned and auto-discovered.

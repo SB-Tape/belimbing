@@ -48,7 +48,7 @@ class DevEmployeeSeeder extends DevSeeder
     }
 
     /**
-     * Seed licensee company employee and digital workers (tech company building BLB).
+     * Seed licensee company employee and agents (tech company building BLB).
      *
      * @param  Company  $company  The licensee company (Company::LICENSEE_ID)
      */
@@ -74,7 +74,7 @@ class DevEmployeeSeeder extends DevSeeder
             'department_id' => $execDeptId,
         ]);
 
-        $digitalWorkers = [
+        $agents = [
             [
                 'employee_number' => 'LIC-002',
                 'full_name' => 'Aiman Rahman',
@@ -101,11 +101,11 @@ class DevEmployeeSeeder extends DevSeeder
             ],
         ];
 
-        foreach ($digitalWorkers as $def) {
+        foreach ($agents as $def) {
             $deptId = $def['department_id'];
             unset($def['department_id']);
             $this->createEmployee($company, array_merge($def, [
-                'employee_type' => 'digital_worker',
+                'employee_type' => 'agent',
                 'status' => 'active',
                 'employment_start' => now()->toDateString(),
                 'department_id' => $deptId,

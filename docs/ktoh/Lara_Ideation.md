@@ -24,7 +24,7 @@
 
 5. **Planned Integration Points**:
    - AI Catalog: Utilize `Base AI` services like `ModelCatalogService` to retrieve model details dynamically for results-driven task orchestration.
-   - Core AI Features: Leverage `DigitalWorkerRuntime` and `LaraCapabilityMatcher` to scaffold decision trees.
+   - Core AI Features: Leverage `AgentRuntime` and `LaraCapabilityMatcher` to scaffold decision trees.
    - Task Dispatch: Extend capabilities within `LaraTaskDispatcher` to handle recursive planning loops.
    - Prompt Design: Refine the use of `LaraPromptFactory` for multi-turn interactions and long-term goal alignment.
 

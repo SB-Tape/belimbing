@@ -52,11 +52,11 @@ class EmployeeType extends Model
     }
 
     /**
-     * Whether this type denotes a Digital Worker.
+     * Whether this type denotes a Agent.
      */
-    public function isDigitalWorker(): bool
+    public function isAgent(): bool
     {
-        return $this->code === 'digital_worker';
+        return $this->code === 'agent';
     }
 
     /**

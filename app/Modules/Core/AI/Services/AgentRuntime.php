@@ -10,13 +10,13 @@ use App\Modules\Core\AI\DTO\Message;
 use Illuminate\Support\Str;
 
 /**
- * Stage 0 Digital Worker runtime adapter.
+ * Stage 0 Agent runtime adapter.
  *
- * Delegates LLM execution to the stateless Base LlmClient. Handles per-DW
+ * Delegates LLM execution to the stateless Base LlmClient. Handles per-agent
  * configuration resolution, message building, and ordered fallback on
  * transient failures (connection error, HTTP 429, 5xx).
  */
-class DigitalWorkerRuntime
+class AgentRuntime
 {
     public function __construct(
         private readonly ConfigResolver $configResolver,
@@ -29,7 +29,7 @@ class DigitalWorkerRuntime
     /**
      * Run a conversation turn and return the assistant response with metadata.
      *
-     * Resolves LLM config for the given Digital Worker (workspace config.json),
+     * Resolves LLM config for the given Agent (workspace config.json),
      * falling back to the company's default provider+model when no workspace
      * config exists. Tries models in priority order with fallback on transient failures.
      *
@@ -38,8 +38,8 @@ class DigitalWorkerRuntime
      * and latency_ms. The attempts array is included in meta['fallback_attempts'].
      *
      * @param  list<Message>  $messages  Conversation history
-     * @param  int  $employeeId  Digital Worker employee ID
-     * @param  string|null  $systemPrompt  Optional system prompt for the Digital Worker
+     * @param  int  $employeeId  Agent employee ID
+     * @param  string|null  $systemPrompt  Optional system prompt for the Agent
      * @return array{content: string, run_id: string, meta: array<string, mixed>}
      */
     public function run(array $messages, int $employeeId, ?string $systemPrompt = null): array

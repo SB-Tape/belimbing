@@ -76,7 +76,7 @@
                             />
                         </dd>
                     </div>
-                    @if($employee->isDigitalWorker())
+                    @if($employee->isAgent())
                     <div x-data="{ editing: false, val: '{{ addslashes($employee->job_description ?? '') }}' }">
                         <dt class="text-[11px] uppercase tracking-wider font-semibold text-muted">{{ __('Job Description') }}</dt>
                         <dd class="text-sm text-ink">
@@ -223,8 +223,8 @@
                         <dt class="text-[11px] uppercase tracking-wider font-semibold text-muted">{{ __('Employee Type') }}</dt>
                         <dd class="mt-0.5">
                             <div x-show="!editing" @click="editing = true" class="group flex items-center gap-1.5 cursor-pointer rounded px-1 -mx-1 py-0.5 hover:bg-surface-subtle">
-                                @if($employee->isDigitalWorker())
-                                    <x-ui.badge variant="info">{{ __('Digital Worker') }}</x-ui.badge>
+                                @if($employee->isAgent())
+                                    <x-ui.badge variant="info">{{ __('Agent') }}</x-ui.badge>
                                 @else
                                     <span class="text-sm text-ink">{{ $employee->employee_type ? ucwords(str_replace('_', ' ', $employee->employee_type)) : '-' }}</span>
                                 @endif
@@ -239,12 +239,12 @@
                                 class="px-2 py-1 text-sm border border-accent rounded bg-surface-card text-ink focus:outline-none focus:ring-1 focus:ring-accent"
                             >
                                 <optgroup label="{{ __('Human') }}">
-                                    @foreach($employeeTypes->where('code', '!=', 'digital_worker') as $type)
+                                    @foreach($employeeTypes->where('code', '!=', 'agent') as $type)
                                         <option value="{{ $type->code }}">{{ $type->label }}</option>
                                     @endforeach
                                 </optgroup>
-                                <optgroup label="{{ __('Digital Worker') }}">
-                                    @foreach($employeeTypes->where('code', 'digital_worker') as $type)
+                                <optgroup label="{{ __('Agent') }}">
+                                    @foreach($employeeTypes->where('code', 'agent') as $type)
                                         <option value="{{ $type->code }}">{{ $type->label }}</option>
                                     @endforeach
                                 </optgroup>
@@ -279,7 +279,7 @@
                             </select>
                         </dd>
                     </div>
-                    @if(!$employee->isDigitalWorker())
+                    @if(!$employee->isAgent())
                     <div x-data="{ editing: false, val: '{{ $employee->user_id ?? '' }}' }">
                         <dt class="text-[11px] uppercase tracking-wider font-semibold text-muted">{{ __('User') }}</dt>
                         <dd class="text-sm text-ink">

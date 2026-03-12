@@ -34,7 +34,7 @@ This document highlights the gaps between the ideated features for Lara and the 
 
 ### 2. **Core AI Layer (Governance)**
 - **Implemented**:
-  - Governance services: `DigitalWorkerRuntime`, `LaraCapabilityMatcher`.
+  - Governance services: `AgentRuntime`, `LaraCapabilityMatcher`.
   - Prompt management: `LaraPromptFactory` for workflow logic.
 - **Missing**:
   - Empathy-Driven Capabilities: Situational adaptability and human-context comprehension.

@@ -18,7 +18,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Notification as NotificationFacade;
 
 /**
- * Notification sending tool for Digital Workers.
+ * Notification sending tool for Agents.
  *
  * Sends notifications to BLB users via Laravel's notification system
  * (database or broadcast channels). Supports sending to a specific user

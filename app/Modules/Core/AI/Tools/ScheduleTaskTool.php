@@ -15,12 +15,12 @@ use App\Base\AI\Tools\ToolResult;
 use Illuminate\Support\Str;
 
 /**
- * Scheduled task management tool for Digital Workers.
+ * Scheduled task management tool for Agents.
  *
  * Provides CRUD operations for Laravel-native scheduled tasks stored in the
- * database. Each task defines a cron expression, target DW, task description,
+ * database. Each task defines a cron expression, target agent, task description,
  * and enabled state. Scheduled tasks execute via Laravel's scheduler,
- * dispatching to DW runtimes.
+ * dispatching to agent runtimes.
  *
  * Note: Currently returns stub responses. Full persistence will be available
  * once the scheduled_tasks DB table and scheduler integration are implemented.
@@ -64,9 +64,9 @@ class ScheduleTaskTool extends AbstractActionTool
 
     public function description(): string
     {
-        return 'Manage scheduled tasks for Digital Workers. '
+        return 'Manage scheduled tasks for Agents. '
             .'Supports listing, adding, updating, removing, and checking status of '
-            .'scheduled tasks. Each task defines a cron expression, target worker, '
+            .'scheduled tasks. Each task defines a cron expression, target agent, '
             .'description, and enabled state. Tasks execute via Laravel\'s scheduler.';
     }
 
@@ -89,9 +89,9 @@ class ScheduleTaskTool extends AbstractActionTool
     {
         return [
             'displayName' => 'Schedule Task',
-            'summary' => 'Create and manage scheduled tasks for Digital Workers.',
+            'summary' => 'Create and manage scheduled tasks for Agents.',
             'explanation' => 'CRUD operations for scheduled tasks stored in the database. '
-                .'Each task defines a cron expression, target DW, and task description. '
+                .'Each task defines a cron expression, target agent, and task description. '
                 .'Tasks execute via Laravel\'s scheduler.',
             'setupRequirements' => [
                 'Laravel scheduler running',
@@ -122,7 +122,7 @@ class ScheduleTaskTool extends AbstractActionTool
             ->string('task_id', 'The scheduled task ID. Required for update, remove, and status actions. Format: "sched_<alphanumeric>".')
             ->string('description', 'Description of what the scheduled task should do. Required for add, optional for update.')
             ->string('cron_expression', 'Standard 5-field cron expression (minute hour day month weekday). Required for add, optional for update. Example: "0 9 * * 1" for every Monday at 9am.')
-            ->integer('worker_id', 'Employee ID of the target Digital Worker to execute the task. Optional; use worker_list to discover available workers.')
+            ->integer('agent_id', 'Employee ID of the target Agent to execute the task. Optional; use agent_list to discover available agents.')
             ->boolean('enabled', 'Whether the scheduled task is enabled. Defaults to true for add. Optional for update.');
     }
 
@@ -176,14 +176,14 @@ class ScheduleTaskTool extends AbstractActionTool
         }
 
         $taskId = self::TASK_ID_PREFIX.Str::random(12);
-        $workerId = $arguments['worker_id'] ?? null;
+        $agentId = $arguments['agent_id'] ?? null;
         $enabled = $this->optionalBool($arguments, 'enabled', true);
 
         return ToolResult::success(json_encode([
             'task_id' => $taskId,
             'description' => $description,
             'cron_expression' => $cronExpression,
-            'worker_id' => is_int($workerId) ? $workerId : null,
+            'agent_id' => is_int($agentId) ? $agentId : null,
             'enabled' => $enabled,
             'status' => 'created',
             'message' => 'Task created (stub). Persistence is pending — this task '

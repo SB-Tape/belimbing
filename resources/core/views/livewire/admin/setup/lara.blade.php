@@ -118,7 +118,7 @@
 
             <x-ui.card>
                 <h3 class="text-[11px] uppercase tracking-wider font-semibold text-muted mb-4">{{ __('Provision Lara') }}</h3>
-                <p class="text-xs text-muted mb-4">{{ __('Lara\'s employee record does not exist yet. Provision her to create the system Digital Worker record for the Licensee company.') }}</p>
+                <p class="text-xs text-muted mb-4">{{ __('Lara\'s employee record does not exist yet. Provision her to create the system Agent record for the Licensee company.') }}</p>
 
                 <form wire:submit="provisionLara">
                     <x-ui.button type="submit" variant="primary">

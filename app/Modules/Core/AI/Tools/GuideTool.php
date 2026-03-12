@@ -13,9 +13,9 @@ use App\Base\AI\Tools\Schema\ToolSchemaBuilder;
 use App\Base\AI\Tools\ToolResult;
 
 /**
- * BLB framework documentation guide tool for Digital Workers.
+ * BLB framework documentation guide tool for Agents.
  *
- * Allows a DW to search curated BLB framework documentation by topic,
+ * Allows a agent to search curated BLB framework documentation by topic,
  * returning matched references with summaries and the content of the
  * top-matching file for substantive grounding.
  *

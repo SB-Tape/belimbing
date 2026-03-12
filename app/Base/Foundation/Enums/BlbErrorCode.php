@@ -15,7 +15,7 @@ enum BlbErrorCode: string
     case DEV_SEEDER_NON_LOCAL_ENV = 'dev_seeder_non_local_env';
     case CIRCULAR_SEEDER_DEPENDENCY = 'circular_seeder_dependency';
 
-    case LARA_DIGITAL_WORKER_ID_TYPE_INVALID = 'lara_digital_worker_id_type_invalid';
+    case LARA_AGENT_ID_TYPE_INVALID = 'lara_agent_id_type_invalid';
     case LARA_PROMPT_CONTEXT_ENCODE_FAILED = 'lara_prompt_context_encode_failed';
     case LARA_PROMPT_RESOURCE_MISSING = 'lara_prompt_resource_missing';
     case LARA_PROMPT_RESOURCE_UNREADABLE = 'lara_prompt_resource_unreadable';

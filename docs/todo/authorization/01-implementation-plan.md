@@ -4,22 +4,22 @@
 **Last Updated:** 2026-02-26
 **Prerequisites:** `docs/architecture/authorization.md`, `docs/todo/authorization/00-prd.md`
 
-**Implementation status:** See [00-prd.md](00-prd.md) §0. Stages A–D mostly done; E partial (assignment validation + cascade revocation remaining); F partial (no decision log query tooling). Digital Worker model: same RBAC, assignment-only, cascade revocation — see [00-prd.md](00-prd.md) §3.1.
+**Implementation status:** See [00-prd.md](00-prd.md) §0. Stages A–D mostly done; E partial (assignment validation + cascade revocation remaining); F partial (no decision log query tooling). Agent model: same RBAC, assignment-only, cascade revocation — see [00-prd.md](00-prd.md) §3.1.
 
 ---
 
 ## 1. Objective
-Implement a company-scoped, deny-by-default AuthZ foundation used consistently by web, API, menu visibility, and Digital Worker delegation.
+Implement a company-scoped, deny-by-default AuthZ foundation used consistently by web, API, menu visibility, and Agent delegation.
 
 ## 2. Scope Decisions Locked
 
 1. Capability key format: `<domain>.<resource>.<action>`
 2. Scope model now: `company_id` only (`group_id`, as in Group of Companies as an entity, is intentionally deferred)
 3. `menu.php` is consumer-only of AuthZ decisions
-4. Digital Worker uses same AuthZ engine via delegated actor model
-5. Naming is canonical: `Digital Worker`, principal values `human_user | digital_worker`, and AI capability prefix `ai.digital_worker.*`
+4. Agent uses same AuthZ engine via delegated actor model
+5. Naming is canonical: `Agent`, principal values `human_user | agent`, and AI capability prefix `ai.agent.*`
 6. Delegation context uses `actingForUserId` in current DTO (extendable to richer supervision metadata later)
-7. **Digital Worker permission model:** Same RBAC as human (`principal_id = employee_id`). Assignment-only: validate at assign time that supervisor can only assign what they have. Cascade revocation: when supervisor loses role/capability, cascade to all subordinates (Employee.supervisor_id). No runtime policy that loads supervisor effective permissions.
+7. **Agent permission model:** Same RBAC as human (`principal_id = employee_id`). Assignment-only: validate at assign time that supervisor can only assign what they have. Cascade revocation: when supervisor loses role/capability, cascade to all subordinates (Employee.supervisor_id). No runtime policy that loads supervisor effective permissions.
 
 ## 3. Stage Plan
 
@@ -123,25 +123,25 @@ Implement a company-scoped, deny-by-default AuthZ foundation used consistently b
 
 ---
 
-## Stage E - Digital Worker Delegation (Partial)
+## Stage E - Agent Delegation (Partial)
 
 ### Tasks
-- [x] 1. Implement Digital Worker actor model (`Actor` with `PrincipalType::DIGITAL_WORKER`, `actingForUserId`)
+- [x] 1. Implement Agent actor model (`Actor` with `PrincipalType::AGENT`, `actingForUserId`)
 - [x] 2. Add delegated-user / supervision context (`actingForUserId` in Actor DTO)
 - [ ] 3. Assignment-time validation: block assigning role/capability to subordinate unless assigner has it
 - [ ] 4. Cascade revocation: on role/capability removal from principal, cascade to all subordinates (recursive via Employee.supervisor_id)
 
 ### Target Files (proposed)
-1. ~~`app/Base/Authz/Actor/DigitalWorkerActorFactory.php`~~ — Actor DTO used directly; no separate factory
+1. ~~`app/Base/Authz/Actor/AgentActorFactory.php`~~ — Actor DTO used directly; no separate factory
 2. Role/capability assignment service(s) — add validation + cascade hooks
 3. `app/Base/AI/*` (integration points)
-4. `tests/Feature/Authz/AuthorizationServiceTest.php` (Digital Worker scenarios covered)
+4. `tests/Feature/Authz/AuthorizationServiceTest.php` (Agent scenarios covered)
 5. `tests/Feature/Authz/CascadeRevocationTest.php` (or similar)
 
 ### Done Criteria
 - [ ] 1. Assignment validation: cannot assign role/capability to subordinate without assigner having it
-- [x] 2. Decision logs distinguish `human_user` vs `digital_worker`
-- [x] 3. Delegation context validation covered (Digital Worker without `actingForUserId` denied)
+- [x] 2. Decision logs distinguish `human_user` vs `agent`
+- [x] 3. Delegation context validation covered (Agent without `actingForUserId` denied)
 - [ ] 4. Cascade revocation: when supervisor loses role/capability, subordinates lose it too
 
 ---
@@ -237,7 +237,7 @@ Implement a company-scoped, deny-by-default AuthZ foundation used consistently b
 3. Same-company allowed path (with role grant)
 4. Cross-company denied path
 5. Direct capability revocation effect
-6. Digital Worker denied when supervisor denied (via cascade revocation before next check)
+6. Agent denied when supervisor denied (via cascade revocation before next check)
 7. Assignment validation: cannot assign capability to subordinate that assigner does not have
 8. Cascade revocation: removing role/capability from supervisor removes it from all subordinates
 
@@ -246,7 +246,7 @@ Implement a company-scoped, deny-by-default AuthZ foundation used consistently b
 1. Stage A before Stage B/C
 2. Stage C before Stage D/E
 3. Stage D and E before Stage F
-4. Digital Worker approval inbox work blocked until Stage B + C + E complete
+4. Agent approval inbox work blocked until Stage B + C + E complete
 
 ## 8. Immediate Next Execution Step
 

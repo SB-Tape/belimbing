@@ -14,9 +14,9 @@ use App\Base\AI\Tools\ToolResult;
 use Illuminate\Support\Facades\Cache;
 
 /**
- * Web search tool for Digital Workers.
+ * Web search tool for Agents.
  *
- * Allows a DW to search the web for real-time information via configurable
+ * Allows a agent to search the web for real-time information via configurable
  * search providers (Parallel, Brave Search). Results are cached to reduce
  * API calls for repeated queries.
  *

@@ -49,14 +49,14 @@ function createSessionGuardFixture(): array
 
     $supervised = Employee::factory()->create([
         'company_id' => $company->id,
-        'employee_type' => 'digital_worker',
+        'employee_type' => 'agent',
         'supervisor_id' => $supervisor->id,
         'status' => 'active',
     ]);
 
     $unsupervised = Employee::factory()->create([
         'company_id' => $company->id,
-        'employee_type' => 'digital_worker',
+        'employee_type' => 'agent',
         'supervisor_id' => $otherSupervisor->id,
         'status' => 'active',
     ]);
@@ -114,7 +114,7 @@ it('denies session access when user is not authenticated', function (): void {
         ->toThrow(AuthorizationException::class);
 });
 
-it('denies listing sessions for unsupervised digital worker', function (): void {
+it('denies listing sessions for unsupervised agent', function (): void {
     $fixture = createSessionGuardFixture();
     $this->actingAs($fixture['user']);
 
@@ -124,7 +124,7 @@ it('denies listing sessions for unsupervised digital worker', function (): void 
         ->toThrow(AuthorizationException::class);
 });
 
-it('allows creating and listing sessions for supervised digital worker', function (): void {
+it('allows creating and listing sessions for supervised agent', function (): void {
     $fixture = createSessionGuardFixture();
     $this->actingAs($fixture['user']);
 
@@ -136,7 +136,7 @@ it('allows creating and listing sessions for supervised digital worker', functio
         ->and($sessions[0]->id)->toBe($session->id);
 });
 
-it('denies message append for unsupervised digital worker', function (): void {
+it('denies message append for unsupervised agent', function (): void {
     $fixture = createSessionGuardFixture();
     $this->actingAs($fixture['user']);
 
@@ -146,7 +146,7 @@ it('denies message append for unsupervised digital worker', function (): void {
         ->toThrow(AuthorizationException::class);
 });
 
-it('allows message append and read for supervised digital worker sessions', function (): void {
+it('allows message append and read for supervised agent sessions', function (): void {
     $fixture = createSessionGuardFixture();
     $this->actingAs($fixture['user']);
 

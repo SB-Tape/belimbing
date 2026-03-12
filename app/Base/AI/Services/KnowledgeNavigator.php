@@ -7,8 +7,6 @@ namespace App\Base\AI\Services;
 
 class KnowledgeNavigator
 {
-    private const DIGITAL_WORKER_KEYWORD = 'digital worker';
-
     /**
      * Curated BLB references Lara can use to navigate the framework knowledge base.
      *
@@ -24,16 +22,16 @@ class KnowledgeNavigator
                 'keywords' => ['architecture', 'overview', 'layers', 'framework'],
             ],
             [
-                'title' => 'Lara system Digital Worker',
-                'path' => 'docs/architecture/lara-system-dw.md',
+                'title' => 'Lara system Agent',
+                'path' => 'docs/architecture/lara-system-agent.md',
                 'summary' => 'Lara identity, access model, session isolation, and orchestration scope.',
-                'keywords' => ['lara', 'chat', 'system', 'orchestration', self::DIGITAL_WORKER_KEYWORD],
+                'keywords' => ['lara', 'chat', 'system', 'orchestration', 'agent'],
             ],
             [
-                'title' => 'Digital Worker architecture',
-                'path' => 'docs/architecture/ai-digital-worker.md',
-                'summary' => 'Runtime lifecycle, workspace model, fallback behavior, and worker architecture.',
-                'keywords' => ['ai', self::DIGITAL_WORKER_KEYWORD, 'runtime', 'workspace', 'fallback'],
+                'title' => 'Agent architecture',
+                'path' => 'docs/architecture/ai-agent.md',
+                'summary' => 'Runtime lifecycle, workspace model, fallback behavior, and agent architecture.',
+                'keywords' => ['ai', 'agent', 'runtime', 'workspace', 'fallback'],
             ],
             [
                 'title' => 'Authorization architecture',
@@ -68,8 +66,8 @@ class KnowledgeNavigator
             [
                 'title' => 'Employee module overview',
                 'path' => 'docs/modules/employee.md',
-                'summary' => 'Employee model, digital worker relations, and supervision chain.',
-                'keywords' => ['employee', self::DIGITAL_WORKER_KEYWORD, 'supervisor', 'module'],
+                'summary' => 'Employee model, agent relations, and supervision chain.',
+                'keywords' => ['employee', 'agent', 'supervisor', 'module'],
             ],
             [
                 'title' => 'Project brief',

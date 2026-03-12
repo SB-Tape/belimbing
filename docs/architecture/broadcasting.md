@@ -44,7 +44,7 @@ Both use `concurrently` to run the processes in parallel. You can also start the
 
 ```bash
 php artisan reverb:start          # WebSocket server
-php artisan queue:work            # Queue worker (required for ShouldBroadcast events)
+php artisan queue:work            # Queue agent (required for ShouldBroadcast events)
 bun run dev                       # Vite dev server
 ```
 
@@ -61,7 +61,7 @@ bun run dev                       # Vite dev server
 | `ShouldBroadcastNow` | Event is dispatched from a **queued job** | Immediate (bypasses queue) |
 | `ShouldBroadcast` | Event is dispatched from an **HTTP request** | Queued (requires `queue:work`) |
 
-**Rationale:** When a queued job dispatches an event, the job is already running on a worker. Using `ShouldBroadcastNow` avoids double-queuing. For HTTP requests, `ShouldBroadcast` offloads the broadcast to the queue so the response is not delayed.
+**Rationale:** When a queued job dispatches an event, the job is already running on a agent. Using `ShouldBroadcastNow` avoids double-queuing. For HTTP requests, `ShouldBroadcast` offloads the broadcast to the queue so the response is not delayed.
 
 ### Directory Convention
 

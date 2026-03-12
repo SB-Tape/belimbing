@@ -6,9 +6,9 @@
 namespace App\Base\AI\Services;
 
 /**
- * Per-DW vector store backed by SQLite with sqlite-vec extension.
+ * Per-agent vector store backed by SQLite with sqlite-vec extension.
  *
- * Manages a SQLite database per Digital Worker for storing document
+ * Manages a SQLite database per Agent for storing document
  * embeddings and performing KNN vector search. Falls back to keyword
  * search when embeddings are not available.
  *
@@ -37,9 +37,9 @@ class VectorStoreService
     }
 
     /**
-     * Get the path to the vector database for a Digital Worker.
+     * Get the path to the vector database for a Agent.
      *
-     * @param  int  $employeeId  The Digital Worker's employee ID
+     * @param  int  $employeeId  The Agent's employee ID
      */
     public static function databasePath(int $employeeId): string
     {

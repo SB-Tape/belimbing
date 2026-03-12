@@ -10,7 +10,7 @@ namespace App\Modules\Core\AI\Livewire\Tools;
 use App\Base\AI\Tools\ToolResult;
 use App\Base\Settings\Contracts\SettingsService;
 use App\Modules\Core\AI\Enums\ToolReadiness;
-use App\Modules\Core\AI\Services\DigitalWorkerToolRegistry;
+use App\Modules\Core\AI\Services\AgentToolRegistry;
 use App\Modules\Core\AI\Services\ToolMetadataRegistry;
 use App\Modules\Core\AI\Services\ToolReadinessService;
 use Livewire\Component;
@@ -103,7 +103,7 @@ class Workspace extends Component
             return;
         }
 
-        $registry = app(DigitalWorkerToolRegistry::class);
+        $registry = app(AgentToolRegistry::class);
         $example = $metadata->testExamples[$exampleIndex];
 
         if (! ($example['runnable'] ?? true)) {

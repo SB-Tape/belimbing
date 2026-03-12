@@ -184,10 +184,10 @@ State lives on the sidebar `<aside>` element via `x-data`:
 | Event | Source | Effect |
 |-------|--------|--------|
 | `toggle-sidebar` | Top Bar button | Snap between icon rail and last expanded width (desktop) or open/close drawer (mobile) |
-| `open-lara-chat` | Top Bar Lara button | Opens chat overlay (desktop) or full-screen chat (mobile) |
-| `close-lara-chat` | Escape key / close button | Closes chat overlay |
-| `lara-chat-opened` | After chat opens | Signals overlay for focus management |
-| `lara-execute-js` | Lara AI | Executes AI-injected JavaScript |
+| `open-agent-chat` | Top Bar Lara button | Opens chat overlay (desktop) or full-screen chat (mobile) |
+| `close-agent-chat` | Escape key / close button | Closes chat overlay |
+| `agent-chat-opened` | After chat opens | Signals overlay for focus management |
+| `agent-chat-execute-js` | Agent chat | Executes AI-injected JavaScript |
 
 ## Auth Layouts
 

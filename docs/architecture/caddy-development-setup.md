@@ -592,7 +592,7 @@ If auto-start is configured:
 |---------|------------|---------|------------|
 | Laravel | 8000 | 8001 | PHP-FPM socket |
 | Vite | 5173 | 5174 | N/A (compiled) |
-| Queue | N/A | N/A | Separate worker |
+| Queue | N/A | N/A | Separate agent |
 | Logs | N/A | N/A | File/remote |
 
 ### SSL Certificate Management
@@ -741,4 +741,3 @@ The setup reduces technical barriers for developers while maintaining the flexib
 3. Test hot reloading
 4. Document setup process
 5. Create migration guide from current setup
-

@@ -14,9 +14,9 @@ use App\Base\AI\Tools\ToolResult;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Read-only database query tool for Digital Workers.
+ * Read-only database query tool for Agents.
  *
- * Allows a DW to execute SELECT queries against the application database
+ * Allows a agent to execute SELECT queries against the application database
  * to answer data questions (e.g., "How many employees are active?").
  *
  * Safety: Only SELECT statements are allowed. Write operations (INSERT,

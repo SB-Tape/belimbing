@@ -19,7 +19,7 @@ describe('tool metadata', function () {
             $this->tool,
             'schedule_task',
             'ai.tool_schedule.execute',
-            ['action', 'task_id', 'description', 'cron_expression', 'worker_id', 'enabled'],
+            ['action', 'task_id', 'description', 'cron_expression', 'agent_id', 'enabled'],
             ['action'],
         );
     });
@@ -91,16 +91,16 @@ describe('add action', function () {
             ->and($data['task_id'])->toStartWith('sched_');
     });
 
-    it('includes worker_id when provided', function () {
+    it('includes agent_id when provided', function () {
         $result = $this->tool->execute([
             'action' => 'add',
             'description' => SCHEDULE_TEST_TASK,
             'cron_expression' => WEEKLY_CRON,
-            'worker_id' => 42,
+            'agent_id' => 42,
         ]);
         $data = json_decode((string) $result, true);
 
-        expect($data['worker_id'])->toBe(42);
+        expect($data['agent_id'])->toBe(42);
     });
 
     it('defaults enabled to true', function () {

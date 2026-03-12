@@ -109,7 +109,7 @@ class MigrateCommand extends IlluminateMigrateCommand
                     $this->runModuleSeeders();
                 }
 
-                // Ensure framework primitives exist (Licensee company, Lara DW).
+                // Ensure framework primitives exist (Licensee company, Lara agent).
                 // Runs after production seeders, before dev seeders, in all environments.
                 $this->ensureFrameworkPrimitives();
 
@@ -224,7 +224,7 @@ class MigrateCommand extends IlluminateMigrateCommand
         }
 
         if (Employee::provisionLara()) {
-            $this->line('  Created Lara (system Digital Worker)');
+            $this->line('  Created Lara (system Agent)');
         }
     }
 

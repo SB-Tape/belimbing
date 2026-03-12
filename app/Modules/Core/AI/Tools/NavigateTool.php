@@ -13,10 +13,10 @@ use App\Base\AI\Tools\ToolArgumentException;
 use App\Base\AI\Tools\ToolResult;
 
 /**
- * Browser navigation tool for Digital Workers.
+ * Browser navigation tool for agents.
  *
- * Allows a DW to navigate the user's browser to BLB pages.
- * Returns a `<lara-action>` block that the client-side executor handles.
+ * Allows an agent to navigate the user's browser to BLB pages.
+ * Returns an `<agent-action>` block that the client-side executor handles.
  *
  * Gated by `ai.tool_navigate.execute` authz capability.
  */
@@ -109,6 +109,6 @@ class NavigateTool extends AbstractTool
             throw new ToolArgumentException('URL contains invalid characters.');
         }
 
-        return ToolResult::success('<lara-action>Livewire.navigate(\''.$url.'\')</lara-action>Navigation initiated to '.$url.'.');
+        return ToolResult::success('<agent-action>Livewire.navigate(\''.$url.'\')</agent-action>Navigation initiated to '.$url.'.');
     }
 }

@@ -16,12 +16,12 @@ use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 
 /**
- * Semantic search tool for Digital Workers over documentation and workspace files.
+ * Semantic search tool for Agents over documentation and workspace files.
  *
  * Performs keyword-based search (BM25-style scoring) over indexed markdown
  * files from two sources:
  * - Project `docs/` directory (framework knowledge)
- * - DW workspace directory (if exists)
+ * - agent workspace directory (if exists)
  *
  * Splits markdown files into sections by `##` headings and scores each
  * section by keyword overlap with the query. Heading matches are weighted
@@ -124,7 +124,7 @@ class MemorySearchTool extends AbstractTool
         return [
             'displayName' => 'Memory Search',
             'summary' => 'Search across workspace knowledge using semantic and keyword matching.',
-            'explanation' => 'Performs hybrid vector + keyword search over markdown files in the DW workspace. '
+            'explanation' => 'Performs hybrid vector + keyword search over markdown files in the agent workspace. '
                 .'Requires embedding provider configuration and indexed workspace content. '
                 .'This tool only reads indexed workspace files — it cannot access arbitrary files.',
             'setupRequirements' => [
@@ -165,7 +165,7 @@ class MemorySearchTool extends AbstractTool
     /**
      * Search markdown files for sections matching the query.
      *
-     * Scans both the project docs directory and the DW workspace directory,
+     * Scans both the project docs directory and the agent workspace directory,
      * scores each section by keyword overlap, and returns the top matches.
      *
      * @param  string  $query  Search text
@@ -369,7 +369,7 @@ class MemorySearchTool extends AbstractTool
     }
 
     /**
-     * Resolve the DW workspace directory path.
+     * Resolve the agent workspace directory path.
      *
      * Returns null if the workspace path is not configured.
      */

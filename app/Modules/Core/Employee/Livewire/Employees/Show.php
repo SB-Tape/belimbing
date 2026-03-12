@@ -75,7 +75,7 @@ class Show extends Component
         }
 
         $this->employee->employee_type = $type;
-        if ($type === 'digital_worker') {
+        if ($type === 'agent') {
             $this->employee->user_id = null;
         }
         $this->employee->save();

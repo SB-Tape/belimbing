@@ -35,7 +35,7 @@
                 <x-ui.select wire:model.live="typeFilter">
                     <option value="all">{{ __('All') }}</option>
                     <option value="human">{{ __('Human only') }}</option>
-                    <option value="digital_worker">{{ __('Digital Worker only') }}</option>
+                    <option value="agent">{{ __('Agent only') }}</option>
                 </x-ui.select>
             </div>
 
@@ -69,7 +69,7 @@
                                     {{ $employee->designation ?? '-' }}
                                 </td>
                                 <td class="px-table-cell-x py-table-cell-y whitespace-nowrap">
-                                    @if($employee->isDigitalWorker())
+                                    @if($employee->isAgent())
                                         <x-ui.badge variant="info">{{ $this->employeeTypeLabel($employee) }}</x-ui.badge>
                                     @else
                                         <x-ui.badge variant="default">{{ $this->employeeTypeLabel($employee) }}</x-ui.badge>

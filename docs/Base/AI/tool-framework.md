@@ -3,13 +3,13 @@
 **Document Type:** Architecture Reference
 **Module:** `app/Base/AI`
 **Last Updated:** 2026-03-09
-**Related:** `docs/architecture/dw-tools-blueprint.md` (tool roadmap), `docs/architecture/lara-system-dw.md` (Lara), `docs/architecture/ai-digital-worker.md` (DW model)
+**Related:** `docs/architecture/agent-tools-blueprint.md` (tool roadmap), `docs/architecture/lara-system-agent.md` (Lara), `docs/architecture/ai-agent.md` (agent model)
 
 ---
 
 ## 1. Problem Essence
 
-Digital Worker tools share structural patterns — argument validation, schema declaration, error formatting, action dispatch — that were duplicated across every tool. The tool framework extracts these into `Base/AI`, providing deep abstractions that make new tools trivial to build and existing tools thinner.
+Agent tools share structural patterns — argument validation, schema declaration, error formatting, action dispatch — that were duplicated across every tool. The tool framework extracts these into `Base/AI`, providing deep abstractions that make new tools trivial to build and existing tools thinner.
 
 ---
 
@@ -25,7 +25,7 @@ Base/AI (Framework Infrastructure)          Core/AI (Module Implementation)
 │ Tools/ToolResult                │        │ ...18 more tools             │
 │ Tools/ToolArgumentException     │        │                              │
 │ Enums/ToolCategory              │        │ Services/                    │
-│ Enums/ToolRiskClass             │        │   DigitalWorkerToolRegistry  │
+│ Enums/ToolRiskClass             │        │   AgentToolRegistry  │
 │ Tools/Concerns/                 │        │   AgenticRuntime             │
 │   FormatsProcessResult          │        └──────────────────────────────┘
 └─────────────────────────────────┘
@@ -201,7 +201,7 @@ return ToolResult::withClientAction('Navigating to dashboard.', [
 
 **Properties:** `content` (string), `isError` (bool), `clientActions` (array).
 
-**Backward compatibility:** Implements `Stringable`. `__toString()` embeds client actions as `<lara-action>` XML blocks, so existing code consuming strings works unchanged.
+**Backward compatibility:** Implements `Stringable`. `__toString()` embeds client actions as `<agent-action>` XML blocks, so existing code consuming strings works unchanged.
 
 ### 6.2 ToolArgumentException
 
@@ -227,7 +227,7 @@ UI catalog grouping. Each category has a `label()` for display and `sortOrder()`
 | `MEMORY` | Memory & Knowledge | 3 | MemorySearchTool, GuideTool |
 | `SYSTEM` | System & Runtime | 4 | BashTool, ArtisanTool, SystemInfoTool |
 | `BROWSER` | Browser Automation | 5 | BrowserTool, NavigateTool, WriteJsTool |
-| `DELEGATION` | Task Delegation | 6 | DelegateTaskTool, WorkerListTool |
+| `DELEGATION` | Task Delegation | 6 | DelegateTaskTool, AgentListTool |
 | `MESSAGING` | Messaging | 7 | MessageTool, NotificationTool |
 | `AUTOMATION` | Automation | 8 | ScheduleTaskTool |
 | `MEDIA` | Media Analysis | 9 | ImageAnalysisTool, DocumentAnalysisTool |
@@ -380,7 +380,7 @@ Register tools in the module's `ServiceProvider`:
 
 ```php
 // app/Modules/Core/AI/ServiceProvider.php
-$registry = $this->app->make(DigitalWorkerToolRegistry::class);
+$registry = $this->app->make(AgentToolRegistry::class);
 $registry->register(new MyTool());
 $registry->register($this->app->make(MyActionTool::class)); // If DI needed
 ```

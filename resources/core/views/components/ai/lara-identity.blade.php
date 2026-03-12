@@ -4,9 +4,9 @@
     'showShortcut' => false,
 ])
 
-<x-ai.dw-identity
+<x-ai.agent-identity
     name="Lara"
-    role="System DW"
+    role="System Agent"
     icon="heroicon-o-sparkles"
     :shortcut="$showShortcut ? 'Ctrl+K' : null"
     :compact="$compact"

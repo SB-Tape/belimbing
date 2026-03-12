@@ -17,7 +17,7 @@ use App\Modules\Core\AI\DTO\Messaging\ChannelCapabilities;
 use App\Modules\Core\AI\Services\Messaging\ChannelAdapterRegistry;
 
 /**
- * Multi-channel messaging tool for Digital Workers.
+ * Multi-channel messaging tool for Agents.
  *
  * Provides enterprise-grade messaging across multiple platforms (WhatsApp,
  * Telegram, Slack, Email) via a single deep tool with action-based dispatch.
@@ -107,7 +107,7 @@ class MessageTool extends AbstractActionTool
         return [
             'displayName' => 'Message',
             'summary' => 'Send messages across WhatsApp, Telegram, Slack, and other channels.',
-            'explanation' => 'Multi-channel messaging tool that allows Digital Workers to communicate with '
+            'explanation' => 'Multi-channel messaging tool that allows Agents to communicate with '
                 .'customers, partners, and teams. Supports WhatsApp, Telegram, LinkedIn, Slack, '
                 .'email, and more. Each channel requires separate account configuration and authorization.',
             'setupRequirements' => [

@@ -5,7 +5,7 @@
 
 use App\Base\Settings\Contracts\SettingsService;
 use App\Modules\Core\AI\Enums\ToolReadiness;
-use App\Modules\Core\AI\Services\DigitalWorkerToolRegistry;
+use App\Modules\Core\AI\Services\AgentToolRegistry;
 use App\Modules\Core\AI\Services\ToolMetadataRegistry;
 use App\Modules\Core\AI\Services\ToolReadinessService;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
@@ -13,9 +13,9 @@ use Illuminate\Foundation\Testing\TestCase;
 
 uses(TestCase::class, LazilyRefreshDatabase::class);
 
-function makeReadinessService(?DigitalWorkerToolRegistry $toolRegistry = null): ToolReadinessService
+function makeReadinessService(?AgentToolRegistry $toolRegistry = null): ToolReadinessService
 {
-    $toolRegistry ??= Mockery::mock(DigitalWorkerToolRegistry::class);
+    $toolRegistry ??= Mockery::mock(AgentToolRegistry::class);
 
     return new ToolReadinessService(
         $toolRegistry,
@@ -25,7 +25,7 @@ function makeReadinessService(?DigitalWorkerToolRegistry $toolRegistry = null): 
 }
 
 it('returns UNAVAILABLE for unregistered non-conditional tool', function (): void {
-    $toolRegistry = Mockery::mock(DigitalWorkerToolRegistry::class);
+    $toolRegistry = Mockery::mock(AgentToolRegistry::class);
     $toolRegistry->shouldReceive('isRegistered')->with('fake_tool')->andReturn(false);
 
     $service = makeReadinessService($toolRegistry);
@@ -34,7 +34,7 @@ it('returns UNAVAILABLE for unregistered non-conditional tool', function (): voi
 });
 
 it('returns UNCONFIGURED for unregistered conditional tool', function (): void {
-    $toolRegistry = Mockery::mock(DigitalWorkerToolRegistry::class);
+    $toolRegistry = Mockery::mock(AgentToolRegistry::class);
     $toolRegistry->shouldReceive('isRegistered')->with('web_search')->andReturn(false);
 
     $service = makeReadinessService($toolRegistry);
@@ -43,7 +43,7 @@ it('returns UNCONFIGURED for unregistered conditional tool', function (): void {
 });
 
 it('returns UNAUTHORIZED when user lacks tool capability', function (): void {
-    $toolRegistry = Mockery::mock(DigitalWorkerToolRegistry::class);
+    $toolRegistry = Mockery::mock(AgentToolRegistry::class);
     $toolRegistry->shouldReceive('isRegistered')->with('bash')->andReturn(true);
     $toolRegistry->shouldReceive('canCurrentUserUseTool')->with('bash')->andReturn(false);
 
@@ -53,7 +53,7 @@ it('returns UNAUTHORIZED when user lacks tool capability', function (): void {
 });
 
 it('returns READY when tool is registered and user is authorized', function (): void {
-    $toolRegistry = Mockery::mock(DigitalWorkerToolRegistry::class);
+    $toolRegistry = Mockery::mock(AgentToolRegistry::class);
     $toolRegistry->shouldReceive('isRegistered')->with('query_data')->andReturn(true);
     $toolRegistry->shouldReceive('canCurrentUserUseTool')->with('query_data')->andReturn(true);
 
@@ -82,7 +82,7 @@ it('returns lastVerified from settings when test has been run', function (): voi
 });
 
 it('provides combined snapshot with readiness and lastVerified', function (): void {
-    $toolRegistry = Mockery::mock(DigitalWorkerToolRegistry::class);
+    $toolRegistry = Mockery::mock(AgentToolRegistry::class);
     $toolRegistry->shouldReceive('isRegistered')->with('query_data')->andReturn(true);
     $toolRegistry->shouldReceive('canCurrentUserUseTool')->with('query_data')->andReturn(true);
 

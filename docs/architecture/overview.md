@@ -15,8 +15,8 @@
 | [database.md](database.md) | Module-first migrations, auto-discovery, seeding registry, naming and execution order |
 | [broadcasting.md](broadcasting.md) | Real-time broadcasting (Laravel Reverb, Echo), channels, usage |
 | [user-employee-company.md](user-employee-company.md) | User, Employee, Company entity model and relationships |
-| [authorization.md](authorization.md) | AuthZ design (principals, policies, scope), RBAC, Digital Worker alignment |
-| [ai-digital-worker.md](ai-digital-worker.md) | Digital Worker architecture: unified employee model, delegation rules, and governance constraints |
+| [authorization.md](authorization.md) | AuthZ design (principals, policies, scope), RBAC, Agent alignment |
+| [ai-agent.md](ai-agent.md) | Agent architecture: unified employee model, delegation rules, and governance constraints |
 | [caddy-development-setup.md](caddy-development-setup.md) | Local Caddy setup for development |
 
 ---

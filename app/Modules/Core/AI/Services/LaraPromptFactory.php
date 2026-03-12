@@ -29,7 +29,7 @@ class LaraPromptFactory
                 'delegate' => '/delegate <task>',
                 'guide' => '/guide <topic>',
             ],
-            'available_workers' => $this->capabilityMatcher->discoverDelegableWorkersForCurrentUser(),
+            'available_agents' => $this->capabilityMatcher->discoverDelegableAgentsForCurrentUser(),
         ];
 
         $encodedContext = json_encode($context, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);

@@ -22,8 +22,8 @@ test('authenticated users can access Lara chat entry points from dashboard', fun
     $response = $this->get(route('dashboard'));
 
     $response->assertStatus(200)
-        ->assertSee('open-lara-chat', false)
-        ->assertSee('lara-execute-js', false)
+        ->assertSee('open-agent-chat', false)
+        ->assertSee('agent-chat-execute-js', false)
         ->assertSee('Open Lara chat (Ctrl+K)')
-        ->assertSee('close-lara-chat', false);
+        ->assertSee('close-agent-chat', false);
 });

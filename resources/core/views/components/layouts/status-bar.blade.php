@@ -51,7 +51,7 @@
         @auth
             <button
                 type="button"
-                @click="$dispatch('open-lara-chat')"
+                @click="$dispatch('open-agent-chat')"
                 class="text-accent hover:underline inline-flex items-center gap-1"
                 title="{{ __('Open Lara chat (Ctrl+K)') }}"
                 aria-label="{{ __('Open Lara chat (Ctrl+K)') }}"

@@ -13,7 +13,7 @@ use App\Base\AI\Tools\ToolArgumentException;
 use App\Base\AI\Tools\ToolResult;
 
 /**
- * Document analysis tool for Digital Workers.
+ * Document analysis tool for Agents.
  *
  * Analyzes PDFs and documents — extract text, summarize, and answer questions
  * about document content. For providers supporting native PDF (Anthropic,

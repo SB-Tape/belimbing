@@ -2,13 +2,13 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // (c) Ng Kiat Siong <kiatsiong.ng@gmail.com>
 
-/** @var \App\Modules\Core\AI\Livewire\LaraChatOverlay $this */
+/** @var \App\Modules\Core\AI\Livewire\Chat $this */
 ?>
 <div
     class="h-full flex flex-col"
     x-data="{
         sessionsOpen: false,
-        sessionWidth: parseInt(localStorage.getItem('dw-chat-session-width')) || 224,
+        sessionWidth: parseInt(localStorage.getItem('agent-chat-session-width')) || 224,
         _sessionDragging: false,
         SESSION_MIN: 160,
         SESSION_MAX: 320,
@@ -31,16 +31,16 @@
                 document.documentElement.style.userSelect = '';
                 document.removeEventListener('mousemove', onMove);
                 document.removeEventListener('mouseup', onUp);
-                localStorage.setItem('dw-chat-session-width', this.sessionWidth);
+                localStorage.setItem('agent-chat-session-width', this.sessionWidth);
             };
 
             document.addEventListener('mousemove', onMove);
             document.addEventListener('mouseup', onUp);
         }
     }"
-    x-init="$nextTick(() => $refs.dwComposer?.focus())"
-    @lara-focus-composer.window="$nextTick(() => $refs.dwComposer?.focus())"
-    @lara-chat-opened.window="if ($event.detail?.prompt) { $wire.set('messageInput', $event.detail.prompt); $nextTick(() => $refs.dwComposer?.focus()); }"
+    x-init="$nextTick(() => $refs.agentComposer?.focus())"
+    @agent-chat-focus-composer.window="$nextTick(() => $refs.agentComposer?.focus())"
+    @agent-chat-opened.window="if ($event.detail?.prompt) { $wire.set('messageInput', $event.detail.prompt); $nextTick(() => $refs.agentComposer?.focus()); }"
 >
     {{-- Header bar --}}
     <div class="h-11 px-4 border-b border-border-default bg-surface-bar flex items-center justify-between shrink-0">
@@ -55,10 +55,10 @@
             >
                 <x-icon name="heroicon-o-chat-bubble-left-right" class="w-4 h-4" />
             </button>
-            <x-ai.dw-identity
-                :name="$dwIdentity['name']"
-                :role="$dwIdentity['role']"
-                :icon="$dwIdentity['icon']"
+            <x-ai.agent-identity
+                :name="$agentIdentity['name']"
+                :role="$agentIdentity['role']"
+                :icon="$agentIdentity['icon']"
                 :show-role="false"
             />
         </div>
@@ -98,16 +98,16 @@
             {{-- Dock/undock toggle (desktop only) --}}
             <button
                 type="button"
-                x-on:click="$dispatch('toggle-lara-chat-mode')"
+                x-on:click="$dispatch('toggle-agent-chat-mode')"
                 class="hidden sm:inline-flex text-muted hover:text-ink transition-colors p-0.5"
                 title="{{ __('Toggle docked mode') }}"
                 aria-label="{{ __('Toggle docked mode') }}"
             >
                 <x-icon name="heroicon-o-arrows-right-left" class="w-4 h-4" />
             </button>
-            @if ($isLara)
+            @if ($settingsUrl !== null)
                 <a
-                    href="{{ route('admin.setup.lara') }}"
+                    href="{{ $settingsUrl }}"
                     wire:navigate
                     class="text-muted hover:text-ink transition-colors p-0.5"
                     title="{{ __('Settings') }}"
@@ -118,7 +118,7 @@
             @endif
             <button
                 type="button"
-                x-on:click="$dispatch('close-lara-chat')"
+                x-on:click="$dispatch('close-agent-chat')"
                 class="text-muted hover:text-ink transition-colors p-0.5"
                 title="{{ __('Close chat') }}"
                 aria-label="{{ __('Close chat') }}"
@@ -128,24 +128,24 @@
         </div>
     </div>
 
-    @if (! $dwExists)
+    @if (! $agentExists)
         <div class="p-4">
             <x-ui.alert variant="warning">
-                {{ __(':name has not been provisioned yet.', ['name' => $dwIdentity['name']]) }}
-                @if ($isLara)
-                    <a href="{{ route('admin.setup.lara') }}" wire:navigate class="text-accent hover:underline">
-                        {{ __('Set up :name', ['name' => $dwIdentity['name']]) }}
+                {{ __(':name has not been provisioned yet.', ['name' => $agentIdentity['name']]) }}
+                @if ($settingsUrl !== null)
+                    <a href="{{ $settingsUrl }}" wire:navigate class="text-accent hover:underline">
+                        {{ __('Set up :name', ['name' => $agentIdentity['name']]) }}
                     </a>
                 @endif
             </x-ui.alert>
         </div>
-    @elseif (! $dwActivated)
+    @elseif (! $agentActivated)
         <div class="p-4">
             <x-ui.alert variant="info">
-                {{ __(':name is not activated yet. Configure an AI provider to start chatting.', ['name' => $dwIdentity['name']]) }}
-                @if ($isLara)
-                    <a href="{{ route('admin.setup.lara') }}" wire:navigate class="text-accent hover:underline">
-                        {{ __('Activate :name', ['name' => $dwIdentity['name']]) }}
+                {{ __(':name is not activated yet. Configure an AI provider to start chatting.', ['name' => $agentIdentity['name']]) }}
+                @if ($settingsUrl !== null)
+                    <a href="{{ $settingsUrl }}" wire:navigate class="text-accent hover:underline">
+                        {{ __('Activate :name', ['name' => $agentIdentity['name']]) }}
                     </a>
                 @endif
             </x-ui.alert>
@@ -217,7 +217,7 @@
                 @else
                     {{-- Session list --}}
                     @forelse($sessions as $session)
-                        <div class="group flex items-start gap-1" wire:key="dw-session-{{ $session->id }}">
+                        <div class="group flex items-start gap-1" wire:key="agent-session-{{ $session->id }}">
                             @if ($editingSessionId === $session->id)
                                 <div class="flex-1 px-2 py-1.5 space-y-1">
                                     <div class="flex items-center gap-1">
@@ -303,13 +303,13 @@
                     streamingStatus: null,
                     _eventSource: null,
                 }"
-                x-on:lara-response-ready.window="pendingMessage = null; streamingContent = ''; streamingStatus = null"
+                x-on:agent-chat-response-ready.window="pendingMessage = null; streamingContent = ''; streamingStatus = null"
             >
                 <div
                     class="flex-1 min-h-0 overflow-y-auto px-4 py-3 space-y-3"
-                    x-ref="dwScroll"
+                    x-ref="agentScroll"
                     x-init="$nextTick(() => $el.scrollTop = $el.scrollHeight)"
-                    x-effect="$nextTick(() => $refs.dwScroll.scrollTop = $refs.dwScroll.scrollHeight)"
+                    x-effect="$nextTick(() => $refs.agentScroll.scrollTop = $refs.agentScroll.scrollHeight)"
                 >
                     @forelse($messages as $message)
                         <div class="flex {{ $message->role === 'user' ? 'justify-end' : 'justify-start' }}">
@@ -320,7 +320,7 @@
                                         <x-icon name="heroicon-o-bolt" class="w-3.5 h-3.5 text-accent" />
                                         <span class="text-[10px] font-semibold uppercase tracking-wider text-accent">{{ __('Action') }}</span>
                                     </div>
-                                    <div class="dw-prose">{!! $markdown->render($message->content) !!}</div>
+                                    <div class="agent-prose">{!! $markdown->render($message->content) !!}</div>
                                     <div class="text-[10px] mt-1 text-muted tabular-nums">
                                         {{ $message->timestamp->format('H:i:s') }}
                                     </div>
@@ -330,7 +330,7 @@
                                     {{ $message->role === 'user' ? 'bg-accent text-accent-on' : 'bg-surface-subtle text-ink' }}"
                                 >
                                     @if ($message->role === 'assistant')
-                                        <div class="dw-prose">{!! $markdown->render($message->content) !!}</div>
+                                        <div class="agent-prose">{!! $markdown->render($message->content) !!}</div>
                                     @else
                                         <div class="whitespace-pre-wrap break-words">{{ $message->content }}</div>
                                     @endif
@@ -342,13 +342,13 @@
                         </div>
                     @empty
                         <div x-show="!pendingMessage" class="h-full flex flex-col items-center justify-center gap-4">
-                            <p class="text-sm text-muted">{{ __('Send a message to start chatting with :name.', ['name' => $dwIdentity['name']]) }}</p>
+                            <p class="text-sm text-muted">{{ __('Send a message to start chatting with :name.', ['name' => $agentIdentity['name']]) }}</p>
                             @if (count($quickActions) > 0)
                                 <div class="flex flex-wrap justify-center gap-2 max-w-sm">
                                     @foreach ($quickActions as $action)
                                         <button
                                             type="button"
-                                            x-on:click="$dispatch('open-lara-chat', { prompt: '{{ str_replace("'", "\\'", $action['prompt']) }}' })"
+                                            x-on:click="$dispatch('open-agent-chat', { prompt: '{{ str_replace("'", "\\'", $action['prompt']) }}' })"
                                             class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border-default bg-surface-card text-xs text-muted hover:text-ink hover:border-accent/40 hover:bg-surface-subtle transition-all duration-200"
                                         >
                                             <x-icon :name="$action['icon']" class="w-3.5 h-3.5" />
@@ -373,7 +373,7 @@
                     <template x-if="streamingContent">
                         <div class="flex justify-start">
                             <div class="max-w-[80%] rounded-2xl px-3 py-2 text-sm bg-surface-subtle text-ink">
-                                <div class="dw-prose whitespace-pre-wrap break-words" x-text="streamingContent"></div>
+                                <div class="agent-prose whitespace-pre-wrap break-words" x-text="streamingContent"></div>
                             </div>
                         </div>
                     </template>
@@ -443,8 +443,8 @@
 
                     <form
                         wire:submit="sendMessage"
-                        x-data="dwComposer()"
-                        x-on:submit="onSubmit($refs.dwComposer, $refs.dwScroll)"
+                        x-data="agentChatComposer()"
+                        x-on:submit="onSubmit($refs.agentComposer, $refs.agentScroll)"
                         class="space-y-2"
                     >
                         {{-- Attachment preview pills --}}
@@ -486,12 +486,12 @@
                             @endif
                             <div class="flex-1 min-w-0">
                                 <textarea
-                                    x-ref="dwComposer"
+                                    x-ref="agentComposer"
                                     wire:model="messageInput"
                                     x-on:keydown="onKeydown($event)"
                                     x-on:input="autoResize($el)"
                                     x-init="autoResize($el)"
-                                    placeholder="{{ __('Message :name...', ['name' => $dwIdentity['name']]) }}"
+                                    placeholder="{{ __('Message :name...', ['name' => $agentIdentity['name']]) }}"
                                     autocomplete="off"
                                     x-bind:disabled="!!pendingMessage"
                                     rows="1"
@@ -511,7 +511,7 @@
 
 @script
 <script>
-    Alpine.data('dwComposer', () => ({
+    Alpine.data('agentChatComposer', () => ({
         maxRows: 6,
 
         onKeydown(event) {

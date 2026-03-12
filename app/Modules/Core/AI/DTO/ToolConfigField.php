@@ -6,7 +6,7 @@
 namespace App\Modules\Core\AI\DTO;
 
 /**
- * Describes a configurable setting for a Digital Worker tool.
+ * Describes a configurable setting for a Agent tool.
  *
  * Used by the Tool Workspace UI to render setup forms
  * and by the SettingsService to store/retrieve values.

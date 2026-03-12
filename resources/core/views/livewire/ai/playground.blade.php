@@ -5,31 +5,31 @@
 /** @var \App\Modules\Core\AI\Livewire\Playground $this */
 ?>
 <div>
-    <x-slot name="title">{{ __('Digital Worker Playground') }}</x-slot>
+    <x-slot name="title">{{ __('Agent Playground') }}</x-slot>
 
     <div class="space-y-section-gap">
-        <x-ui.page-header :title="__('Digital Worker Playground')" />
+        <x-ui.page-header :title="__('Agent Playground')" />
 
-        {{-- Digital Worker Tabs --}}
-        @if($digitalWorkers->count() > 0)
+        {{-- Agent Tabs --}}
+        @if($agents->count() > 0)
             <div class="flex gap-1 border-b border-border-default items-center">
-                @foreach($digitalWorkers as $dw)
+                @foreach($agents as $agent)
                     <button
-                        wire:key="dw-tab-{{ $dw->id }}"
-                        wire:click="selectDigitalWorker({{ $dw->id }})"
+                        wire:key="agent-tab-{{ $agent->id }}"
+                        wire:click="selectAgent({{ $agent->id }})"
                         class="px-4 py-2 text-sm font-medium transition-colors relative
-                            {{ $selectedEmployeeId === $dw->id
+                            {{ $selectedAgentId === $agent->id
                                 ? 'text-ink'
                                 : 'text-muted hover:text-ink' }}"
                     >
-                        {{ $dw->displayName() }}
-                        @if($selectedEmployeeId === $dw->id)
+                        {{ $agent->displayName() }}
+                        @if($selectedAgentId === $agent->id)
                             <span class="absolute bottom-0 inset-x-0 h-0.5 bg-accent rounded-full"></span>
                         @endif
                     </button>
                 @endforeach
 
-                @if($selectedEmployeeId)
+                @if($selectedAgentId)
                     <button
                         wire:click="openLlmConfig"
                         type="button"
@@ -49,7 +49,7 @@
                 <x-ui.card class="flex-1 overflow-hidden flex flex-col">
                     <div class="flex items-center justify-between mb-2">
                         <span class="text-[11px] uppercase tracking-wider font-semibold text-muted">{{ __('Sessions') }}</span>
-                        <x-ui.button variant="ghost" size="sm" wire:click="createSession" :disabled="!$selectedEmployeeId">
+                        <x-ui.button variant="ghost" size="sm" wire:click="createSession" :disabled="!$selectedAgentId">
                             <x-icon name="heroicon-o-plus" class="w-4 h-4" />
                         </x-ui.button>
                     </div>
@@ -90,7 +90,7 @@
                                         : 'bg-surface-subtle text-ink' }}"
                                 >
                                     @if ($message->role === 'assistant')
-                                        <div class="dw-prose">{!! $markdown->render($message->content) !!}</div>
+                                        <div class="agent-prose">{!! $markdown->render($message->content) !!}</div>
                                     @else
                                         <div class="whitespace-pre-wrap break-words">{{ $message->content }}</div>
                                     @endif
@@ -142,13 +142,13 @@
                     <div class="flex-1 flex items-center justify-center">
                         <div class="text-center space-y-2">
                             <p class="text-sm text-muted">
-                                @if($selectedEmployeeId)
+                                @if($selectedAgentId)
                                     {{ __('Create a session to start chatting.') }}
                                 @else
-                                    {{ __('No Digital Worker available. Assign one to your supervision first.') }}
+                                    {{ __('No agent available. Assign one to your supervision first.') }}
                                 @endif
                             </p>
-                            @if($selectedEmployeeId)
+                            @if($selectedAgentId)
                                 <x-ui.button variant="primary" wire:click="createSession">
                                     <x-icon name="heroicon-o-plus" class="w-4 h-4" />
                                     {{ __('New Session') }}

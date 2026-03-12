@@ -22,7 +22,7 @@ use Illuminate\Database\Eloquent\Relations\MorphToMany;
 class Employee extends Model
 {
     /**
-     * The well-known ID for Lara, BLB's system Digital Worker.
+     * The well-known ID for Lara, BLB's system Agent.
      *
      * Lara is provisioned at install time and cannot be deleted.
      * Mirrors the Licensee pattern (Company::LICENSEE_ID).
@@ -42,7 +42,7 @@ class Employee extends Model
     /**
      * Boot the model.
      *
-     * Prevents deletion of Lara, the system Digital Worker.
+     * Prevents deletion of Lara, the system Agent.
      */
     protected static function boot(): void
     {
@@ -169,7 +169,7 @@ class Employee extends Model
     }
 
     /**
-     * Whether this employee is Lara, BLB's system Digital Worker.
+     * Whether this employee is Lara, BLB's system Agent.
      */
     public function isLara(): bool
     {
@@ -201,7 +201,7 @@ class Employee extends Model
     }
 
     /**
-     * Ensure Lara (the system Digital Worker) exists.
+     * Ensure Lara (the system Agent) exists.
      *
      * Idempotent — safe to call from migrations, setup scripts, and UI.
      * Requires the Licensee company to exist first. Resets the PostgreSQL
@@ -222,12 +222,12 @@ class Employee extends Model
         static::unguarded(fn () => static::query()->create([
             'id' => self::LARA_ID,
             'company_id' => Company::LICENSEE_ID,
-            'employee_type' => 'digital_worker',
+            'employee_type' => 'agent',
             'employee_number' => 'SYS-001',
             'full_name' => 'Lara Belimbing',
             'short_name' => 'Lara',
             'designation' => 'System Assistant',
-            'job_description' => 'BLB\'s system Digital Worker. Guides users through setup and onboarding, explains framework architecture and conventions, orchestrates tasks by delegating to specialised Digital Workers, and bootstraps the AI workforce on fresh installs.',
+            'job_description' => 'BLB\'s system Agent. Guides users through setup and onboarding, explains framework architecture and conventions, orchestrates tasks by delegating to specialised Agents, and bootstraps the AI workforce on fresh installs.',
             'status' => 'active',
             'employment_start' => now()->toDateString(),
         ]));
@@ -253,26 +253,26 @@ class Employee extends Model
     }
 
     /**
-     * Whether this employee is a Digital Worker.
+     * Whether this employee is a Agent.
      */
-    public function isDigitalWorker(): bool
+    public function isAgent(): bool
     {
-        return $this->employee_type === 'digital_worker';
+        return $this->employee_type === 'agent';
     }
 
     /**
-     * Scope a query to only include Digital Worker employees.
+     * Scope a query to only include Agent employees.
      */
-    public function scopeDigitalWorker($query): void
+    public function scopeAgent($query): void
     {
-        $query->where('employee_type', 'digital_worker');
+        $query->where('employee_type', 'agent');
     }
 
     /**
-     * Scope a query to only include human employees (non-Digital Worker).
+     * Scope a query to only include human employees (non-Agent).
      */
     public function scopeHuman($query): void
     {
-        $query->where('employee_type', '!=', 'digital_worker');
+        $query->where('employee_type', '!=', 'agent');
     }
 }

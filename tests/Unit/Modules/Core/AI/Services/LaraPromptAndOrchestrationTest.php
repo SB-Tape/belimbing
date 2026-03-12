@@ -31,13 +31,13 @@ function createLaraOrchestrationFixture(object $testCase): array
             'designation' => 'Data Specialist',
             'job_description' => 'Handles migrations and data imports.',
         ],
-    ] as $worker) {
+    ] as $agent) {
         Employee::factory()->create([
             'company_id' => $company->id,
-            'employee_type' => 'digital_worker',
+            'employee_type' => 'agent',
             'supervisor_id' => $supervisor->id,
             'status' => 'active',
-            ...$worker,
+            ...$agent,
         ]);
     }
 
@@ -170,7 +170,7 @@ it('returns unknown target status for unsupported /go target', function (): void
         ->and($result['meta']['orchestration']['status'])->toBe('unknown_navigation_target');
 });
 
-it('queues delegation to the best matched worker', function (): void {
+it('queues delegation to the best matched agent', function (): void {
     $fixture = createLaraOrchestrationFixture($this);
     $this->actingAs($fixture['user']);
 
@@ -179,12 +179,12 @@ it('queues delegation to the best matched worker', function (): void {
 
     expect($result)->not->toBeNull()
         ->and($result['meta']['orchestration']['status'])->toBe('queued')
-        ->and($result['meta']['orchestration']['selected_worker']['name'])->toBe(CODE_WORKER)
+        ->and($result['meta']['orchestration']['selected_agent']['name'])->toBe(CODE_WORKER)
         ->and($result['meta']['orchestration']['dispatch']['employee_name'])->toBe(CODE_WORKER)
         ->and($result['meta']['orchestration']['dispatch']['task'])->toBe('build a PHP module with tests');
 });
 
-it('returns no_workers status when no delegated workers are available', function (): void {
+it('returns no_agents status when no delegated agents are available', function (): void {
     $fixture = $this->createLaraFixture();
     $this->actingAs($fixture['user']);
 
@@ -192,5 +192,5 @@ it('returns no_workers status when no delegated workers are available', function
     $result = $service->dispatchFromMessage('/delegate create dashboard page');
 
     expect($result)->not->toBeNull()
-        ->and($result['meta']['orchestration']['status'])->toBe('no_workers');
+        ->and($result['meta']['orchestration']['status'])->toBe('no_agents');
 });

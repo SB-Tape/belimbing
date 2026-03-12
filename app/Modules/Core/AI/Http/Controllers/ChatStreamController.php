@@ -15,7 +15,7 @@ use Illuminate\Http\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
- * SSE endpoint for streaming DW chat responses.
+ * SSE endpoint for streaming agent chat responses.
  *
  * The client-side flow is:
  * 1. Livewire prepares the run (persists user message, creates session if needed)

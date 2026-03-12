@@ -8,7 +8,7 @@ namespace App\Modules\Core\AI\Services\Browser;
 /**
  * Manages a pool of headless browser contexts with per-company concurrency limits.
  *
- * Each DW session gets an isolated browser context. Currently tracks contexts
+ * Each agent session gets an isolated browser context. Currently tracks contexts
  * in-memory; future versions will persist context state for cross-process
  * coordination.
  */
@@ -28,7 +28,7 @@ class BrowserPoolManager
      * disabled, Playwright is unavailable, or the per-company limit is reached.
      *
      * @param  int  $companyId  Company requesting the context
-     * @param  string  $sessionId  DW session identifier
+     * @param  string  $sessionId  agent session identifier
      */
     public function acquireContext(int $companyId, string $sessionId): string|false
     {
@@ -117,7 +117,7 @@ class BrowserPoolManager
      * Create and register a new browser context for the given company and session.
      *
      * @param  int  $companyId  Company scope for isolation
-     * @param  string  $sessionId  DW session identifier
+     * @param  string  $sessionId  agent session identifier
      * @return string Newly created context ID
      */
     private function createAndRegisterContext(int $companyId, string $sessionId): string

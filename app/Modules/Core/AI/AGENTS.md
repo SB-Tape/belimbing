@@ -2,13 +2,13 @@
 
 ## Module Context
 
-Core AI is the **governance layer** for AI in BLB. It manages company-scoped provider configuration, Digital Worker runtime, and sessions. It depends on Base AI (`app/Base/AI/`) for stateless infrastructure (model catalog, LLM client, provider discovery).
+Core AI is the **governance layer** for AI in BLB. It manages company-scoped provider configuration, agent runtime, and sessions. It depends on Base AI (`app/Base/AI/`) for stateless infrastructure (model catalog, LLM client, provider discovery).
 
 **Key files:**
 - `Models/AiProvider.php` — Company-scoped provider credentials (encrypted API key, `company_id`/`created_by` FKs)
 - `Models/AiProviderModel.php` — Model registry per provider (`model_id`, `is_active`, `is_default`, `cost_override`)
-- `Services/ConfigResolver.php` — Resolves LLM config cascade: DW workspace → company provider → runtime defaults
-- `Services/DigitalWorkerRuntime.php` — Executes LLM calls with fallback, delegates HTTP to Base `LlmClient`
+- `Services/ConfigResolver.php` — Resolves LLM config cascade: agent workspace → company provider → runtime defaults
+- `Services/AgentRuntime.php` — Executes LLM calls with fallback, delegates HTTP to Base `LlmClient`
 - `Services/ModelDiscoveryService.php` — Syncs models from live API + catalog enrichment via Base services
 - `Services/ProviderAuthFlowService.php` — Company-scoped auth lifecycle (delegates to Base `GithubCopilotAuthService`)
 - `Services/SessionManager.php` / `Services/MessageManager.php` — Workspace-based session and message storage
@@ -20,7 +20,7 @@ Core AI reads catalog data from `app/Base/AI/Services/ModelCatalogService`. It d
 | Concern | Base AI (stateless) | Core AI (governance) |
 |---------|---------------------|---------------------|
 | Model catalog | `ModelCatalogService` — fetch, cache, serve | Reads from Base catalog |
-| LLM execution | `LlmClient::chat(...)` | `DigitalWorkerRuntime` — config + fallback via Base client |
+| LLM execution | `LlmClient::chat(...)` | `AgentRuntime` — config + fallback via Base client |
 | Provider discovery | `ProviderDiscoveryService::discoverModels(...)` | `ModelDiscoveryService` — syncs to DB |
 | Auth helpers | `GithubCopilotAuthService` | `ProviderAuthFlowService` — company-scoped lifecycle |
 
@@ -45,4 +45,4 @@ Core AI reads catalog data from `app/Base/AI/Services/ModelCatalogService`. It d
 ## UI Pages
 
 - `resources/core/views/livewire/ai/providers.blade.php` — Provider catalog wizard + CRUD management
-- `resources/core/views/livewire/ai/playground.blade.php` — DW chat playground + LLM config assignment
+- `resources/core/views/livewire/ai/playground.blade.php` — Agent chat playground + LLM config assignment

@@ -18,7 +18,7 @@ use App\Modules\Core\AI\Services\Browser\BrowserPoolManager;
 use App\Modules\Core\AI\Services\Browser\BrowserSsrfGuard;
 
 /**
- * Headless browser automation tool for Digital Workers.
+ * Headless browser automation tool for Agents.
  *
  * Provides enterprise-grade browser automation via server-side headless
  * Chromium managed through a pool of isolated browser contexts. Supports
@@ -100,7 +100,7 @@ class BrowserTool extends AbstractActionTool
         return 'Automate a headless browser for web scraping, form filling, and page inspection. '
             .'Supports navigation, page snapshots (structured text), screenshots, interaction '
             .'(click, type, select, fill), tab management, PDF export, cookie management, '
-            .'and waiting for page state. Each DW session gets an isolated browser context.';
+            .'and waiting for page state. Each agent session gets an isolated browser context.';
     }
 
     public function category(): ToolCategory
@@ -143,7 +143,7 @@ class BrowserTool extends AbstractActionTool
             ],
             'limits' => [
                 'Company-scoped browser contexts',
-                'Session isolation between DWs',
+                'Session isolation between agents',
             ],
         ];
     }

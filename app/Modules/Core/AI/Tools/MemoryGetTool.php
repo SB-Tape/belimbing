@@ -14,9 +14,9 @@ use App\Base\AI\Tools\ToolResult;
 use App\Modules\Core\Employee\Models\Employee;
 
 /**
- * Workspace and documentation file reading tool for Digital Workers.
+ * Workspace and documentation file reading tool for Agents.
  *
- * Allows a DW to read files from two scopes:
+ * Allows a agent to read files from two scopes:
  * - `docs`: The BLB project documentation directory (base_path('docs/'))
  * - `workspace`: Lara's workspace directory (config('ai.workspace_path')/LARA_ID/)
  *
@@ -90,7 +90,7 @@ class MemoryGetTool extends AbstractTool
      */
     public function summary(): string
     {
-        return 'Read a specific knowledge file from the DW workspace.';
+        return 'Read a specific knowledge file from the agent workspace.';
     }
 
     /**
@@ -98,7 +98,7 @@ class MemoryGetTool extends AbstractTool
      */
     public function explanation(): string
     {
-        return 'Reads the content of a file within the DW workspace by path. '
+        return 'Reads the content of a file within the agent workspace by path. '
             .'Path validation prevents directory traversal. This tool can only '
             .'read files within the designated workspace directory.';
     }

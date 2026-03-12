@@ -9,9 +9,9 @@ use App\Base\Authz\Contracts\AuthorizationService;
 use App\Base\Authz\DTO\AuthorizationDecision;
 use App\Modules\Core\AI\DTO\Message;
 use App\Modules\Core\AI\Services\AgenticRuntime;
+use App\Modules\Core\AI\Services\AgentRuntime;
+use App\Modules\Core\AI\Services\AgentToolRegistry;
 use App\Modules\Core\AI\Services\ConfigResolver;
-use App\Modules\Core\AI\Services\DigitalWorkerRuntime;
-use App\Modules\Core\AI\Services\DigitalWorkerToolRegistry;
 use App\Modules\Core\AI\Services\RuntimeCredentialResolver;
 use App\Modules\Core\AI\Services\RuntimeMessageBuilder;
 use App\Modules\Core\AI\Services\RuntimeResponseFactory;
@@ -81,9 +81,9 @@ trait MakesRuntimeResponses
         return $mock;
     }
 
-    protected function makeToolRegistry(Tool ...$tools): DigitalWorkerToolRegistry
+    protected function makeToolRegistry(Tool ...$tools): AgentToolRegistry
     {
-        $registry = new DigitalWorkerToolRegistry($this->makeAllowAllAuthzMock());
+        $registry = new AgentToolRegistry($this->makeAllowAllAuthzMock());
 
         foreach ($tools as $tool) {
             $registry->register($tool);
@@ -95,7 +95,7 @@ trait MakesRuntimeResponses
     protected function makeAgenticRuntime(
         LlmClient $llmClient,
         ?ConfigResolver $configResolver = null,
-        ?DigitalWorkerToolRegistry $toolRegistry = null,
+        ?AgentToolRegistry $toolRegistry = null,
         ?GithubCopilotAuthService $copilotAuth = null,
     ): AgenticRuntime {
         $copilotAuth ??= \Mockery::mock(GithubCopilotAuthService::class);
@@ -110,14 +110,14 @@ trait MakesRuntimeResponses
         );
     }
 
-    protected function makeDigitalWorkerRuntime(
+    protected function makeAgentRuntime(
         ConfigResolver $configResolver,
         LlmClient $llmClient,
         ?GithubCopilotAuthService $copilotAuth = null,
-    ): DigitalWorkerRuntime {
+    ): AgentRuntime {
         $copilotAuth ??= \Mockery::mock(GithubCopilotAuthService::class);
 
-        return new DigitalWorkerRuntime(
+        return new AgentRuntime(
             $configResolver,
             $llmClient,
             new RuntimeCredentialResolver($copilotAuth),

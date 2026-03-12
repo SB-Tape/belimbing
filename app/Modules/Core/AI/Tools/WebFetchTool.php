@@ -14,9 +14,9 @@ use App\Base\AI\Tools\Schema\ToolSchemaBuilder;
 use App\Base\AI\Tools\ToolResult;
 
 /**
- * Web page fetching and content extraction tool for Digital Workers.
+ * Web page fetching and content extraction tool for Agents.
  *
- * Allows a DW to fetch external web pages and extract readable content
+ * Allows a agent to fetch external web pages and extract readable content
  * for research, data gathering, and contextual understanding.
  *
  * Safety: SSRF protection blocks requests to private/internal networks

@@ -11,7 +11,7 @@ use DateTimeImmutable;
  * Value object representing a parsed inbound message from a channel webhook.
  *
  * Produced by ChannelAdapter::parseInbound() and consumed by the
- * channel router for conversation assignment and DW processing.
+ * channel router for conversation assignment and agent processing.
  */
 final readonly class InboundMessage
 {

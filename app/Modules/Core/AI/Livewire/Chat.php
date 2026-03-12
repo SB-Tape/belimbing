@@ -27,7 +27,7 @@ use Livewire\Component;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Livewire\WithFileUploads;
 
-class LaraChatOverlay extends Component
+class Chat extends Component
 {
     use WithFileUploads;
 
@@ -75,7 +75,7 @@ class LaraChatOverlay extends Component
     {
         $this->employeeId = $employeeId;
 
-        if (! $this->isDwActivated()) {
+        if (! $this->isAgentActivated()) {
             return;
         }
 
@@ -85,10 +85,10 @@ class LaraChatOverlay extends Component
         }
     }
 
-    #[On('lara-chat-opened')]
-    public function onLaraChatOpened(): void
+    #[On('agent-chat-opened')]
+    public function onAgentChatOpened(): void
     {
-        if (! $this->isDwActivated()) {
+        if (! $this->isAgentActivated()) {
             return;
         }
 
@@ -99,12 +99,12 @@ class LaraChatOverlay extends Component
             }
         }
 
-        $this->dispatch('lara-focus-composer');
+        $this->dispatch('agent-chat-focus-composer');
     }
 
     public function createSession(): void
     {
-        if (! $this->isDwActivated()) {
+        if (! $this->isAgentActivated()) {
             return;
         }
 
@@ -112,7 +112,7 @@ class LaraChatOverlay extends Component
         $this->selectedSessionId = $session->id;
         $this->lastRunMeta = null;
         $this->selectedModel = null;
-        $this->dispatch('lara-focus-composer');
+        $this->dispatch('agent-chat-focus-composer');
     }
 
     public function selectSession(string $sessionId): void
@@ -123,7 +123,7 @@ class LaraChatOverlay extends Component
         $session = app(SessionManager::class)->get($this->employeeId, $sessionId);
         $this->selectedModel = $session?->llm['model_override'] ?? null;
 
-        $this->dispatch('lara-focus-composer');
+        $this->dispatch('agent-chat-focus-composer');
     }
 
     /**
@@ -144,7 +144,7 @@ class LaraChatOverlay extends Component
 
     public function deleteSession(string $sessionId): void
     {
-        if (! $this->isDwActivated()) {
+        if (! $this->isAgentActivated()) {
             return;
         }
 
@@ -197,11 +197,11 @@ class LaraChatOverlay extends Component
     }
 
     /**
-     * Ask the DW to generate a session title from the conversation history.
+     * Ask the agent to generate a session title from the conversation history.
      */
     public function generateSessionTitle(string $sessionId): void
     {
-        if (! $this->isDwActivated()) {
+        if (! $this->isAgentActivated()) {
             return;
         }
 
@@ -302,7 +302,7 @@ class LaraChatOverlay extends Component
         $hasAttachments = $this->attachments !== [] && $this->canAttachFiles();
         $hasText = trim($this->messageInput) !== '';
 
-        if (! $this->isDwActivated() || (! $hasText && ! $hasAttachments)) {
+        if (! $this->isAgentActivated() || (! $hasText && ! $hasAttachments)) {
             return;
         }
 
@@ -349,7 +349,7 @@ class LaraChatOverlay extends Component
 
             $result = $runtime->run($messages, $this->employeeId, $systemPrompt, $this->selectedModel);
 
-            $actionJs = $this->extractLaraAction($result['content']);
+            $actionJs = $this->extractAgentAction($result['content']);
             if ($actionJs !== null) {
                 $result['content'] = $actionJs['clean_content'];
                 $result['meta']['orchestration'] = [
@@ -374,17 +374,17 @@ class LaraChatOverlay extends Component
 
         $navigationUrl = $result['meta']['orchestration']['navigation']['url'] ?? null;
         if (is_string($navigationUrl) && str_starts_with($navigationUrl, '/')) {
-            $this->dispatch('lara-execute-js', js: "Livewire.navigate('".$navigationUrl."')");
+            $this->dispatch('agent-chat-execute-js', js: "Livewire.navigate('".$navigationUrl."')");
         }
 
         $actionJs = $result['meta']['orchestration']['js'] ?? null;
         if (is_string($actionJs) && $actionJs !== '') {
-            $this->dispatch('lara-execute-js', js: $actionJs);
+            $this->dispatch('agent-chat-execute-js', js: $actionJs);
         }
 
         $this->isLoading = false;
-        $this->dispatch('lara-response-ready');
-        $this->dispatch('lara-focus-composer');
+        $this->dispatch('agent-chat-response-ready');
+        $this->dispatch('agent-chat-focus-composer');
     }
 
     /**
@@ -401,7 +401,7 @@ class LaraChatOverlay extends Component
         $hasAttachments = $this->attachments !== [] && $this->canAttachFiles();
         $hasText = trim($this->messageInput) !== '';
 
-        if (! $this->isDwActivated() || (! $hasText && ! $hasAttachments)) {
+        if (! $this->isAgentActivated() || (! $hasText && ! $hasAttachments)) {
             return null;
         }
 
@@ -442,12 +442,12 @@ class LaraChatOverlay extends Component
                     ...$orchestration['meta'],
                 ];
 
-                $this->dispatch('lara-response-ready');
-                $this->dispatch('lara-focus-composer');
+                $this->dispatch('agent-chat-response-ready');
+                $this->dispatch('agent-chat-focus-composer');
 
                 $navigationUrl = $orchestration['meta']['orchestration']['navigation']['url'] ?? null;
                 if (is_string($navigationUrl) && str_starts_with($navigationUrl, '/')) {
-                    $this->dispatch('lara-execute-js', js: "Livewire.navigate('".$navigationUrl."')");
+                    $this->dispatch('agent-chat-execute-js', js: "Livewire.navigate('".$navigationUrl."')");
                 }
 
                 return null;
@@ -475,21 +475,21 @@ class LaraChatOverlay extends Component
     public function finalizeStreamingRun(): void
     {
         $this->isLoading = false;
-        $this->dispatch('lara-response-ready');
-        $this->dispatch('lara-focus-composer');
+        $this->dispatch('agent-chat-response-ready');
+        $this->dispatch('agent-chat-focus-composer');
     }
 
     /**
-     * Get identity display data for the current Digital Worker.
+     * Get identity display data for the current agent.
      *
      * @return array{name: string, role: string, icon: string, shortcut: string|null}
      */
-    public function dwIdentity(): array
+    public function agentIdentity(): array
     {
         if ($this->employeeId === Employee::LARA_ID) {
             return [
                 'name' => 'Lara',
-                'role' => __('System DW'),
+                'role' => __('System Agent'),
                 'icon' => 'heroicon-o-sparkles',
                 'shortcut' => 'Ctrl+K',
             ];
@@ -498,8 +498,8 @@ class LaraChatOverlay extends Component
         $employee = Employee::query()->find($this->employeeId);
 
         return [
-            'name' => $employee?->short_name ?? __('Digital Worker'),
-            'role' => $employee?->designation ?? __('Digital Worker'),
+            'name' => $employee?->short_name ?? __('Agent'),
+            'role' => $employee?->designation ?? __('Agent'),
             'icon' => 'heroicon-o-cpu-chip',
             'shortcut' => null,
         ];
@@ -507,17 +507,17 @@ class LaraChatOverlay extends Component
 
     public function render(): \Illuminate\Contracts\View\View
     {
-        $dwExists = Employee::query()->whereKey($this->employeeId)->exists();
-        $dwActivated = $this->isDwActivated();
+        $agentExists = Employee::query()->whereKey($this->employeeId)->exists();
+        $agentActivated = $this->isAgentActivated();
 
         $sessions = [];
         $messages = [];
 
-        if ($dwActivated) {
+        if ($agentActivated) {
             $sessions = app(SessionManager::class)->list($this->employeeId);
         }
 
-        if ($dwActivated && $this->selectedSessionId !== null) {
+        if ($agentActivated && $this->selectedSessionId !== null) {
             $messages = app(MessageManager::class)->read($this->employeeId, $this->selectedSessionId);
         }
 
@@ -525,17 +525,19 @@ class LaraChatOverlay extends Component
 
         $canAttach = $this->canAttachFiles();
 
-        $quickActions = ($dwActivated && $messages === [])
+        $quickActions = ($agentActivated && $messages === [])
             ? app(QuickActionRegistry::class)->forRoute(request()->route()?->getName())
             : [];
 
-        return view('livewire.ai.lara-chat-overlay', [
-            'dwExists' => $dwExists,
-            'dwActivated' => $dwActivated,
-            'dwIdentity' => $this->dwIdentity(),
+        $settingsUrl = $this->settingsUrl();
+
+        return view('livewire.ai.chat', [
+            'agentExists' => $agentExists,
+            'agentActivated' => $agentActivated,
+            'agentIdentity' => $this->agentIdentity(),
             'sessions' => $sessions,
             'messages' => $messages,
-            'isLara' => $this->employeeId === Employee::LARA_ID,
+            'settingsUrl' => $settingsUrl,
             'canSelectModel' => $this->canSelectModel(),
             'canAttachFiles' => $canAttach,
             'availableModels' => $this->canSelectModel() ? $this->availableModels() : [],
@@ -615,7 +617,7 @@ class LaraChatOverlay extends Component
         return $config['model'] ?? __('Default');
     }
 
-    private function isDwActivated(): bool
+    private function isAgentActivated(): bool
     {
         $isActivated = false;
 
@@ -635,6 +637,15 @@ class LaraChatOverlay extends Component
         }
 
         return $isActivated;
+    }
+
+    private function settingsUrl(): ?string
+    {
+        if ($this->employeeId !== Employee::LARA_ID) {
+            return null;
+        }
+
+        return route('admin.setup.lara');
     }
 
     /**
@@ -668,13 +679,13 @@ class LaraChatOverlay extends Component
     }
 
     /**
-     * Extract `<lara-action>` JS block from LLM response content.
+     * Extract `<agent-action>` JS block from LLM response content.
      *
      * @return array{js: string, clean_content: string}|null
      */
-    private function extractLaraAction(string $content): ?array
+    private function extractAgentAction(string $content): ?array
     {
-        if (preg_match('/<lara-action>(.*?)<\/lara-action>/s', $content, $matches) !== 1) {
+        if (preg_match('/<agent-action>(.*?)<\/agent-action>/s', $content, $matches) !== 1) {
             return null;
         }
 

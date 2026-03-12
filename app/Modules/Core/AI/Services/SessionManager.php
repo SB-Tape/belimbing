@@ -21,9 +21,9 @@ class SessionManager
     }
 
     /**
-     * Create a new session for a Digital Worker.
+     * Create a new session for a Agent.
      *
-     * @param  int  $employeeId  Digital Worker employee ID
+     * @param  int  $employeeId  Agent employee ID
      * @param  string|null  $title  Optional session title
      */
     public function create(int $employeeId, ?string $title = null): Session
@@ -59,9 +59,9 @@ class SessionManager
     }
 
     /**
-     * List all sessions for a Digital Worker, sorted by last activity (newest first).
+     * List all sessions for a Agent, sorted by last activity (newest first).
      *
-     * @param  int  $employeeId  Digital Worker employee ID
+     * @param  int  $employeeId  Agent employee ID
      * @return list<Session>
      */
     public function list(int $employeeId): array
@@ -91,7 +91,7 @@ class SessionManager
     /**
      * Get a single session by ID.
      *
-     * @param  int  $employeeId  Digital Worker employee ID
+     * @param  int  $employeeId  Agent employee ID
      * @param  string  $sessionId  Session UUID
      */
     public function get(int $employeeId, string $sessionId): ?Session
@@ -110,7 +110,7 @@ class SessionManager
     /**
      * Update the last_activity_at timestamp on a session.
      *
-     * @param  int  $employeeId  Digital Worker employee ID
+     * @param  int  $employeeId  Agent employee ID
      * @param  string  $sessionId  Session UUID
      */
     public function touch(int $employeeId, string $sessionId): void
@@ -141,7 +141,7 @@ class SessionManager
     /**
      * Update the session title.
      *
-     * @param  int  $employeeId  Digital Worker employee ID
+     * @param  int  $employeeId  Agent employee ID
      * @param  string  $sessionId  Session UUID
      * @param  string  $title  New title
      */
@@ -225,7 +225,7 @@ class SessionManager
     /**
      * Store a user-selected model override in the session's LLM state.
      *
-     * @param  int  $employeeId  Digital Worker employee ID
+     * @param  int  $employeeId  Agent employee ID
      * @param  string  $sessionId  Session ID
      * @param  string  $modelId  Model ID to override with
      */
@@ -260,7 +260,7 @@ class SessionManager
     /**
      * Delete a session and its transcript.
      *
-     * @param  int  $employeeId  Digital Worker employee ID
+     * @param  int  $employeeId  Agent employee ID
      * @param  string  $sessionId  Session UUID
      */
     public function delete(int $employeeId, string $sessionId): void
@@ -278,14 +278,14 @@ class SessionManager
     }
 
     /**
-     * Get the sessions directory path for a Digital Worker.
+     * Get the sessions directory path for a Agent.
      *
-     * Regular DW: workspace/{employee_id}/sessions
+     * Regular agent: workspace/{employee_id}/sessions
      * Lara:       workspace/{LARA_ID}/sessions/{user_id}  (per-user isolation)
      */
     public function sessionsPath(int $employeeId): string
     {
-        $this->assertCanAccessDigitalWorker($employeeId);
+        $this->assertCanAccessAgent($employeeId);
 
         $base = $this->basePath.'/'.$employeeId.'/sessions';
 
@@ -313,28 +313,28 @@ class SessionManager
     }
 
     /**
-     * Ensure the current authenticated user can access the Digital Worker's sessions.
+     * Ensure the current authenticated user can access the Agent's sessions.
      *
      * Two explicit strategies — no silent fallback between them:
      *  - Lara (Employee::LARA_ID): any authenticated user; sessions are per-user isolated via path.
-     *  - Regular DW: supervisor-scoped — the user's employee must be the DW's direct supervisor.
+     *  - Regular agent: supervisor-scoped — the user's employee must be the agent's direct supervisor.
      *
      * @throws AuthorizationException
      */
-    private function assertCanAccessDigitalWorker(int $employeeId): void
+    private function assertCanAccessAgent(int $employeeId): void
     {
         $user = auth()->user();
 
         if ($employeeId === Employee::LARA_ID) {
             if (! $user instanceof User) {
-                throw new AuthorizationException(__('Unauthorized Digital Worker session access.'));
+                throw new AuthorizationException(__('Unauthorized Agent session access.'));
             }
 
             return;
         }
 
-        if (! $user instanceof User || ! $user->canAccessSupervisedDigitalWorker($employeeId)) {
-            throw new AuthorizationException(__('Unauthorized Digital Worker session access.'));
+        if (! $user instanceof User || ! $user->canAccessSupervisedAgent($employeeId)) {
+            throw new AuthorizationException(__('Unauthorized Agent session access.'));
         }
     }
 

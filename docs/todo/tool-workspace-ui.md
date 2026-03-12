@@ -1,20 +1,20 @@
 # Tool Workspace UI Plan
 
 **Document Type:** Planning Document
-**Scope:** Digital Worker tool catalog, setup, testing, health, and governance UI
+**Scope:** Agent tool catalog, setup, testing, health, and governance UI
 **Status:** Proposed
 **Last Updated:** 2026-03-09
-**Related:** `docs/architecture/dw-tools-blueprint.md`, `docs/architecture/ai-digital-worker.md`, `docs/architecture/lara-system-dw.md`, `resources/core/views/livewire/ai/providers/manager.blade.php`
+**Related:** `docs/architecture/agent-tools-blueprint.md`, `docs/architecture/ai-agent.md`, `docs/architecture/lara-system-agent.md`, `resources/core/views/livewire/ai/providers/manager.blade.php`
 
 ## 1. Problem Essence
 
-BLB needs a dedicated Tool Workspace UI so authorized users can understand what each Digital Worker tool does, determine whether it is ready to use, configure prerequisites safely, test it in a controlled way, and make informed authorization decisions.
+BLB needs a dedicated Tool Workspace UI so authorized users can understand what each Agent tool does, determine whether it is ready to use, configure prerequisites safely, test it in a controlled way, and make informed authorization decisions.
 
 ---
 
 ## 2. Why This UI Exists
 
-Today, BLB has tool infrastructure and a DW playground, but tools remain mostly implicit inside the runtime loop. That is powerful for Lara, but weak for human trust and operability.
+Today, BLB has tool infrastructure and a agent playground, but tools remain mostly implicit inside the runtime loop. That is powerful for Lara, but weak for human trust and operability.
 
 The Tool Workspace UI closes that gap by giving supervisors and administrators a place to answer five questions quickly:
 
@@ -437,7 +437,7 @@ The UI should avoid success-shaped ambiguity.
 2. Read what the tool does and does not do
 3. Run a safe example in `Try It`
 4. Review sample output and guardrails
-5. Decide whether to request/grant access for a DW
+5. Decide whether to request/grant access for a agent
 
 ### 12.3 Auditor Reviews Tool Behavior
 1. Open tool workspace in read-only mode

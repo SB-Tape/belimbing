@@ -5,7 +5,7 @@
 
 @props([
     'name',
-    'role' => 'Digital Worker',
+    'role' => 'Agent',
     'icon' => 'heroicon-o-cpu-chip',
     'shortcut' => null,
     'compact' => false,

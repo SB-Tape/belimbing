@@ -1,18 +1,18 @@
-# AI Digital Worker - Staged Delivery Plan
+# AI Agent - Staged Delivery Plan
 
 **Status:** Active — Stage 0 implemented
-**Source Context:** `docs/architecture/ai-digital-worker.md`
+**Source Context:** `docs/architecture/ai-agent.md`
 **Last Updated:** 2026-03-04
 **Prerequisite:** `docs/architecture/authorization.md`, `docs/todo/authorization/00-prd.md`
 
 ## 1. Problem Essence
-Deliver BLB Digital Worker incrementally so every phase ships a UI that users can see, interact with, and test before deeper backend complexity is added.
+Deliver BLB Agent incrementally so every phase ships a UI that users can see, interact with, and test before deeper backend complexity is added.
 
 ## 2. Public Interface First
 At every stage, the user-facing interface must expose these stable operations:
 
-1. Send a message to Digital Worker
-2. View Digital Worker response and action status
+1. Send a message to Agent
+2. View Agent response and action status
 3. Approve or reject sensitive actions (when required)
 4. View conversation and action history
 
@@ -20,14 +20,14 @@ Non-goals for early stages:
 
 1. Full multi-channel rollout (WhatsApp/Telegram/Slack all at once)
 2. Autonomous execution without visibility/audit
-3. Cross-company Digital Worker collaboration
+3. Cross-company Agent collaboration
 
 ## 3. Stage Plan
 
 ## Stage -1 - Authorization Foundation (Prerequisite)
 
 **Goal**
-Ship shared AuthZ (human user + Digital Worker delegated actor) before sensitive Digital Worker operations.
+Ship shared AuthZ (human user + Agent delegated actor) before sensitive Agent operations.
 
 **UI You Can Use**
 1. Basic role/capability assignment screen (or admin console workflow)
@@ -36,26 +36,26 @@ Ship shared AuthZ (human user + Digital Worker delegated actor) before sensitive
 
 **Exit Criteria**
 1. Deny-by-default enforced across web/API
-2. Digital Worker delegation evaluation available in the same policy engine — this means AuthZ Stage D (`docs/todo/authorization/00-prd.md`): `PrincipalType::DIGITAL_WORKER` actor and same RBAC as human are operational. Assignment-time validation and cascade revocation (Stage D remaining items) are not required for Stage 0 since it is a read-only playground with no sensitive write tools.
+2. Agent delegation evaluation available in the same policy engine — this means AuthZ Stage D (`docs/todo/authorization/00-prd.md`): `PrincipalType::AGENT` actor and same RBAC as human are operational. Assignment-time validation and cascade revocation (Stage D remaining items) are not required for Stage 0 since it is a read-only playground with no sensitive write tools.
 3. Decision logs available for allow/deny traces
 
 ---
 
-## Stage 0 - Digital Worker Playground (Web Only, No Business Actions)
+## Stage 0 - Agent Playground (Web Only, No Business Actions)
 
 **Goal**
-Establish a safe, testable end-to-end loop: web chat UI -> Digital Worker runtime -> response UI.
+Establish a safe, testable end-to-end loop: web chat UI -> Agent runtime -> response UI.
 
 **UI You Can Use**
-1. `Digital Worker Playground` page (per authenticated user)
+1. `Agent Playground` page (per authenticated user)
 2. Chat panel with message input + loading indicator + final response rendering
 3. Session sidebar (create/switch session)
 4. Debug panel (latency, token usage, model, run id)
 
 **What Is Implemented**
-1. Digital Worker as employee: `employees` with `employee_type` and `job_description`; file-based sessions (JSONL per session + `.meta.json`) in per-Digital Worker workspace directories (see [01-stage-0 §3.2](01-stage-0-digital-worker-playground.md))
-2. Per-DW LLM configuration: company-level provider credentials (`ai_providers` table, encrypted keys), per-DW model selection via workspace `config.json` (multi-model with ordered fallback), config resolution cascade (DW → company provider → global defaults). See `docs/architecture/ai-digital-worker.md` §15.
-3. Basic runtime orchestration with no high-risk tools (per-DW model-aware) and **fallback attempt trace metadata** (OpenClaw-style: provider, model, error, error_type, latency_ms per attempt). See `docs/architecture/ai-digital-worker.md` §15.5.
+1. Agent as employee: `employees` with `employee_type` and `job_description`; file-based sessions (JSONL per session + `.meta.json`) in per-Agent workspace directories (see [01-stage-0 §3.2](01-stage-0-agent-playground.md))
+2. Per-agent LLM configuration: company-level provider credentials (`ai_providers` table, encrypted keys), per-agent model selection via workspace `config.json` (multi-model with ordered fallback), config resolution cascade (agent → company provider → global defaults). See `docs/architecture/ai-agent.md` §15.
+3. Basic runtime orchestration with no high-risk tools (per-agent model-aware) and **fallback attempt trace metadata** (OpenClaw-style: provider, model, error, error_type, latency_ms per attempt). See `docs/architecture/ai-agent.md` §15.5.
 4. Persistence for all user/assistant messages (append-only JSONL files with `LOCK_EX`)
 5. Provider management page (`LLM Providers`) with catalog/manual add, model sync, default model, and provider priority controls.
 6. Debug panel in playground surfaces runtime metadata including collapsible fallback attempt trace.
@@ -69,7 +69,7 @@ Establish a safe, testable end-to-end loop: web chat UI -> Digital Worker runtim
 **Exit Criteria**
 1. No message loss after refresh/session switch
 2. Session-level isolation verified
-3. All criteria in [Stage 0 implementation checklist](01-stage-0-digital-worker-playground.md) §8 met
+3. All criteria in [Stage 0 implementation checklist](01-stage-0-agent-playground.md) §8 met
 
 ---
 
@@ -93,7 +93,7 @@ Move from “chat only” to “chat + useful operations” with explicit UI fee
 3. Policy layer v1 (allow/deny by role/company)
 
 **Manual Test Script**
-1. Ask Digital Worker for employee/customer lookup
+1. Ask Agent for employee/customer lookup
 2. Confirm card displays tool name + params + result
 3. Trigger dry-run and verify no write occurs
 4. Force tool failure (invalid input) and verify error shown in UI
@@ -122,7 +122,7 @@ Add safe write operations with explicit approval UX.
 3. Audit log entries for every decision
 
 **Manual Test Script**
-1. Employee asks Digital Worker to submit leave/expense
+1. Employee asks Agent to submit leave/expense
 2. System routes request to manager inbox
 3. Manager approves request
 4. Employee chat receives execution confirmation
@@ -163,28 +163,28 @@ Prove channel abstraction with a production-relevant messaging channel.
 
 ---
 
-## Stage 4 - Digital Worker-to-Digital Worker Workflow UI (Cross-Role Collaboration)
+## Stage 4 - Agent-to-Agent Workflow UI (Cross-Role Collaboration)
 
 **Goal**
-Enable visible orchestration between digital workers (employee/manager/finance/etc.).
+Enable visible orchestration between agents (employee/manager/finance/etc.).
 
 **UI You Can Use**
-1. `Workflow Trace` page showing multi-Digital Worker hops as a timeline/graph
-2. Node-level detail: sender Digital Worker, recipient Digital Worker, payload summary, status
+1. `Workflow Trace` page showing multi-Agent hops as a timeline/graph
+2. Node-level detail: sender Agent, recipient Agent, payload summary, status
 3. Replay view for debugging failed orchestrations
 
 **Target Deliverables**
-1. Digital Worker-to-Digital Worker messaging contract
+1. Agent-to-Agent messaging contract
 2. Queue-based orchestration for multi-step workflows
 3. Correlation IDs across all agent/tool/approval events
 
 **Manual Test Script**
 1. Start a multi-department scenario (example: month-end close task)
-2. Verify trace captures every Digital Worker hop
+2. Verify trace captures every Agent hop
 3. Inject one failed hop and verify retry/error handling in trace
 
 **Exit Criteria**
-1. Full observability for cross-Digital Worker workflows
+1. Full observability for cross-Agent workflows
 2. No silent failures in orchestration path
 3. Deterministic traceability with correlation IDs
 
@@ -196,7 +196,7 @@ Enable visible orchestration between digital workers (employee/manager/finance/e
 Convert interaction data into operational insight and measurable business value.
 
 **UI You Can Use**
-1. `Digital Worker Analytics` dashboard:
+1. `Agent Analytics` dashboard:
    - tasks completed
    - average response time
    - approval turnaround
@@ -210,7 +210,7 @@ Convert interaction data into operational insight and measurable business value.
 3. Data retention and redaction rules
 
 **Manual Test Script**
-1. Run normal Digital Worker usage for several days (or seed test data)
+1. Run normal Agent usage for several days (or seed test data)
 2. Generate period-based report
 3. Validate report values against raw event logs
 
@@ -221,7 +221,7 @@ Convert interaction data into operational insight and measurable business value.
 
 ## 4. Component Responsibilities (Top-Level)
 
-1. **Digital Worker Runtime Module**
+1. **Agent Runtime Module**
    - Contract: accept message + context, produce response + optional actions
    - Invariants: session isolation, deterministic logging, policy checks before execution
 
@@ -250,9 +250,9 @@ Convert interaction data into operational insight and measurable business value.
 2. Approval race conditions (double approval/replay)
 3. Tool idempotency for retries
 4. Data model choice for message/action logs — **decided:** file-based (JSONL per session, OpenClaw pattern); see Stage 0 checklist §3.2
-5. Access controls for multi-company and supervisor/subordinate Digital Worker interactions
-6. **Memory/recall architecture:** Transcript (messages table) vs semantic memory (MemSearch-style). Decision: PHP-native, markdown source of truth, SQLite per Digital Worker for vectors. See `docs/architecture/ai-digital-worker.md` §14.
-7. **Per-DW LLM config resolution:** Provider credentials (company-level, encrypted DB) vs model selection (per-DW workspace). Config cascade must handle missing provider, inactive provider, and missing config.json gracefully. See `docs/architecture/ai-digital-worker.md` §15.
+5. Access controls for multi-company and supervisor/subordinate Agent interactions
+6. **Memory/recall architecture:** Transcript (messages table) vs semantic memory (MemSearch-style). Decision: PHP-native, markdown source of truth, SQLite per Agent for vectors. See `docs/architecture/ai-agent.md` §14.
+7. **Per-agent LLM config resolution:** Provider credentials (company-level, encrypted DB) vs model selection (per-agent workspace). Config cascade must handle missing provider, inactive provider, and missing config.json gracefully. See `docs/architecture/ai-agent.md` §15.
 
 ## 7. Suggested Delivery Rhythm
 
@@ -269,7 +269,7 @@ Stage 0 core is operational. The following features should be built next, in pri
 
 ### 8.1 Stage 0 Hardening (Before Stage 1)
 
-1. **Automated Pest tests for Stage 0 feature paths** — Auth user access, session CRUD, message persistence, session isolation. Currently only unit tests for `DigitalWorkerRuntime` exist.
+1. **Automated Pest tests for Stage 0 feature paths** — Auth user access, session CRUD, message persistence, session isolation. Currently only unit tests for `AgentRuntime` exist.
 2. **Streaming response support** — Replace synchronous LLM call with SSE/chunked streaming. Improves perceived latency for long responses. Requires `LlmClient::chatStream()` and Livewire wire:stream integration.
 3. **Session export / clear** — Allow users to export session JSONL and clear old sessions. Workspace hygiene.
 

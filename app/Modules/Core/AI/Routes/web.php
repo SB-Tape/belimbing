@@ -12,7 +12,7 @@ use App\Modules\Core\AI\Livewire\Tools;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth'])->group(function () {
-    // DW chat streaming (SSE)
+    // Agent chat streaming (SSE)
     Route::get('api/ai/chat/stream', ChatStreamController::class)
         ->name('ai.chat.stream');
     // Lara setup

@@ -20,7 +20,7 @@ it('throws integration exception when Lara runtime context cannot be encoded', f
     ]);
 
     $capabilityMatcher = Mockery::mock(LaraCapabilityMatcher::class);
-    $capabilityMatcher->shouldReceive('discoverDelegableWorkersForCurrentUser')->once()->andReturn([]);
+    $capabilityMatcher->shouldReceive('discoverDelegableAgentsForCurrentUser')->once()->andReturn([]);
 
     $factory = new LaraPromptFactory($contextProvider, $capabilityMatcher);
 
@@ -45,7 +45,7 @@ it('throws configuration exception when Lara prompt resource is missing', functi
         ]);
 
         $capabilityMatcher = Mockery::mock(LaraCapabilityMatcher::class);
-        $capabilityMatcher->shouldReceive('discoverDelegableWorkersForCurrentUser')->once()->andReturn([]);
+        $capabilityMatcher->shouldReceive('discoverDelegableAgentsForCurrentUser')->once()->andReturn([]);
 
         $factory = new LaraPromptFactory($contextProvider, $capabilityMatcher);
 
@@ -68,7 +68,7 @@ it('throws configuration exception when configured Lara prompt extension is miss
         ]);
 
         $capabilityMatcher = Mockery::mock(LaraCapabilityMatcher::class);
-        $capabilityMatcher->shouldReceive('discoverDelegableWorkersForCurrentUser')->once()->andReturn([]);
+        $capabilityMatcher->shouldReceive('discoverDelegableAgentsForCurrentUser')->once()->andReturn([]);
 
         $factory = new LaraPromptFactory($contextProvider, $capabilityMatcher);
 

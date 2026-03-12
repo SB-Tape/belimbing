@@ -22,7 +22,7 @@ class EmployeeTypeSeeder extends Seeder
             ['code' => 'part_time', 'label' => 'Part Time', 'is_system' => true],
             ['code' => 'contractor', 'label' => 'Contractor', 'is_system' => true],
             ['code' => 'intern', 'label' => 'Intern', 'is_system' => true],
-            ['code' => 'digital_worker', 'label' => 'Digital Worker', 'is_system' => true],
+            ['code' => 'agent', 'label' => 'Agent', 'is_system' => true],
         ];
 
         foreach ($systemTypes as $type) {

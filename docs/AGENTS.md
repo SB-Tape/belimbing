@@ -27,7 +27,7 @@
 ```
 docs/
 ├── Base/                  # Framework infrastructure documentation (Base/AI, Base/Database, etc.)
-├── architecture/          # System design specs (layers, database, domain model, broadcasting, Digital Worker)
+├── architecture/          # System design specs (layers, database, domain model, broadcasting, Agent)
 ├── guides/                # Task-oriented how-to guides
 │   └── extensions/        # Extension development guides (migrations, config)
 ├── modules/               # Per-module documentation (overviews, APIs, design decisions)

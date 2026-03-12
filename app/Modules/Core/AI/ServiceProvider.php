@@ -8,9 +8,9 @@ namespace App\Modules\Core\AI;
 use App\Base\AI\Contracts\Tool;
 use App\Base\AI\Services\WebSearchService;
 use App\Modules\Core\AI\Services\AgenticRuntime;
+use App\Modules\Core\AI\Services\AgentRuntime;
+use App\Modules\Core\AI\Services\AgentToolRegistry;
 use App\Modules\Core\AI\Services\ConfigResolver;
-use App\Modules\Core\AI\Services\DigitalWorkerRuntime;
-use App\Modules\Core\AI\Services\DigitalWorkerToolRegistry;
 use App\Modules\Core\AI\Services\LaraCapabilityMatcher;
 use App\Modules\Core\AI\Services\LaraContextProvider;
 use App\Modules\Core\AI\Services\LaraNavigationRouter;
@@ -28,6 +28,7 @@ use App\Modules\Core\AI\Services\ProviderAuthFlowService;
 use App\Modules\Core\AI\Services\SessionManager;
 use App\Modules\Core\AI\Services\ToolMetadataRegistry;
 use App\Modules\Core\AI\Services\ToolReadinessService;
+use App\Modules\Core\AI\Tools\AgentListTool;
 use App\Modules\Core\AI\Tools\ArtisanTool;
 use App\Modules\Core\AI\Tools\BashTool;
 use App\Modules\Core\AI\Tools\BrowserTool;
@@ -46,7 +47,6 @@ use App\Modules\Core\AI\Tools\ScheduleTaskTool;
 use App\Modules\Core\AI\Tools\SystemInfoTool;
 use App\Modules\Core\AI\Tools\WebFetchTool;
 use App\Modules\Core\AI\Tools\WebSearchTool;
-use App\Modules\Core\AI\Tools\WorkerListTool;
 use App\Modules\Core\AI\Tools\WriteJsTool;
 use Illuminate\Support\ServiceProvider as BaseServiceProvider;
 
@@ -71,7 +71,7 @@ class ServiceProvider extends BaseServiceProvider
         $this->app->singleton(ModelDiscoveryService::class);
         $this->app->singleton(SessionManager::class);
         $this->app->singleton(MessageManager::class);
-        $this->app->singleton(DigitalWorkerRuntime::class);
+        $this->app->singleton(AgentRuntime::class);
         $this->app->singleton(ProviderAuthFlowService::class);
         $this->app->singleton(LaraContextProvider::class);
         $this->app->singleton(LaraCapabilityMatcher::class);
@@ -100,16 +100,16 @@ class ServiceProvider extends BaseServiceProvider
     /**
      * Build all tool instances once and wire both registries.
      *
-     * The execution registry (DigitalWorkerToolRegistry) receives only tools
+     * The execution registry (AgentToolRegistry) receives only tools
      * that pass runtime availability checks. The metadata registry
      * (ToolMetadataRegistry) receives ALL 20 tools so the workspace UI can
      * display setup instructions even for unconfigured tools.
      */
     private function registerToolRegistries(): void
     {
-        $this->app->singleton(DigitalWorkerToolRegistry::class, function ($app) {
+        $this->app->singleton(AgentToolRegistry::class, function ($app) {
             $tools = $this->resolveToolInstances($app);
-            $registry = new DigitalWorkerToolRegistry(
+            $registry = new AgentToolRegistry(
                 $app->make(\App\Base\Authz\Contracts\AuthorizationService::class),
             );
 
@@ -142,7 +142,7 @@ class ServiceProvider extends BaseServiceProvider
     }
 
     /**
-     * Instantiate all 20 Digital Worker tools (memoized).
+     * Instantiate all 20 Agent tools (memoized).
      *
      * Returns three groups:
      * - 'always': Tools that are always available (18 tools)
@@ -176,7 +176,7 @@ class ServiceProvider extends BaseServiceProvider
             new ScheduleTaskTool,
             new SystemInfoTool,
             $app->make(WebFetchTool::class),
-            $app->make(WorkerListTool::class),
+            $app->make(AgentListTool::class),
             new WriteJsTool,
         ];
 

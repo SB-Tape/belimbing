@@ -126,9 +126,9 @@ function buildNavigateActionTool(): Tool
 {
     return buildGenericTool(
         'navigate_tool',
-        'Returns Lara actions',
+        'Returns agent actions',
         ['type' => 'object'],
-        '<lara-action>Livewire.navigate(\'/dashboard\')</lara-action>',
+        '<agent-action>Livewire.navigate(\'/dashboard\')</agent-action>',
     );
 }
 
@@ -197,7 +197,7 @@ describe('AgenticRuntime', function () {
         $runtime = $this->makeAgenticRuntime($llmClient, $configResolver, $this->makeToolRegistry(buildNavigateActionTool()));
         $result = $runtime->run([$this->makeMessage('user', 'Go to dashboard')], 1, AGENTIC_RUNTIME_SYSTEM_PROMPT);
 
-        expect($result['content'])->toStartWith('<lara-action>Livewire.navigate(\'/dashboard\')</lara-action>')
+        expect($result['content'])->toStartWith('<agent-action>Livewire.navigate(\'/dashboard\')</agent-action>')
             ->and($result['content'])->toContain('Navigated successfully.');
     });
 

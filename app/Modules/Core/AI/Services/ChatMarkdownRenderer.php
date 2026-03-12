@@ -8,7 +8,7 @@ namespace App\Modules\Core\AI\Services;
 use Illuminate\Support\Str;
 
 /**
- * Renders LLM Markdown responses into safe HTML for DW chat interfaces.
+ * Renders LLM Markdown responses into safe HTML for agent chat interfaces.
  *
  * Uses Laravel's Str::markdown() (league/commonmark GFM) for conversion,
  * then sanitizes the output with a strict HTML tag/attribute allowlist.

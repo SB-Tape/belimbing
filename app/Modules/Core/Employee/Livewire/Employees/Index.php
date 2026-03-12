@@ -18,7 +18,7 @@ class Index extends Component
 
     public string $search = '';
 
-    public string $typeFilter = 'all'; // all | human | digital_worker
+    public string $typeFilter = 'all'; // all | human | agent
 
     public function updatedTypeFilter(): void
     {
@@ -65,7 +65,7 @@ class Index extends Component
                         ->orWhere('job_description', 'like', '%'.$search.'%');
                 })
                 ->when($this->typeFilter === 'human', fn ($q) => $q->human())
-                ->when($this->typeFilter === 'digital_worker', fn ($q) => $q->digitalWorker())
+                ->when($this->typeFilter === 'agent', fn ($q) => $q->agent())
                 ->latest()
                 ->paginate(15),
         ]);

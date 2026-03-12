@@ -6,10 +6,10 @@
 return [
     /*
     |--------------------------------------------------------------------------
-    | Digital Worker Workspace Base Path
+    | Agent Workspace Base Path
     |--------------------------------------------------------------------------
     |
-    | Root directory for per-Digital Worker workspaces. Each Digital Worker
+    | Root directory for per-Agent workspaces. Each Agent
     | gets a subdirectory named by employee_id containing sessions, memory
     | files, and vector indexes.
     |
@@ -21,7 +21,7 @@ return [
     | LLM Runtime Defaults
     |--------------------------------------------------------------------------
     |
-    | Default runtime parameters when not specified per-model in the DW
+    | Default runtime parameters when not specified per-model in the agent
     | workspace config. Credentials come from company-scoped AiProvider
     | records, not from env vars.
     |
@@ -98,7 +98,7 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Lara (System Digital Worker)
+    | Lara (System Agent)
     |--------------------------------------------------------------------------
     |
     | Lara's core prompt is framework-managed and non-configurable.

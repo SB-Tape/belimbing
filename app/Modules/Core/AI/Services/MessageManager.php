@@ -17,7 +17,7 @@ class MessageManager
     /**
      * Append a message to a session transcript.
      *
-     * @param  int  $employeeId  Digital Worker employee ID
+     * @param  int  $employeeId  Agent employee ID
      * @param  string  $sessionId  Session UUID
      * @param  Message  $message  Message to append
      */
@@ -37,7 +37,7 @@ class MessageManager
     /**
      * Append a user message to a session transcript.
      *
-     * @param  int  $employeeId  Digital Worker employee ID
+     * @param  int  $employeeId  Agent employee ID
      * @param  string  $sessionId  Session UUID
      * @param  string  $content  Message content
      * @param  array<string, mixed>  $meta  Optional metadata (e.g., attachment references)
@@ -59,7 +59,7 @@ class MessageManager
     /**
      * Append an assistant message to a session transcript.
      *
-     * @param  int  $employeeId  Digital Worker employee ID
+     * @param  int  $employeeId  Agent employee ID
      * @param  string  $sessionId  Session UUID
      * @param  string  $content  Message content
      * @param  string|null  $runId  Runtime run ID
@@ -103,7 +103,7 @@ class MessageManager
      * Returns sessions that contain at least one message matching the query,
      * with a snippet from the first matching message.
      *
-     * @param  int  $employeeId  Digital Worker employee ID
+     * @param  int  $employeeId  Agent employee ID
      * @param  string  $query  Search query (case-insensitive substring match)
      * @return list<array{session_id: string, title: string|null, snippet: string, matched_at: \DateTimeImmutable}>
      */
@@ -201,7 +201,7 @@ class MessageManager
     /**
      * Read all messages from a session transcript in order.
      *
-     * @param  int  $employeeId  Digital Worker employee ID
+     * @param  int  $employeeId  Agent employee ID
      * @param  string  $sessionId  Session UUID
      * @return list<Message>
      */

@@ -54,20 +54,20 @@ class LaraOrchestrationService
 
                 if ($match === null) {
                     $response = $this->response(
-                        __('No delegated Digital Worker is available for this request.'),
-                        ['status' => 'no_workers'],
+                        __('No delegated Agent is available for this request.'),
+                        ['status' => 'no_agents'],
                     );
                 } else {
                     $dispatch = $this->taskDispatcher->dispatchForCurrentUser($match['employee_id'], $task);
 
                     $response = $this->response(
-                        __('Delegation queued to :worker (dispatch: :dispatch_id).', [
-                            'worker' => $dispatch['employee_name'],
+                        __('Delegation queued to :agent (dispatch: :dispatch_id).', [
+                            'agent' => $dispatch['employee_name'],
                             'dispatch_id' => $dispatch['dispatch_id'],
                         ]),
                         [
                             'status' => 'queued',
-                            'selected_worker' => $match,
+                            'selected_agent' => $match,
                             'dispatch' => $dispatch,
                         ],
                     );

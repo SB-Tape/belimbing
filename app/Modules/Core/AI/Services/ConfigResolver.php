@@ -10,15 +10,15 @@ use App\Modules\Core\AI\Models\AiProviderModel;
 use App\Modules\Core\Employee\Models\Employee;
 
 /**
- * Resolves LLM configuration for a Digital Worker.
+ * Resolves LLM configuration for a Agent.
  *
- * Cascade: DW workspace config.json → company provider credentials → runtime defaults.
+ * Cascade: agent workspace config.json → company provider credentials → runtime defaults.
  * Supports multiple models with ordered fallback (first model is primary, rest are fallbacks).
  */
 class ConfigResolver
 {
     /**
-     * Resolve an ordered list of LLM configurations for a Digital Worker.
+     * Resolve an ordered list of LLM configurations for a Agent.
      *
      * Returns one or more configs in priority order. The runtime should try
      * the first config and fall back to subsequent ones on transient failures
@@ -26,7 +26,7 @@ class ConfigResolver
      *
      * Returns an empty array if no LLM configuration is available.
      *
-     * @param  int  $employeeId  Digital Worker employee ID
+     * @param  int  $employeeId  Agent employee ID
      * @return list<array{api_key: string, base_url: string, model: string, max_tokens: int, temperature: float, timeout: int, provider_name: string|null}>
      */
     public function resolve(int $employeeId): array
@@ -57,9 +57,9 @@ class ConfigResolver
     }
 
     /**
-     * Resolve LLM configurations for a Digital Worker, falling back to the company's default.
+     * Resolve LLM configurations for a Agent, falling back to the company's default.
      *
-     * @param  int  $employeeId  Digital Worker employee ID
+     * @param  int  $employeeId  Agent employee ID
      * @return list<array{api_key: string, base_url: string, model: string, max_tokens: int, temperature: float, timeout: int, provider_name: string|null}>
      */
     public function resolveWithDefaultFallback(int $employeeId): array
@@ -82,9 +82,9 @@ class ConfigResolver
     }
 
     /**
-     * Resolve the highest-priority config for a Digital Worker, with company-default fallback.
+     * Resolve the highest-priority config for a Agent, with company-default fallback.
      *
-     * @param  int  $employeeId  Digital Worker employee ID
+     * @param  int  $employeeId  Agent employee ID
      * @return array{api_key: string, base_url: string, model: string, max_tokens: int, temperature: float, timeout: int, provider_name: string|null}|null
      */
     public function resolvePrimaryWithDefaultFallback(int $employeeId): ?array
@@ -93,9 +93,9 @@ class ConfigResolver
     }
 
     /**
-     * Read the workspace config.json for a Digital Worker.
+     * Read the workspace config.json for a Agent.
      *
-     * @param  int  $employeeId  Digital Worker employee ID
+     * @param  int  $employeeId  Agent employee ID
      * @return array<string, mixed>|null
      */
     public function readWorkspaceConfig(int $employeeId): ?array
@@ -112,9 +112,9 @@ class ConfigResolver
     }
 
     /**
-     * Write workspace config.json for a Digital Worker.
+     * Write workspace config.json for a Agent.
      *
-     * @param  int  $employeeId  Digital Worker employee ID
+     * @param  int  $employeeId  Agent employee ID
      * @param  array<string, mixed>  $config  Configuration to write
      */
     public function writeWorkspaceConfig(int $employeeId, array $config): void
@@ -177,8 +177,8 @@ class ConfigResolver
      * and its default model. Falls back to the first active provider if none
      * are prioritized.
      *
-     * Used for non-DW AI inferences (summarization, translation, etc.) and
-     * as fallback for DWs without workspace config.
+     * Used for non-agent AI inferences (summarization, translation, etc.) and
+     * as fallback for agents without workspace config.
      *
      * @param  int  $companyId  Company ID
      * @return array{api_key: string, base_url: string, model: string, max_tokens: int, temperature: float, timeout: int, provider_name: string|null}|null
@@ -253,7 +253,7 @@ class ConfigResolver
     /**
      * Find the employee's company ID while preserving runtime fallback behavior on lookup failures.
      *
-     * @param  int  $employeeId  Digital Worker employee ID
+     * @param  int  $employeeId  Agent employee ID
      */
     private function findCompanyIdForFallback(int $employeeId): ?int
     {

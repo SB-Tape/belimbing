@@ -70,12 +70,12 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <x-ui.select wire:model.live="employeeType" label="{{ __('Employee Type') }}" :error="$errors->first('employeeType')">
                         <optgroup label="{{ __('Human') }}">
-                            @foreach($employeeTypes->where('code', '!=', 'digital_worker') as $type)
+                            @foreach($employeeTypes->where('code', '!=', 'agent') as $type)
                                 <option value="{{ $type->code }}">{{ $type->label }}</option>
                             @endforeach
                         </optgroup>
-                        <optgroup label="{{ __('Digital Worker') }}">
-                            @foreach($employeeTypes->where('code', 'digital_worker') as $type)
+                        <optgroup label="{{ __('Agent') }}">
+                            @foreach($employeeTypes->where('code', 'agent') as $type)
                                 <option value="{{ $type->code }}">{{ $type->label }}</option>
                             @endforeach
                         </optgroup>
@@ -124,25 +124,25 @@
                     />
                 </div>
 
-                @if($employeeType === 'digital_worker')
+                @if($employeeType === 'agent')
                 <x-ui.textarea
                     wire:model="jobDescription"
                     label="{{ __('Job Description') }}"
                     rows="3"
-                    placeholder="{{ __('Short role label, e.g. Customer support Digital Worker') }}"
+                    placeholder="{{ __('Short role label, e.g. Customer support Agent') }}"
                     :error="$errors->first('jobDescription')"
                 />
                 @endif
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <x-ui.select wire:model="supervisorId" label="{{ __('Supervisor') }}" :error="$errors->first('supervisorId')">
-                        <option value="">{{ $employeeType === 'digital_worker' ? __('Select supervisor (required)') : __('None') }}</option>
+                        <option value="">{{ $employeeType === 'agent' ? __('Select supervisor (required)') : __('None') }}</option>
                         @foreach($supervisors as $supervisor)
                             <option value="{{ $supervisor->id }}">{{ $supervisor->full_name }}</option>
                         @endforeach
                     </x-ui.select>
 
-                        @if($employeeType !== 'digital_worker')
+                        @if($employeeType !== 'agent')
                     <x-ui.select wire:model="userId" label="{{ __('User Account') }}" :error="$errors->first('userId')">
                         <option value="">{{ __('None') }}</option>
                         @foreach($users as $u)

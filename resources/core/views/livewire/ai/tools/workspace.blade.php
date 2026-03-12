@@ -122,7 +122,7 @@
                                                     variant="ghost"
                                                     size="sm"
                                                     x-data
-                                                    x-on:click="$dispatch('open-lara-chat', { prompt: {{ json_encode($tryItErrorPayload['action']['suggested_prompt']) }} })"
+                                                    x-on:click="$dispatch('open-agent-chat', { prompt: {{ json_encode($tryItErrorPayload['action']['suggested_prompt']) }} })"
                                                 >
                                                     <x-icon name="heroicon-o-chat-bubble-left-ellipsis" class="w-4 h-4" />
                                                     {{ $tryItErrorPayload['action']['label'] }}

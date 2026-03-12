@@ -41,7 +41,7 @@
                                     @if($assignment->principal_type === 'human_user')
                                         <x-ui.badge variant="default">{{ __('User') }}</x-ui.badge>
                                     @else
-                                        <x-ui.badge variant="warning">{{ __('Digital Worker') }}</x-ui.badge>
+                                        <x-ui.badge variant="warning">{{ __('Agent') }}</x-ui.badge>
                                     @endif
                                 </td>
                                 <td class="px-table-cell-x py-table-cell-y whitespace-nowrap">

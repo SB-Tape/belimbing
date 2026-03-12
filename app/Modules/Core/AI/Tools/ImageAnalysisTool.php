@@ -13,7 +13,7 @@ use App\Base\AI\Tools\ToolArgumentException;
 use App\Base\AI\Tools\ToolResult;
 
 /**
- * Image analysis tool for Digital Workers.
+ * Image analysis tool for Agents.
  *
  * Analyzes images using vision models — describe content, extract text
  * (OCR), identify objects, and answer questions about images. Supports

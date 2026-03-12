@@ -6,7 +6,7 @@
 namespace App\Modules\Core\AI\Enums;
 
 /**
- * Readiness state for a Digital Worker tool.
+ * Readiness state for a Agent tool.
  *
  * Answers "can this tool be used?" — separate from health (is it behaving well?).
  */

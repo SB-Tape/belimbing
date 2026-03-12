@@ -75,15 +75,15 @@ describe('security validation', function () {
     ]);
 });
 
-describe('lara-action execution', function () {
-    it('returns lara-action block with script', function () {
+describe('agent-action execution', function () {
+    it('returns agent-action block with script', function () {
         $result = (string) $this->tool->execute([
             'script' => 'console.log("hello")',
             'description' => 'Log a greeting',
         ]);
 
-        expect($result)->toContain('<lara-action>')
-            ->and($result)->toContain('</lara-action>')
+        expect($result)->toContain('<agent-action>')
+            ->and($result)->toContain('</agent-action>')
             ->and($result)->toContain('console.log("hello")');
     });
 
@@ -96,14 +96,14 @@ describe('lara-action execution', function () {
         expect($result)->toContain('Script executed: Show an alert.');
     });
 
-    it('follows NavigateTool lara-action pattern', function () {
+    it('follows NavigateTool agent-action pattern', function () {
         $result = (string) $this->tool->execute([
             'script' => 'document.title = "New Title"',
             'description' => 'Change page title',
         ]);
 
         expect($result)->toBe(
-            '<lara-action>document.title = "New Title"</lara-action>Script executed: Change page title.'
+            '<agent-action>document.title = "New Title"</agent-action>Script executed: Change page title.'
         );
     });
 
@@ -114,7 +114,7 @@ describe('lara-action execution', function () {
             'description' => 'Enable dark mode',
         ]);
 
-        expect($result)->toContain('<lara-action>')
+        expect($result)->toContain('<agent-action>')
             ->and($result)->toContain($script);
     });
 
@@ -125,7 +125,7 @@ describe('lara-action execution', function () {
             'description' => 'Copy text to clipboard',
         ]);
 
-        expect($result)->toContain('<lara-action>')
+        expect($result)->toContain('<agent-action>')
             ->and($result)->toContain($script);
     });
 
@@ -136,7 +136,7 @@ describe('lara-action execution', function () {
             'description' => 'Check API status',
         ]);
 
-        expect($result)->toContain('<lara-action>')
+        expect($result)->toContain('<agent-action>')
             ->and($result)->toContain($script);
     });
 });

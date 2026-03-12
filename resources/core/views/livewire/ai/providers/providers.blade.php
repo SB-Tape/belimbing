@@ -12,12 +12,12 @@
         <x-ui.page-header :title="__('AI Providers')" :subtitle="__('Manage connected providers, select which models are available, and browse the catalog to add more.')">
             <x-slot name="help">
                 <div class="space-y-3">
-                    <p>{{ __('This page shows the LLM providers and models your organization has connected. Digital Workers use these models to think, reason, and respond — at least one active provider with one active model is required.') }}</p>
+                    <p>{{ __('This page shows the LLM providers and models your organization has connected. Agents use these models to think, reason, and respond — at least one active provider with one active model is required.') }}</p>
 
                     <div>
                         <p class="font-medium text-ink">{{ __('Priority') }}</p>
                         <ul class="list-disc list-inside space-y-1 text-muted mt-1">
-                            <li>{{ __('The Priority column shows the order in which providers are tried when a Digital Worker needs a model.') }}</li>
+                            <li>{{ __('The Priority column shows the order in which providers are tried when a Agent needs a model.') }}</li>
                             <li>{{ __('Lower numbers mean higher priority — provider #1 is tried first.') }}</li>
                             <li>{{ __('Click the ↑ arrow to move a provider up one position.') }}</li>
                             <li>{{ __('If the top-priority provider fails or is unavailable, the system automatically falls back to the next one.') }}</li>
@@ -28,7 +28,7 @@
                         <p class="font-medium text-ink">{{ __('Default model') }}</p>
                         <ul class="list-disc list-inside space-y-1 text-muted mt-1">
                             <li>{{ __('Each provider has a default model, marked with a') }} <span class="text-accent">★</span> {{ __('star icon.') }}</li>
-                            <li>{{ __('The default model is used as the fallback when a Digital Worker does not specify a particular model.') }}</li>
+                            <li>{{ __('The default model is used as the fallback when a Agent does not specify a particular model.') }}</li>
                             <li>{{ __('Click the ☆ next to a model to set it as the default. The current default is marked with') }} <span class="text-accent">★</span>.</li>
                         </ul>
                     </div>
@@ -36,8 +36,8 @@
                     <div>
                         <p class="font-medium text-ink">{{ __('Model availability') }}</p>
                         <ul class="list-disc list-inside space-y-1 text-muted mt-1">
-                            <li>{{ __('Use the checkbox in the Available column to control which models Digital Workers can use.') }}</li>
-                            <li>{{ __('Unchecked models remain registered but are not offered to Digital Workers.') }}</li>
+                            <li>{{ __('Use the checkbox in the Available column to control which models Agents can use.') }}</li>
+                            <li>{{ __('Unchecked models remain registered but are not offered to Agents.') }}</li>
                         </ul>
                     </div>
 
@@ -51,7 +51,7 @@
                         </ul>
                     </div>
 
-                    <p>{!! __('Once providers and models are set up here, assign them to Digital Workers from the :link.', ['link' => '<a href="' . route('admin.ai.playground') . '" class="text-accent hover:underline">' . e(__('AI Playground')) . '</a>']) !!}</p>
+                    <p>{!! __('Once providers and models are set up here, assign them to Agents from the :link.', ['link' => '<a href="' . route('admin.ai.playground') . '" class="text-accent hover:underline">' . e(__('AI Playground')) . '</a>']) !!}</p>
                 </div>
             </x-slot>
             <x-slot name="actions">

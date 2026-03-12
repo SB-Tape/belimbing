@@ -29,12 +29,12 @@
         COLLAPSE_THRESHOLD: 80,
 
         {{-- Lara chat --}}
-        laraChatOpen: (localStorage.getItem('dw-chat-1-open') ?? '0') === '1',
-        laraChatMode: localStorage.getItem('dw-chat-1-mode') || 'overlay',
+        laraChatOpen: (localStorage.getItem('agent-chat-1-open') ?? '0') === '1',
+        laraChatMode: localStorage.getItem('agent-chat-1-mode') || 'overlay',
         laraPrefillPrompt: null,
 
         {{-- Docked panel drag-resize --}}
-        laraDockWidth: parseInt(localStorage.getItem('dw-chat-1-dock-width')) || 448,
+        laraDockWidth: parseInt(localStorage.getItem('agent-chat-1-dock-width')) || 448,
         _laraDockDragging: false,
         DOCK_MIN: 320,
         DOCK_MAX: Math.floor(window.innerWidth * 0.6),
@@ -122,7 +122,7 @@
                 document.documentElement.style.userSelect = '';
                 document.removeEventListener('mousemove', onMove);
                 document.removeEventListener('mouseup', onUp);
-                localStorage.setItem('dw-chat-1-dock-width', this.laraDockWidth);
+                localStorage.setItem('agent-chat-1-dock-width', this.laraDockWidth);
             };
 
             document.addEventListener('mousemove', onMove);
@@ -142,12 +142,12 @@
         openLaraChat(prompt = null) {
             this.laraPrefillPrompt = prompt;
             this.laraChatOpen = true;
-            localStorage.setItem('dw-chat-1-open', '1');
-            this.$nextTick(() => window.dispatchEvent(new CustomEvent('lara-chat-opened', { detail: { prompt: prompt } })));
+            localStorage.setItem('agent-chat-1-open', '1');
+            this.$nextTick(() => window.dispatchEvent(new CustomEvent('agent-chat-opened', { detail: { prompt: prompt } })));
         },
         closeLaraChat() {
             this.laraChatOpen = false;
-            localStorage.setItem('dw-chat-1-open', '0');
+            localStorage.setItem('agent-chat-1-open', '0');
         },
         toggleLaraChat(event) {
             if (this.isTypingTarget(event)) {
@@ -155,14 +155,14 @@
             }
 
             this.laraChatOpen = !this.laraChatOpen;
-            localStorage.setItem('dw-chat-1-open', this.laraChatOpen ? '1' : '0');
+            localStorage.setItem('agent-chat-1-open', this.laraChatOpen ? '1' : '0');
             if (this.laraChatOpen) {
-                this.$nextTick(() => window.dispatchEvent(new CustomEvent('lara-chat-opened')));
+                this.$nextTick(() => window.dispatchEvent(new CustomEvent('agent-chat-opened')));
             }
         },
         toggleLaraChatMode() {
             this.laraChatMode = this.laraChatMode === 'overlay' ? 'docked' : 'overlay';
-            localStorage.setItem('dw-chat-1-mode', this.laraChatMode);
+            localStorage.setItem('agent-chat-1-mode', this.laraChatMode);
         },
         executeLaraJs(js) {
             if (typeof js !== 'string' || js.trim() === '') {
@@ -178,10 +178,10 @@
     }"
     x-init="initSidebar()"
     @toggle-sidebar.window="toggleSidebar()"
-    @open-lara-chat.window="openLaraChat($event.detail?.prompt ?? null)"
-    @close-lara-chat.window="closeLaraChat()"
-    @lara-execute-js.window="executeLaraJs($event.detail?.js ?? '')"
-    @toggle-lara-chat-mode.window="toggleLaraChatMode()"
+    @open-agent-chat.window="openLaraChat($event.detail?.prompt ?? null)"
+    @close-agent-chat.window="closeLaraChat()"
+    @agent-chat-execute-js.window="executeLaraJs($event.detail?.js ?? '')"
+    @toggle-agent-chat-mode.window="toggleLaraChatMode()"
     @keydown.ctrl.k.window.prevent="toggleLaraChat($event)"
     @keydown.meta.k.window.prevent="toggleLaraChat($event)"
     @keydown.ctrl.shift.k.window.prevent="toggleLaraChatMode()"
@@ -310,7 +310,7 @@
             "
             class="h-full"
         >
-            <livewire:ai.lara-chat-overlay />
+            <livewire:ai.chat />
         </div>
     @endauth
 

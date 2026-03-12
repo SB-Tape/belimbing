@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // (c) Ng Kiat Siong <kiatsiong.ng@gmail.com>
 //
-// Tool Catalog — searchable overview of all registered Digital Worker tools.
+// Tool Catalog — searchable overview of all registered Agent tools.
 
 namespace App\Modules\Core\AI\Livewire\Tools;
 
