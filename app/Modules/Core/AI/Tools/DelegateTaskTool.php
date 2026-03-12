@@ -8,7 +8,7 @@ namespace App\Modules\Core\AI\Tools;
 use App\Base\AI\Enums\ToolCategory;
 use App\Base\AI\Enums\ToolRiskClass;
 use App\Base\AI\Tools\AbstractTool;
-use App\Base\AI\Tools\Concerns\HasToolMetadata;
+use App\Base\AI\Tools\Concerns\ProvidesToolMetadata;
 use App\Base\AI\Tools\Schema\ToolSchemaBuilder;
 use App\Base\AI\Tools\ToolArgumentException;
 use App\Base\AI\Tools\ToolResult;
@@ -29,7 +29,7 @@ use App\Modules\Core\AI\Services\LaraTaskDispatcher;
  */
 class DelegateTaskTool extends AbstractTool
 {
-    use HasToolMetadata;
+    use ProvidesToolMetadata;
 
     private const MAX_TASK_LENGTH = 5000;
 

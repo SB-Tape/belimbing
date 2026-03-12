@@ -7,11 +7,11 @@ namespace App\Base\AI\Tools;
 
 use App\Base\AI\Enums\ToolCategory;
 use App\Base\AI\Enums\ToolRiskClass;
-use App\Base\AI\Tools\Concerns\HasToolMetadata;
+use App\Base\AI\Tools\Concerns\ProvidesToolMetadata;
 
 abstract class AbstractReadOnlyMemoryTool extends AbstractTool
 {
-    use HasToolMetadata;
+    use ProvidesToolMetadata;
 
     public function category(): ToolCategory
     {

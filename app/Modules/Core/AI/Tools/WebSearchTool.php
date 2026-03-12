@@ -9,7 +9,7 @@ use App\Base\AI\Enums\ToolCategory;
 use App\Base\AI\Enums\ToolRiskClass;
 use App\Base\AI\Services\WebSearchService;
 use App\Base\AI\Tools\AbstractTool;
-use App\Base\AI\Tools\Concerns\HasToolMetadata;
+use App\Base\AI\Tools\Concerns\ProvidesToolMetadata;
 use App\Base\AI\Tools\Schema\ToolSchemaBuilder;
 use App\Base\AI\Tools\ToolResult;
 use Illuminate\Support\Facades\Cache;
@@ -25,7 +25,7 @@ use Illuminate\Support\Facades\Cache;
  */
 class WebSearchTool extends AbstractTool
 {
-    use HasToolMetadata;
+    use ProvidesToolMetadata;
 
     private const TIMEOUT_SECONDS = 15;
 

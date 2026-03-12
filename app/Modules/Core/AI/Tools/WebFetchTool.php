@@ -10,7 +10,7 @@ use App\Base\AI\Enums\ToolRiskClass;
 use App\Base\AI\Services\UrlSafetyGuard;
 use App\Base\AI\Services\WebFetchService;
 use App\Base\AI\Tools\AbstractTool;
-use App\Base\AI\Tools\Concerns\HasToolMetadata;
+use App\Base\AI\Tools\Concerns\ProvidesToolMetadata;
 use App\Base\AI\Tools\Schema\ToolSchemaBuilder;
 use App\Base\AI\Tools\ToolResult;
 
@@ -28,7 +28,7 @@ use App\Base\AI\Tools\ToolResult;
  */
 class WebFetchTool extends AbstractTool
 {
-    use HasToolMetadata;
+    use ProvidesToolMetadata;
 
     private const DEFAULT_TIMEOUT_SECONDS = 30;
 
