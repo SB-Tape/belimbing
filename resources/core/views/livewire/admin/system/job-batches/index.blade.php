@@ -53,7 +53,7 @@
                                         <x-ui.badge variant="warning">{{ __('In Progress') }}</x-ui.badge>
                                     @endif
                                 </td>
-                                <td class="px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted">{{ Carbon::createFromTimestamp($batch->created_at)->format('Y-m-d H:i:s') }}</td>
+                                <td class="px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted">{{\Carbon\Carbon::createFromTimestamp($batch->created_at)->format('Y-m-d H:i:s') }}</td>
                                 <td class="px-table-cell-x py-table-cell-y whitespace-nowrap text-right">
                                     @if(!$batch->cancelled_at && !$batch->finished_at)
                                         <x-ui.button

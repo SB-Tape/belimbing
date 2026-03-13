@@ -91,9 +91,11 @@ class ComponentDiscoveryService
     /**
      * Resolve the component name from a Livewire class file.
      *
-     * Extracts the first view('livewire.xxx.yyy') call from the source
+     * Extracts the first view('livewire.xxx') call from the source
      * and strips the 'livewire.' prefix. For example, a class returning
      * view('livewire.companies.index') gets the name 'companies.index'.
+     *
+     * Falls back to VIEW_NAME constant if no view() call is found.
      *
      * @param  string  $filePath  Absolute path to the PHP class file
      */
@@ -109,6 +111,12 @@ class ComponentDiscoveryService
         // This covers: view('livewire.xxx'), view('livewire.xxx', [...]), view('livewire.xxx', $this->with())
         if (preg_match("/view\(\s*'(livewire\.[\w.\-]+)'/", $source, $matches)) {
             // Strip the 'livewire.' prefix: 'livewire.companies.index' -> 'companies.index'
+            return substr($matches[1], strlen('livewire.'));
+        }
+
+        // Fallback: check for VIEW_NAME constant with 'livewire.' prefix
+        // Pattern: protected const string VIEW_NAME = 'livewire.xxx';
+        if (preg_match("/const\s+string\s+VIEW_NAME\s*=\s*'(livewire\.[\w.\-]+)'/", $source, $matches)) {
             return substr($matches[1], strlen('livewire.'));
         }
 

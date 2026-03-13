@@ -121,14 +121,24 @@ class TableRegistry extends Model
         ?string $modulePath,
         ?string $migrationFile = null
     ): void {
-        self::query()->updateOrCreate(
-            ['table_name' => $tableName],
-            [
+        if (self::query()->where('table_name', $tableName)->exists()) {
+            self::query()->where('table_name', $tableName)->update([
                 'module_name' => $moduleName,
                 'module_path' => $modulePath,
                 'migration_file' => $migrationFile,
-            ]
-        );
+            ]);
+
+            return;
+        }
+
+        self::query()->create([
+            'table_name' => $tableName,
+            'module_name' => $moduleName,
+            'module_path' => $modulePath,
+            'migration_file' => $migrationFile,
+            'is_stable' => true,
+            'stabilized_at' => now(),
+        ]);
     }
 
     /**

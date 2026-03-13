@@ -34,7 +34,7 @@
                                 <td class="px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-ink">{{ $s->user_name ?? __('Guest') }}</td>
                                 <td class="px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted tabular-nums">{{ $s->ip_address ?? '—' }}</td>
                                 <td class="px-table-cell-x py-table-cell-y text-sm text-muted max-w-xs truncate" title="{{ $s->user_agent }}">{{ Str::limit($s->user_agent, 80) }}</td>
-                                <td class="px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted">{{ Carbon::createFromTimestamp($s->last_activity)->diffForHumans() }}</td>
+                                <td class="px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted">{{\Carbon\Carbon::createFromTimestamp($s->last_activity)->diffForHumans() }}</td>
                                 <td class="px-table-cell-x py-table-cell-y whitespace-nowrap">
                                     @if ($s->id === $currentSessionId)
                                         <x-ui.badge variant="success">{{ __('Current') }}</x-ui.badge>

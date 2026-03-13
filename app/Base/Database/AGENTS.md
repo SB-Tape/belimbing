@@ -134,16 +134,33 @@ php artisan migrate --seed --seeder=Company/Dev/DevCompanyAddressSeeder
 
 ## Table Stability Registry
 
-Tables marked `is_stable = true` in `base_database_tables` survive `migrate:fresh` (their data is preserved). When editing a migration that **alters the schema** of a stable table (adding/removing/renaming columns, changing indexes, modifying column types), you **must** mark the table as unstable first:
+**All tables default to stable.** When a table is registered (via migration or auto-discovery), it starts with `is_stable = true`. This means a fresh BLB install has all tables stable out of the box — `migrate:fresh` preserves them by default.
+
+**Stability is a development-only concept.** It controls whether `migrate:fresh` preserves a table's data. The stability column is hidden in the admin UI outside `APP_ENV=local` since `migrate:fresh` should never run in production/staging.
+
+### How migrate:fresh interacts with stability
+
+| Command | Behavior |
+|---------|----------|
+| `migrate:fresh --seed --dev` | Preserves stable tables, drops only unstable ones |
+| `migrate:fresh --seed --dev --force-wipe` | Ignores stability — drops ALL tables (true nuclear reset) |
+
+### When to mark a table unstable
+
+Mark a table unstable before editing a migration that **alters its schema** (adding/removing/renaming columns, changing indexes, modifying column types):
 
 ```bash
 # Via tinker (quick)
 php artisan tinker --execute="App\Base\Database\Models\TableRegistry::query()->where('table_name', 'ai_providers')->update(['is_stable' => false, 'stabilized_at' => null, 'stabilized_by' => null]);"
 ```
 
-Or toggle it off in the admin UI at `admin/system/tables` before running `migrate:fresh`.
+Or toggle it off in the admin UI at `admin/system/tables` (local env only).
 
 **Rule:** Never modify the schema of a stable table without first marking it unstable. `migrate:fresh` skips stable tables — if the schema is outdated, the migration will fail or produce silent data corruption.
+
+### Custom/extension modules
+
+New tables added by custom or extension modules also default to stable on registration. If a module is under active schema development, mark its tables unstable until the schema is finalized.
 
 ## Database Portability
 

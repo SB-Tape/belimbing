@@ -22,7 +22,7 @@ return new class extends Migration
             $table->string('module_name')->nullable()->index();
             $table->string('module_path')->nullable()->index();
             $table->string('migration_file')->nullable()->index();
-            $table->boolean('is_stable')->default(false)->index();
+            $table->boolean('is_stable')->default(true)->index();
             $table->timestamp('stabilized_at')->nullable();
             $table->unsignedBigInteger('stabilized_by')->nullable();
             $table->timestamps();
