@@ -5,8 +5,8 @@
 
 return [
     'capabilities' => [
-        'admin.system_migration.list',
-        'admin.system_seeder.list',
         'admin.system_table.list',
+        'admin.system_table.view',
+        'admin.system_table.edit',
     ],
 ];

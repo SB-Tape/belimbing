@@ -5,7 +5,6 @@
 
 return [
     'capabilities' => [
-        'admin.system_job.list',
         'admin.system_failed_job.list',
         'admin.system_job_batch.list',
     ],

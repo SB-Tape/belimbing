@@ -6,22 +6,13 @@
 return [
     'items' => [
         [
-            'id' => 'system.jobs',
-            'label' => 'Jobs',
-            'icon' => 'heroicon-o-queue-list',
-            'route' => 'admin.system.jobs.index',
-            'permission' => 'admin.system_job.list',
-            'parent' => 'system',
-            'position' => 30,
-        ],
-        [
             'id' => 'system.failed-jobs',
             'label' => 'Failed Jobs',
             'icon' => 'heroicon-o-exclamation-triangle',
             'route' => 'admin.system.failed-jobs.index',
             'permission' => 'admin.system_failed_job.list',
             'parent' => 'system',
-            'position' => 40,
+            'position' => 30,
         ],
         [
             'id' => 'system.job-batches',
@@ -30,7 +21,7 @@ return [
             'route' => 'admin.system.job-batches.index',
             'permission' => 'admin.system_job_batch.list',
             'parent' => 'system',
-            'position' => 50,
+            'position' => 40,
         ],
     ],
 ];

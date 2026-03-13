@@ -35,6 +35,7 @@ use App\Modules\Core\AI\Tools\BrowserTool;
 use App\Modules\Core\AI\Tools\DelegateTaskTool;
 use App\Modules\Core\AI\Tools\DelegationStatusTool;
 use App\Modules\Core\AI\Tools\DocumentAnalysisTool;
+use App\Modules\Core\AI\Tools\EditDataTool;
 use App\Modules\Core\AI\Tools\GuideTool;
 use App\Modules\Core\AI\Tools\ImageAnalysisTool;
 use App\Modules\Core\AI\Tools\MemoryGetTool;
@@ -166,6 +167,7 @@ class ServiceProvider extends BaseServiceProvider
             $app->make(DelegateTaskTool::class),
             new DelegationStatusTool,
             new DocumentAnalysisTool,
+            new EditDataTool,
             $app->make(GuideTool::class),
             new ImageAnalysisTool,
             new MemoryGetTool,

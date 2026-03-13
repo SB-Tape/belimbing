@@ -212,6 +212,25 @@ class TableRegistry extends Model
         foreach ($files as $file) {
             self::registerDiscoveredFile($file);
         }
+
+        self::ensureInfrastructureRegistered();
+    }
+
+    /**
+     * Ensure infrastructure tables are registered in the registry.
+     *
+     * These tables (e.g., `migrations`) are created by Laravel internals,
+     * not by migration files, so auto-discovery from file scanning misses them.
+     */
+    private static function ensureInfrastructureRegistered(): void
+    {
+        foreach (self::INFRASTRUCTURE_TABLES as $tableName) {
+            if (self::query()->where('table_name', $tableName)->exists()) {
+                continue;
+            }
+
+            self::register($tableName, 'Database', 'app/Base/Database');
+        }
     }
 
     /**
