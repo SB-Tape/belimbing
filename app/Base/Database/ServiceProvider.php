@@ -32,27 +32,31 @@ class ServiceProvider extends BaseServiceProvider
         // Laravel's MigrationServiceProvider (deferred) binds MigrateCommand::class directly,
         // so we extend the class name, not an alias. The extend() callback runs when
         // the binding is resolved, after Laravel's MigrationServiceProvider registers it.
-        $this->app->extend(LaravelMigrateCommand::class, fn ($app) => new MigrateCommand(
-            $app->make(Migrator::class),
-            $app->make(Dispatcher::class)
-        ));
+        $this->app->extend(LaravelMigrateCommand::class, function ($_, $app) {
+            return new MigrateCommand(
+                $app->make(Migrator::class),
+                $app->make(Dispatcher::class)
+            );
+        });
 
-        $this->app->extend(LaravelRollbackCommand::class, fn ($app) => new RollbackCommand(
-            $app->make(Migrator::class)
-        ));
+        $this->app->extend(LaravelRollbackCommand::class, function ($_, $app) {
+            return new RollbackCommand($app->make(Migrator::class));
+        });
 
-        $this->app->extend(LaravelStatusCommand::class, fn ($app) => new StatusCommand(
-            $app->make(Migrator::class)
-        ));
+        $this->app->extend(LaravelStatusCommand::class, function ($_, $app) {
+            return new StatusCommand($app->make(Migrator::class));
+        });
 
-        $this->app->extend(LaravelResetCommand::class, fn ($app) => new ResetCommand(
-            $app->make(Migrator::class)
-        ));
+        $this->app->extend(LaravelResetCommand::class, function ($_, $app) {
+            return new ResetCommand($app->make(Migrator::class));
+        });
 
-        $this->app->extend(LaravelRefreshCommand::class, fn () => new RefreshCommand);
+        $this->app->extend(LaravelRefreshCommand::class, function () {
+            return new RefreshCommand;
+        });
 
-        $this->app->extend(LaravelFreshCommand::class, fn ($app) => new FreshCommand(
-            $app->make(Migrator::class)
-        ));
+        $this->app->extend(LaravelFreshCommand::class, function ($_, $app) {
+            return new FreshCommand($app->make(Migrator::class));
+        });
     }
 }
