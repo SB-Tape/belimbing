@@ -257,6 +257,20 @@ $filtered = $collection->filter(fn($item) => $item > 1);
 
 **Rationale:** Direct method calls provide better IDE autocomplete, "Go to Definition" support, type checking, and static analysis. This improves code clarity, reduces the need for `@method` PHPDoc annotations, and makes refactoring safer. While Laravel's magic methods are convenient, they come at the cost of developer experience and tooling support.
 
+### Reducing Duplication and Maintainability Issues
+- **Extract repeated Livewire glue code into shared concerns or base classes** when the same behavior appears in three or more components.
+- Reuse existing shared primitives before adding new code, especially for:
+  - search-driven pagination resets (`ResetsPaginationOnSearch`)
+  - searchable paginated index pages (`SearchablePaginatedList`)
+  - JSON field decoding in create forms (`DecodesJsonFields`)
+  - inline validated field saves (`SavesValidatedFields`)
+- **Reuse existing authz construction helpers** such as `Actor::forUser()` and existing authz concerns instead of rebuilding actor or capability-check logic inline.
+- **Reuse existing tool metadata concerns** for AI tools instead of repeating near-identical metadata methods across tool classes.
+- **Do not force abstractions for tiny duplication.** Extract only when the shared code improves clarity and meaningfully reduces repetition; otherwise keep logic local and obvious.
+- **When loading PHP config files that return arrays, prefer `require` over `require_once`** if the same file may be loaded in multiple places. `require_once` can return `true` on later loads instead of the config array.
+
+**Rationale:** The recurring code quality issues in this repository have mostly been duplication and weak local abstractions, not lack of cleverness. Reusing the established shared concerns and helpers keeps modules deep, interfaces small, and Sonar/static-analysis noise low without hiding intent.
+
 ### Console Commands
 
 **BLB framework commands must use the `blb:` prefix** to distinguish them from Laravel built-ins and third-party packages.

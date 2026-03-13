@@ -1,32 +1,30 @@
 # Belimbing (BLB)
 
-An open-source **business process framework** that democratizes enterprise-grade capabilities for businesses of all sizes. Built on Laravel, Belimbing empowers businesses to build, customize, and own their operational systems — ERP, CRM, HR, logistics, or any custom process — without vendor lock-in or prohibitive costs.
+An open-source framework where AI is a first-class citizen. Build, customize, and own your operational systems — ERP, CRM, HR, logistics, or any custom process — with a team of AI agents working alongside you.
 
-Belimbing is a **framework**, not a SaaS platform. Businesses fork the repo, build on top of it, and self-host — keeping full ownership of their code, data, and infrastructure.
+Everyone can vibe code today, but it takes an expert to vibe engineer a production-grade business system. Belimbing handles the complexity so you can focus on what your business actually needs — robust, secure, and exactly right.
 
-## What Makes Belimbing Different
+## How It Works
 
-- **Open Source Forever (AGPLv3)** — Self-hosted, transparent, zero licensing fees
-- **AI-Native Architecture** — Built to leverage AI in development, customization, and operation
-- **Quality-Obsessed** — Ousterhout's design principles, performance-first, exceptional UX
-- **Git-Native Workflow** — Development → Staging → Production via version control
-- **Deep Customization** — Extension system with hooks at every layer; businesses build what they need
+Meet **Lara**, the built-in system agent. She guides setup, explains features, troubleshoots issues, and orchestrates work across your AI team. Connect any LLM provider to activate her.
 
-## Tech Stack
+AI agents in Belimbing are **employees** — managed through the same workforce model as humans. Assign them supervisors, roles, and permissions. They follow your org structure, respect delegation rules, and can never exceed their supervisor's authority. Every action is auditable.
 
-- **Backend:** Laravel 12+ (PHP 8.2+), PostgreSQL, Redis
-- **Frontend:** Livewire, Tailwind CSS 4, Alpine.js
-- **Tooling:** Vite, Pest PHP, Laravel Pint
+Belimbing ships with foundational modules (Company, Employee, User, AI) and a structured, convention-driven codebase designed for AI agents to extend. Use your favorite coding agent, ask Lara to build what you need, or both.
+
+## Why Belimbing
+
+- **Self-hosted, open source forever** — Your code, your data, your infrastructure. No vendor lock-in, no per-seat fees.
+- **Bring your own model** — OpenAI, Anthropic, Google, Ollama, or any compatible endpoint. Mix providers across agents. Ordered fallback built in.
+- **Real tools, real guardrails** — Agents can run commands, query data, search the web, navigate the UI, and more. Every action gated by the same authorization system that governs human users.
+- **Built on Laravel** — PHP 8.2+, PostgreSQL, Livewire, Tailwind CSS, Alpine.js. Battle-tested stack, massive ecosystem.
 
 ## Getting Started
-
-See the **[Quick Start Guide](./docs/guides/quickstart.md)** for complete installation instructions.
 
 ### Prerequisites
 
 - Linux (Ubuntu 22.04+, Debian 12+) or WSL2
 - 2 GB RAM, 10 GB disk, internet connection
-- Root or sudo access (setup scripts install all dependencies automatically)
 
 ### Quick Install
 
@@ -52,8 +50,7 @@ cd belimbing
 
 1. Fork the repository
 2. Create a feature branch
-3. Run `./vendor/bin/pint` before committing
-4. Open a Pull Request
+3. Open a Pull Request
 
 All contributors must agree to the [CLA](./CLA.md).
 
