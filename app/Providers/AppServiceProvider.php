@@ -67,7 +67,7 @@ class AppServiceProvider extends ServiceProvider
         });
 
         // Monitor successful jobs
-        Queue::after(function (JobProcessed $event) {
+        Queue::after(function (JobProcessed $_event) {
             // Reset failure counter on success
             Cache::decrement('queue_failures');
         });

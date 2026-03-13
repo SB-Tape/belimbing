@@ -340,14 +340,12 @@ setup_ssl_trust() {
             if diff -q "$root_ca_file" "$system_cert_path" >/dev/null 2>&1; then
                 echo -e "${GREEN}✓${NC} Certificate already installed in system trust store"
                 installed=true
-            else
+            elif [[ -t 0 ]]; then
                 echo -e "${YELLOW}ℹ${NC} Certificate changed, updating system trust store..."
-                if [[ -t 0 ]]; then
-                    if sudo cp "$root_ca_file" "$system_cert_path" 2>/dev/null && \
-                       sudo update-ca-certificates 2>/dev/null; then
-                        echo -e "${GREEN}✓${NC} Certificate updated in system trust store"
-                        installed=true
-                    fi
+                if sudo cp "$root_ca_file" "$system_cert_path" 2>/dev/null && \
+                   sudo update-ca-certificates 2>/dev/null; then
+                    echo -e "${GREEN}✓${NC} Certificate updated in system trust store"
+                    installed=true
                 fi
             fi
         elif [[ -t 0 ]]; then

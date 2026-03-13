@@ -79,13 +79,12 @@ class ProviderRegistry
     {
         $appPath = rtrim(app_path(), DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR;
         $relativePath = str_replace($appPath, '', $path);
-        $class = 'App\\'.str_replace(
+
+        return 'App\\'.str_replace(
             [DIRECTORY_SEPARATOR, '.php'],
             ['\\', ''],
             $relativePath
         );
-
-        return $class;
     }
 
     /**

@@ -7,7 +7,6 @@ namespace App\Base\Menu\Services;
 
 use App\Base\Menu\MenuItem;
 use App\Base\Menu\MenuRegistry;
-use App\Base\Menu\Services\PinMetadataNormalizer;
 use BackedEnum;
 use Illuminate\Contracts\Routing\UrlRoutable;
 use Illuminate\Routing\Route;
@@ -37,44 +36,44 @@ class PagePinResolver
         $route = request()->route();
         $routeName = $route?->getName();
 
-        if (!$route instanceof Route || !is_string($routeName)) {
+        if (! $route instanceof Route || ! is_string($routeName)) {
             return null;
         }
 
         $menuItem = $this->findMatchingMenuItem($routeName);
 
         return [
-            "pinnableId" => $this->buildPinnableId($route),
-            "label" => $this->buildLabel($title, $menuItem),
-            "url" => request()->url(),
-            "icon" => $menuItem?->icon,
+            'pinnableId' => $this->buildPinnableId($route),
+            'label' => $this->buildLabel($title, $menuItem),
+            'url' => request()->url(),
+            'icon' => $menuItem?->icon,
         ];
     }
 
     private function buildPinnableId(Route $route): string
     {
         $routeName = $route->getName();
-        $baseId = "page:route:" . $routeName;
+        $baseId = 'page:route:'.$routeName;
         $parameterSignature = collect($route->parametersWithoutNulls())
             ->map(
-                fn(mixed $value, string $key): string => $key .
-                    "=" .
+                fn (mixed $value, string $key): string => $key.
+                    '='.
                     $this->normalizeParameter($value),
             )
-            ->implode(";");
+            ->implode(';');
 
-        if ($parameterSignature === "") {
+        if ($parameterSignature === '') {
             return $baseId;
         }
 
-        $resolvedId = $baseId . ":" . $parameterSignature;
+        $resolvedId = $baseId.':'.$parameterSignature;
 
         if (strlen($resolvedId) <= 150) {
             return $resolvedId;
         }
 
         // Deterministic cache-style key compaction only (non-sensitive context).
-        return $baseId . ":" . md5($parameterSignature);
+        return $baseId.':'.md5($parameterSignature);
     }
 
     private function buildLabel(string $title, ?MenuItem $menuItem): string
@@ -95,13 +94,13 @@ class PagePinResolver
 
         return $items
             ->filter(
-                fn(MenuItem $item): bool => $this->routeMatches(
+                fn (MenuItem $item): bool => $this->routeMatches(
                     $item->route,
                     $currentRoute,
                 ),
             )
             ->sortByDesc(
-                fn(MenuItem $item): int => strlen((string) $item->route),
+                fn (MenuItem $item): int => strlen((string) $item->route),
             )
             ->first();
     }
@@ -115,7 +114,7 @@ class PagePinResolver
         if ($menuRoute !== null) {
             $matches = $menuRoute === $currentRoute;
 
-            if (!$matches && str_ends_with($menuRoute, ".index")) {
+            if (! $matches && str_ends_with($menuRoute, '.index')) {
                 $matches = str_starts_with(
                     $currentRoute,
                     substr($menuRoute, 0, -6),

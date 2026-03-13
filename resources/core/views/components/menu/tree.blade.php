@@ -1,6 +1,6 @@
 @props(['items'])
 
-<ul class="menu menu-compact p-0 space-y-0" role="list">
+<ul class="menu menu-compact p-0 space-y-0">
     @foreach($items as $node)
         <x-menu.item
             :item="$node['item']"

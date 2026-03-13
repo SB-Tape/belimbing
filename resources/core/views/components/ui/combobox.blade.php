@@ -213,6 +213,7 @@
                 autocomplete="off"
                 role="combobox"
                 aria-autocomplete="list"
+                aria-controls="listbox-{{ $id }}"
                 :aria-expanded="open"
                 @focus="openList()"
                 @input="openList()"
@@ -251,6 +252,7 @@
         >
             <ul
                 x-ref="listbox"
+                id="listbox-{{ $id }}"
                 x-show="filtered.length > 0"
                 role="listbox"
                 class="max-h-60 overflow-auto py-1"

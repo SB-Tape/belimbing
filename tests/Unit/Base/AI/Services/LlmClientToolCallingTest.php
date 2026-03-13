@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // (c) Ng Kiat Siong <kiatsiong.ng@gmail.com>
 
+use App\Base\AI\DTO\ChatRequest;
 use App\Base\AI\Services\LlmClient;
 use Illuminate\Foundation\Testing\TestCase;
 use Illuminate\Support\Facades\Http;
@@ -39,14 +40,12 @@ describe('LlmClient tool calling', function () {
             ],
         ];
 
-        $result = $client->chat(
-            baseUrl: TEST_API_BASE_URL,
-            apiKey: 'test-key',
-            model: 'gpt-4',
-            messages: [['role' => 'user', 'content' => 'Hi']],
-            tools: $tools,
-            toolChoice: 'auto',
-        );
+        $result = $client->chat(new ChatRequest(
+            TEST_API_BASE_URL,
+            'test-key',
+            'gpt-4',
+            [['role' => 'user', 'content' => 'Hi']],
+        ));
 
         expect($result)->toHaveKey('content', 'Hello!');
         expect($result)->not->toHaveKey('tool_calls');
@@ -69,12 +68,12 @@ describe('LlmClient tool calling', function () {
         ]);
 
         $client = new LlmClient;
-        $client->chat(
-            baseUrl: TEST_API_BASE_URL,
-            apiKey: 'test-key',
-            model: 'gpt-4',
-            messages: [['role' => 'user', 'content' => 'Hello']],
-        );
+        $client->chat(new ChatRequest(
+            TEST_API_BASE_URL,
+            'test-key',
+            'gpt-4',
+            [['role' => 'user', 'content' => 'Hello']],
+        ));
 
         Http::assertSent(function ($request) {
             $body = $request->data();
@@ -109,13 +108,13 @@ describe('LlmClient tool calling', function () {
         ]);
 
         $client = new LlmClient;
-        $result = $client->chat(
-            baseUrl: TEST_API_BASE_URL,
-            apiKey: 'test-key',
-            model: 'gpt-4',
-            messages: [['role' => 'user', 'content' => 'List routes']],
+        $result = $client->chat(new ChatRequest(
+            TEST_API_BASE_URL,
+            'test-key',
+            'gpt-4',
+            [['role' => 'user', 'content' => 'List routes']],
             tools: [['type' => 'function', 'function' => ['name' => 'artisan', 'description' => 'Run artisan', 'parameters' => ['type' => 'object', 'properties' => []]]]],
-        );
+        ));
 
         expect($result)->toHaveKey('tool_calls');
         expect($result['tool_calls'])->toHaveCount(1);
@@ -132,12 +131,12 @@ describe('LlmClient tool calling', function () {
         ]);
 
         $client = new LlmClient;
-        $result = $client->chat(
-            baseUrl: TEST_API_BASE_URL,
-            apiKey: 'test-key',
-            model: 'gpt-4',
-            messages: [['role' => 'user', 'content' => 'Hello']],
-        );
+        $result = $client->chat(new ChatRequest(
+            TEST_API_BASE_URL,
+            'test-key',
+            'gpt-4',
+            [['role' => 'user', 'content' => 'Hello']],
+        ));
 
         expect($result)->not->toHaveKey('tool_calls');
         expect($result)->toHaveKey('content', 'Just text');

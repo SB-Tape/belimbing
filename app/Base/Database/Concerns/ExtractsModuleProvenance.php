@@ -17,7 +17,7 @@ trait ExtractsModuleProvenance
      * Extract module path from migration file path.
      *
      * @param  string  $migrationPath  Full path to migration file
-     * @return string|null  Module path (e.g., 'app/Modules/Core/Geonames')
+     * @return string|null Module path (e.g., 'app/Modules/Core/Geonames')
      */
     protected function extractModulePath(string $migrationPath): ?string
     {
@@ -40,7 +40,7 @@ trait ExtractsModuleProvenance
      * e.g., 'app/Modules/Core/Geonames' → 'Geonames'
      *
      * @param  string|null  $modulePath  Module path
-     * @return string|null  Module name
+     * @return string|null Module name
      */
     protected function extractModuleName(?string $modulePath): ?string
     {

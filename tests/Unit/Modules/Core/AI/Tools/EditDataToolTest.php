@@ -12,7 +12,7 @@ const EDIT_PROTECTED = 'protected';
 const EDIT_SUCCESSFULLY = 'successfully';
 const EDIT_TEST_TABLE_NAME = '_edit_tool_test';
 const EDIT_TEST_TABLE_SCHEMA = 'CREATE TABLE _edit_tool_test (id INTEGER PRIMARY KEY, name TEXT)';
-const EDIT_TEST_TABLE_DROP = 'DROP TABLE _edit_tool_test';
+const EDIT_TEST_TABLE_DROP_SQL = 'DROP TABLE %s';
 const EDIT_ROWS_AFFECTED = '1 row affected';
 
 beforeEach(function () {
@@ -86,7 +86,7 @@ describe('statement execution', function () {
         expect($result)->toContain(EDIT_SUCCESSFULLY)
             ->and($result)->toContain(EDIT_ROWS_AFFECTED);
 
-        DB::statement(sprintf('DROP TABLE %s', EDIT_TEST_TABLE_NAME));
+        DB::statement(sprintf(EDIT_TEST_TABLE_DROP_SQL, EDIT_TEST_TABLE_NAME));
     });
 
     it('executes an UPDATE and reports affected rows', function () {
@@ -103,7 +103,7 @@ describe('statement execution', function () {
         expect($result)->toContain(EDIT_SUCCESSFULLY)
             ->and($result)->toContain(EDIT_ROWS_AFFECTED);
 
-        DB::statement(sprintf('DROP TABLE %s', EDIT_TEST_TABLE_NAME));
+        DB::statement(sprintf(EDIT_TEST_TABLE_DROP_SQL, EDIT_TEST_TABLE_NAME));
     });
 
     it('executes a DELETE and reports affected rows', function () {
@@ -120,7 +120,7 @@ describe('statement execution', function () {
         expect($result)->toContain(EDIT_SUCCESSFULLY)
             ->and($result)->toContain(EDIT_ROWS_AFFECTED);
 
-        DB::statement(sprintf('DROP TABLE %s', EDIT_TEST_TABLE_NAME));
+        DB::statement(sprintf(EDIT_TEST_TABLE_DROP_SQL, EDIT_TEST_TABLE_NAME));
     });
 
     it('reports query errors gracefully', function () {
@@ -138,7 +138,7 @@ describe('statement execution', function () {
         ]);
         expect($result)->toContain(EDIT_SUCCESSFULLY);
 
-        DB::statement(sprintf('DROP TABLE %s', EDIT_TEST_TABLE_NAME));
+        DB::statement(sprintf(EDIT_TEST_TABLE_DROP_SQL, EDIT_TEST_TABLE_NAME));
     });
 
     it('uses plural for multiple rows', function () {
@@ -155,6 +155,6 @@ describe('statement execution', function () {
 
         expect($result)->toContain('2 rows affected');
 
-        DB::statement(sprintf('DROP TABLE %s', EDIT_TEST_TABLE_NAME));
+        DB::statement(sprintf(EDIT_TEST_TABLE_DROP_SQL, EDIT_TEST_TABLE_NAME));
     });
 });

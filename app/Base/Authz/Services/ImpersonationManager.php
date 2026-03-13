@@ -13,6 +13,8 @@ class ImpersonationManager
 {
     private const SESSION_KEY = 'impersonation';
 
+    private const SESSION_KEY_USER_ID = '.original_user_id';
+
     /**
      * Start impersonating the target user.
      *
@@ -29,7 +31,7 @@ class ImpersonationManager
         }
 
         session([
-            self::SESSION_KEY.'.original_user_id' => $impersonator->id,
+            self::SESSION_KEY.self::SESSION_KEY_USER_ID => $impersonator->id,
             self::SESSION_KEY.'.original_user_name' => $impersonator->name,
         ]);
 
@@ -41,7 +43,7 @@ class ImpersonationManager
      */
     public function stop(): void
     {
-        $originalId = session(self::SESSION_KEY.'.original_user_id');
+        $originalId = session(self::SESSION_KEY.self::SESSION_KEY_USER_ID);
 
         if ($originalId === null) {
             return;

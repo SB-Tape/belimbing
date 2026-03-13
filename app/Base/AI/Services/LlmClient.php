@@ -5,6 +5,7 @@
 
 namespace App\Base\AI\Services;
 
+use App\Base\AI\DTO\ChatRequest;
 use Generator;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
@@ -32,48 +33,26 @@ class LlmClient
 
     /**
      * Execute a chat completion against any OpenAI-compatible endpoint.
-     *
-     * @param  string  $baseUrl  Provider base URL (e.g., 'https://api.openai.com/v1')
-     * @param  string  $apiKey  Bearer token / API key
-     * @param  string  $model  Model ID (e.g., 'gpt-5.2')
-     * @param  list<array{role: string, content: string|null, tool_calls?: list<array<string, mixed>>, tool_call_id?: string}>  $messages  Chat messages
-     * @param  int  $maxTokens  Maximum tokens in response
-     * @param  float  $temperature  Sampling temperature
-     * @param  int  $timeout  HTTP timeout in seconds
-     * @param  string|null  $providerName  Provider name (used for provider-specific headers)
-     * @param  list<array{type: string, function: array{name: string, description: string, parameters: array<string, mixed>}}>|null  $tools  Tool definitions (OpenAI format)
-     * @param  string|null  $toolChoice  Tool choice strategy ('auto', 'none', 'required', or specific tool)
-     * @return array{content?: string, tool_calls?: list<array{id: string, type: string, function: array{name: string, arguments: string}}>, usage?: array<string, int|null>, latency_ms: int, error?: string, error_type?: string}
      */
-    public function chat(
-        string $baseUrl,
-        string $apiKey,
-        string $model,
-        array $messages,
-        int $maxTokens = 2048,
-        float $temperature = 0.7,
-        int $timeout = 60,
-        ?string $providerName = null,
-        ?array $tools = null,
-        ?string $toolChoice = null,
-    ): array {
+    public function chat(ChatRequest $request): array
+    {
         $startTime = hrtime(true);
 
         try {
-            $request = Http::withToken($apiKey)
-                ->timeout($timeout);
+            $http = Http::withToken($request->apiKey)
+                ->timeout($request->timeout);
 
-            if ($providerName === 'github-copilot') {
-                $request = $request->withHeaders(self::COPILOT_HEADERS);
+            if ($request->providerName === 'github-copilot') {
+                $http = $http->withHeaders(self::COPILOT_HEADERS);
             }
 
-            $response = $request->post(rtrim($baseUrl, '/').'/chat/completions', array_filter([
-                'model' => $model,
-                'messages' => $messages,
-                'max_tokens' => $maxTokens,
-                'temperature' => $temperature,
-                'tools' => $tools,
-                'tool_choice' => $toolChoice,
+            $response = $http->post(rtrim($request->baseUrl, '/').'/chat/completions', array_filter([
+                'model' => $request->model,
+                'messages' => $request->messages,
+                'max_tokens' => $request->maxTokens,
+                'temperature' => $request->temperature,
+                'tools' => $request->tools,
+                'tool_choice' => $request->toolChoice,
             ], fn ($v) => $v !== null));
         } catch (ConnectionException $e) {
             $latencyMs = $this->latencyMs($startTime);

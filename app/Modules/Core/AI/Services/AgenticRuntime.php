@@ -165,18 +165,18 @@ class AgenticRuntime
      */
     private function chatWithTools(array $credentials, array $config, array $apiMessages, array $tools): array
     {
-        return $this->llmClient->chat(
-            baseUrl: $credentials['base_url'],
-            apiKey: $credentials['api_key'],
-            model: $config['model'],
-            messages: $apiMessages,
+        return $this->llmClient->chat(new \App\Base\AI\DTO\ChatRequest(
+            $credentials['base_url'],
+            $credentials['api_key'],
+            $config['model'],
+            $apiMessages,
             maxTokens: $config['max_tokens'],
             temperature: $config['temperature'],
             timeout: $config['timeout'],
             providerName: $config['provider_name'],
             tools: $tools !== [] ? $tools : null,
             toolChoice: $tools !== [] ? 'auto' : null,
-        );
+        ));
     }
 
     /**

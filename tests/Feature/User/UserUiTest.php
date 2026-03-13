@@ -7,6 +7,9 @@ use App\Modules\Core\Company\Models\Company;
 use App\Modules\Core\User\Models\User;
 use Livewire\Livewire;
 
+const TEST_PASSWORD = 'SecurePassword123!';
+const TEST_PASSWORD_NEW = 'NewSecurePassword123!';
+
 beforeEach(function (): void {
     setupAuthzRoles();
 });
@@ -49,8 +52,8 @@ test('user can be created from create page component', function (): void {
     Livewire::test('users.create')
         ->set('name', 'Jane Doe')
         ->set('email', 'jane@example.com')
-        ->set('password', 'SecurePassword123!')
-        ->set('passwordConfirmation', 'SecurePassword123!')
+        ->set('password', TEST_PASSWORD)
+        ->set('passwordConfirmation', TEST_PASSWORD)
         ->call('store')
         ->assertRedirect(route('admin.users.index'));
 
@@ -71,8 +74,8 @@ test('user can be created with company', function (): void {
         ->set('companyId', (string) $company->id)
         ->set('name', 'John Smith')
         ->set('email', 'john@example.com')
-        ->set('password', 'SecurePassword123!')
-        ->set('passwordConfirmation', 'SecurePassword123!')
+        ->set('password', TEST_PASSWORD)
+        ->set('passwordConfirmation', TEST_PASSWORD)
         ->call('store')
         ->assertRedirect(route('admin.users.index'));
 
@@ -142,8 +145,8 @@ test('password can be updated from show page', function (): void {
     $this->actingAs($actor);
 
     Livewire::test('users.show', ['user' => $user])
-        ->set('password', 'NewSecurePassword123!')
-        ->set('passwordConfirmation', 'NewSecurePassword123!')
+        ->set('password', TEST_PASSWORD_NEW)
+        ->set('passwordConfirmation', TEST_PASSWORD_NEW)
         ->call('updatePassword')
         ->assertHasNoErrors();
 });
@@ -154,7 +157,7 @@ test('password update requires confirmation', function (): void {
     $this->actingAs($actor);
 
     Livewire::test('users.show', ['user' => $user])
-        ->set('password', 'NewSecurePassword123!')
+        ->set('password', TEST_PASSWORD_NEW)
         ->set('passwordConfirmation', 'WrongConfirmation!')
         ->call('updatePassword')
         ->assertHasErrors(['passwordConfirmation']);

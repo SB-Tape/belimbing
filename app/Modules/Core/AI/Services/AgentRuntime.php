@@ -125,16 +125,16 @@ class AgentRuntime
 
         $apiMessages = $this->messageBuilder->build($messages, $systemPrompt);
 
-        $result = $this->llmClient->chat(
-            baseUrl: $credentials['base_url'],
-            apiKey: $credentials['api_key'],
-            model: $model,
-            messages: $apiMessages,
+        $result = $this->llmClient->chat(new \App\Base\AI\DTO\ChatRequest(
+            $credentials['base_url'],
+            $credentials['api_key'],
+            $model,
+            $apiMessages,
             maxTokens: $config['max_tokens'],
             temperature: $config['temperature'],
             timeout: $config['timeout'],
             providerName: $config['provider_name'],
-        );
+        ));
 
         if (isset($result['error'])) {
             return $this->responseFactory->error(

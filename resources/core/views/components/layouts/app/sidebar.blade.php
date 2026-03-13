@@ -15,7 +15,7 @@
     <!-- Desktop Layout (lg and up) -->
         <div class="hidden lg:flex lg:h-screen lg:overflow-hidden">
         <!-- Desktop Sidebar -->
-            <aside class="w-64 min-h-full bg-surface-subtle border-r border-border-default flex flex-col sidebar-container">
+            <aside class="w-64 min-h-full bg-surface-subtle border-r border-border-default flex flex-col sidebar-container" aria-label="{{ __('Navigation') }}">
                 <!-- Logo/Branding -->
                 <div class="p-4 border-b border-border-default">
                     <a href="{{ route('dashboard') }}" class="flex items-center gap-3" wire:navigate>
@@ -170,6 +170,7 @@
             class="fixed inset-y-0 left-0 w-64 bg-surface-subtle border-r border-border-default flex flex-col z-50"
             style="display: none;"
             @click.stop
+            aria-label="{{ __('Mobile navigation') }}"
         >
                 <!-- Logo -->
                 <div class="p-4 border-b border-border-default">

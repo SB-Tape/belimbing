@@ -662,16 +662,16 @@ class Chat extends Component
             'Generate a concise 3–6 word title summarizing this conversation. Reply with only the title, no quotes or punctuation.',
         );
 
-        $response = app(LlmClient::class)->chat(
-            baseUrl: $credentials['base_url'],
-            apiKey: $credentials['api_key'],
-            model: $config['model'],
-            messages: $apiMessages,
+        $response = app(LlmClient::class)->chat(new \App\Base\AI\DTO\ChatRequest(
+            $credentials['base_url'],
+            $credentials['api_key'],
+            $config['model'],
+            $apiMessages,
             maxTokens: 20,
             temperature: 0.5,
             timeout: 15,
             providerName: $config['provider_name'] ?? null,
-        );
+        ));
 
         $title = trim($response['content'] ?? '');
 

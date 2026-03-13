@@ -378,7 +378,7 @@ test('custom global roles appear in user role assignment list', function (): voi
     $admin = createRoleTestAdmin();
     $this->actingAs($admin);
 
-    $customGlobalRole = Role::query()->create([
+    $_customGlobalRole = Role::query()->create([
         'company_id' => null,
         'name' => 'Custom Global Role',
         'code' => 'custom_global',
@@ -397,7 +397,7 @@ test('cross-company roles appear in user role assignment list', function (): voi
 
     $otherCompany = Company::factory()->create();
 
-    $crossCompanyRole = Role::query()->create([
+    $_crossCompanyRole = Role::query()->create([
         'company_id' => $otherCompany->id,
         'name' => 'Other Company Role',
         'code' => 'other_company_role',

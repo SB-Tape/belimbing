@@ -4,12 +4,12 @@
 import './echo'
 
 // Alpine.js - only initialize if not already loaded by Livewire
-if (!window.Alpine) {
+if (!globalThis.Alpine) {
     try {
         const module = await import('alpinejs')
 
-        window.Alpine = module.default
-        window.Alpine.start()
+        globalThis.Alpine = module.default
+        globalThis.Alpine.start()
     } catch (error) {
         console.error('Failed to load Alpine.js.', error)
     }

@@ -34,41 +34,41 @@ class PinController
     public function toggle(Request $request): JsonResponse
     {
         $request->validate([
-            "type" => ["required", "string", "in:menu_item,page"],
-            "pinnable_id" => ["required", "string", "max:150"],
-            "label" => ["required", "string", "max:150"],
-            "url" => ["required", "string", "max:500"],
-            "icon" => ["nullable", "string", "max:100"],
+            'type' => ['required', 'string', 'in:menu_item,page'],
+            'pinnable_id' => ['required', 'string', 'max:150'],
+            'label' => ['required', 'string', 'max:150'],
+            'url' => ['required', 'string', 'max:500'],
+            'icon' => ['nullable', 'string', 'max:100'],
         ]);
 
         $user = $request->user();
-        $type = $request->input("type");
-        $pinnableId = $request->input("pinnable_id");
+        $type = $request->input('type');
+        $pinnableId = $request->input('pinnable_id');
         $normalizedUrl = $this->pinMetadataNormalizer->normalizeUrl(
-            $request->input("url"),
+            $request->input('url'),
         );
 
         $existing = UserPin::query()
-            ->where("user_id", $user->id)
-            ->where("type", $type)
-            ->where("pinnable_id", $pinnableId)
+            ->where('user_id', $user->id)
+            ->where('type', $type)
+            ->where('pinnable_id', $pinnableId)
             ->first();
 
         if ($existing) {
             $existing->delete();
-            $user->unsetRelation("pins");
+            $user->unsetRelation('pins');
 
             return response()->json([
-                "pinned" => false,
-                "pins" => $user->getPins(),
+                'pinned' => false,
+                'pins' => $user->getPins(),
             ]);
         }
 
         $existingByUrl = UserPin::query()
-            ->where("user_id", $user->id)
+            ->where('user_id', $user->id)
             ->get()
             ->first(
-                fn(
+                fn (
                     UserPin $pin,
                 ): bool => $this->pinMetadataNormalizer->normalizeUrl(
                     $pin->url,
@@ -78,43 +78,43 @@ class PinController
         if ($existingByUrl !== null) {
             $existingByUrl
                 ->fill([
-                    "label" => $this->pinMetadataNormalizer->normalizeLabel(
-                        $request->input("label"),
+                    'label' => $this->pinMetadataNormalizer->normalizeLabel(
+                        $request->input('label'),
                     ),
-                    "url" => $request->input("url"),
-                    "icon" => $existingByUrl->icon ?? $request->input("icon"),
+                    'url' => $request->input('url'),
+                    'icon' => $existingByUrl->icon ?? $request->input('icon'),
                 ])
                 ->save();
 
-            $user->unsetRelation("pins");
+            $user->unsetRelation('pins');
 
             return response()->json([
-                "pinned" => true,
-                "pins" => $user->getPins(),
+                'pinned' => true,
+                'pins' => $user->getPins(),
             ]);
         }
 
         $maxOrder =
-            UserPin::query()->where("user_id", $user->id)->max("sort_order") ??
+            UserPin::query()->where('user_id', $user->id)->max('sort_order') ??
             -1;
 
         UserPin::query()->create([
-            "user_id" => $user->id,
-            "type" => $type,
-            "pinnable_id" => $pinnableId,
-            "label" => $this->pinMetadataNormalizer->normalizeLabel(
-                $request->input("label"),
+            'user_id' => $user->id,
+            'type' => $type,
+            'pinnable_id' => $pinnableId,
+            'label' => $this->pinMetadataNormalizer->normalizeLabel(
+                $request->input('label'),
             ),
-            "url" => $request->input("url"),
-            "icon" => $request->input("icon"),
-            "sort_order" => $maxOrder + 1,
+            'url' => $request->input('url'),
+            'icon' => $request->input('icon'),
+            'sort_order' => $maxOrder + 1,
         ]);
 
-        $user->unsetRelation("pins");
+        $user->unsetRelation('pins');
 
         return response()->json([
-            "pinned" => true,
-            "pins" => $user->getPins(),
+            'pinned' => true,
+            'pins' => $user->getPins(),
         ]);
     }
 
@@ -127,24 +127,24 @@ class PinController
     public function reorder(Request $request): JsonResponse
     {
         $request->validate([
-            "pins" => ["required", "array", "min:1"],
-            "pins.*.type" => ["required", "string", "in:menu_item,page"],
-            "pins.*.pinnable_id" => ["required", "string", "max:150"],
+            'pins' => ['required', 'array', 'min:1'],
+            'pins.*.type' => ['required', 'string', 'in:menu_item,page'],
+            'pins.*.pinnable_id' => ['required', 'string', 'max:150'],
         ]);
 
         $user = $request->user();
-        $pins = $request->input("pins");
+        $pins = $request->input('pins');
 
         foreach ($pins as $index => $pin) {
             UserPin::query()
-                ->where("user_id", $user->id)
-                ->where("type", $pin["type"])
-                ->where("pinnable_id", $pin["pinnable_id"])
-                ->update(["sort_order" => $index]);
+                ->where('user_id', $user->id)
+                ->where('type', $pin['type'])
+                ->where('pinnable_id', $pin['pinnable_id'])
+                ->update(['sort_order' => $index]);
         }
 
         return response()->json([
-            "pins" => $user->getPins(),
+            'pins' => $user->getPins(),
         ]);
     }
 }
