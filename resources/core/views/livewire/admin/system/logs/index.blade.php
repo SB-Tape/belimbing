@@ -1,3 +1,8 @@
+<?php
+// SPDX-License-Identifier: AGPL-3.0-only
+// (c) Ng Kiat Siong <kiatsiong.ng@gmail.com>
+?>
+
 <div>
     <x-slot name="title">{{ __('Logs') }}</x-slot>
 
@@ -16,10 +21,14 @@
                     </thead>
                     <tbody class="bg-surface-card divide-y divide-border-default">
                         @forelse($files as $file)
-                            <tr wire:key="log-{{ $file->getFilename() }}" class="hover:bg-surface-subtle/50 transition-colors cursor-pointer {{ $selectedFile === $file->getFilename() ? 'bg-surface-subtle' : '' }}" wire:click="selectFile('{{ $file->getFilename() }}')">
-                                <td class="px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-accent font-medium">{{ $file->getFilename() }}</td>
+                            <tr wire:key="log-{{ $file->getFilename() }}" class="hover:bg-surface-subtle/50 transition-colors">
+                                <td class="px-table-cell-x py-table-cell-y whitespace-nowrap text-sm font-medium">
+                                    <a href="{{ route('admin.system.logs.show', $file->getFilename()) }}" class="text-accent hover:underline" wire:navigate>
+                                        {{ $file->getFilename() }}
+                                    </a>
+                                </td>
                                 <td class="px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted tabular-nums">{{ Number::fileSize($file->getSize()) }}</td>
-                                <td class="px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted">{{\Carbon\Carbon::createFromTimestamp($file->getMTime())->diffForHumans() }}</td>
+                                <td class="px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted">{{ \Carbon\Carbon::createFromTimestamp($file->getMTime())->diffForHumans() }}</td>
                             </tr>
                         @empty
                             <tr>
@@ -30,18 +39,5 @@
                 </table>
             </div>
         </x-ui.card>
-
-        @if ($selectedFile && $tailContent !== null)
-            <x-ui.card>
-                <div class="flex items-center justify-between mb-3">
-                    <h3 class="text-sm font-medium text-ink">{{ $selectedFile }}</h3>
-                    <x-ui.button variant="ghost" size="sm" wire:click="selectFile('{{ $selectedFile }}')" wire:loading.class="animate-spin" wire:target="selectFile">
-                        <x-icon name="heroicon-o-arrow-path" class="w-4 h-4" />
-                        {{ __('Refresh') }}
-                    </x-ui.button>
-                </div>
-                <pre class="text-xs font-mono text-ink bg-surface-subtle rounded-lg p-4 overflow-x-auto max-h-[32rem] overflow-y-auto">{{ $tailContent }}</pre>
-            </x-ui.card>
-        @endif
     </div>
 </div>

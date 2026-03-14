@@ -9,7 +9,7 @@
     <x-slot name="title">{{ __('AI Providers') }}</x-slot>
 
     <div class="space-y-section-gap">
-        <x-ui.page-header :title="__('AI Providers')" :subtitle="__('Manage connected providers, select which models are available, and browse the catalog to add more.')">
+        <x-ui.page-header :title="__('AI Providers')" :subtitle="__('Manage connected providers and their models. Toggle the checkbox to make a model available to Agents, or click the ☆ to set it as the default fallback.')">
             <x-slot name="help">
                 <div class="space-y-3">
                     <p>{{ __('This page shows the LLM providers and models your organization has connected. Agents use these models to think, reason, and respond — at least one active provider with one active model is required.') }}</p>
@@ -24,32 +24,7 @@
                         </ul>
                     </div>
 
-                    <div>
-                        <p class="font-medium text-ink">{{ __('Default model') }}</p>
-                        <ul class="list-disc list-inside space-y-1 text-muted mt-1">
-                            <li>{{ __('Each provider has a default model, marked with a') }} <span class="text-accent">★</span> {{ __('star icon.') }}</li>
-                            <li>{{ __('The default model is used as the fallback when a Agent does not specify a particular model.') }}</li>
-                            <li>{{ __('Click the ☆ next to a model to set it as the default. The current default is marked with') }} <span class="text-accent">★</span>.</li>
-                        </ul>
-                    </div>
-
-                    <div>
-                        <p class="font-medium text-ink">{{ __('Model availability') }}</p>
-                        <ul class="list-disc list-inside space-y-1 text-muted mt-1">
-                            <li>{{ __('Use the checkbox in the Available column to control which models Agents can use.') }}</li>
-                            <li>{{ __('Unchecked models remain registered but are not offered to Agents.') }}</li>
-                        </ul>
-                    </div>
-
-                    <div>
-                        <p class="font-medium text-ink">{{ __('Costs & billing') }}</p>
-                        <ul class="list-disc list-inside space-y-1 text-muted mt-1">
-                            <li>{{ __('API providers (OpenAI, Anthropic, etc.) bill per token used — costs are shown per 1M tokens.') }}</li>
-                            <li>{{ __('Subscription providers (GitHub Copilot) are included in your subscription at no extra per-token cost.') }}</li>
-                            <li>{{ __('Local providers (Ollama, vLLM) run on your own hardware and have no API fees.') }}</li>
-                            <li>{{ __('Click any cost cell to override the catalog default for that model.') }}</li>
-                        </ul>
-                    </div>
+                    @include('livewire.ai.providers.partials.model-help')
 
                     <p>{!! __('Once providers and models are set up here, assign them to Agents from the :link.', ['link' => '<a href="' . route('admin.ai.playground') . '" class="text-accent hover:underline">' . e(__('AI Playground')) . '</a>']) !!}</p>
                 </div>
@@ -67,13 +42,6 @@
              ═══════════════════════════════════════════════════ --}}
         @if($providers->isNotEmpty())
             <x-ui.card>
-                <div class="mb-2">
-                    <x-ui.search-input
-                        wire:model.live.debounce.300ms="search"
-                        placeholder="{{ __('Search connected providers...') }}"
-                    />
-                </div>
-
                 <div class="overflow-x-auto -mx-card-inner px-card-inner">
                     <table class="min-w-full divide-y divide-border-default text-sm">
                         <thead class="bg-surface-subtle/80">
@@ -93,7 +61,10 @@
                                 <tr
                                     wire:key="provider-{{ $provider->id }}"
                                     wire:click="toggleProvider({{ $provider->id }})"
-                                    class="hover:bg-surface-subtle/50 transition-colors cursor-pointer"
+                                    x-data="{ flash: false }"
+                                    x-init="$wire.on('priority-changed', (id) => { if (id == {{ $provider->id }}) { flash = true; setTimeout(() => flash = false, 600) } })"
+                                    :class="flash ? 'bg-accent/10' : ''"
+                                    class="hover:bg-surface-subtle/50 transition-colors duration-800 cursor-pointer"
                                 >
                                     <td class="px-table-cell-x py-table-cell-y">
                                         <x-icon
@@ -176,145 +147,10 @@
                                 @if($expandedProviderId === $provider->id)
                                     <tr wire:key="provider-{{ $provider->id }}-models">
                                         <td colspan="8" class="p-0">
-                                            <div class="bg-surface-subtle/30 border-t border-border-default px-8 py-3">
-                                               <div class="flex items-center justify-between mb-2">
-                                                    <span class="text-[11px] uppercase tracking-wider font-semibold text-muted">{{ __('Models') }}</span>
-                                                    <div class="flex items-center gap-1">
-                                                        <x-ui.button variant="ghost" size="sm" wire:click.stop="syncProviderModels({{ $provider->id }})">
-                                                            <x-icon name="heroicon-o-arrow-path" class="w-3.5 h-3.5" />
-                                                            {{ __('Update Models') }}
-                                                        </x-ui.button>
-                                                        <x-ui.button variant="ghost" size="sm" wire:click.stop="openCreateModel({{ $provider->id }})">
-                                                            <x-icon name="heroicon-o-plus" class="w-3.5 h-3.5" />
-                                                            {{ __('Add Model') }}
-                                                        </x-ui.button>
-                                                    </div>
-                                                </div>
-
-                                               @if($syncMessage)
-                                                    <div
-                                                        class="mb-2 px-3 py-1.5 bg-surface-subtle rounded text-sm text-muted"
-                                                        x-data="{ show: true }"
-                                                        x-init="setTimeout(() => { show = false; $wire.set('syncMessage', null) }, 4000)"
-                                                        x-show="show"
-                                                        x-transition.opacity
-                                                    >
-                                                        {{ $syncMessage }}
-                                                    </div>
-                                                @endif
-
-                                                @if($syncError && $syncErrorProviderId === $provider->id)
-                                                    @php $helpAdvice = app(\App\Base\AI\Providers\Help\ProviderHelpRegistry::class)->get($provider->name, $provider->auth_type ?? 'api_key')->connectionErrorAdvice(); @endphp
-                                                    <div class="mb-3 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-3">
-                                                        <div class="flex items-start justify-between gap-2">
-                                                            <div class="flex items-start gap-2 min-w-0">
-                                                                <x-icon name="heroicon-o-exclamation-circle" class="w-4 h-4 text-red-500 dark:text-red-400 mt-0.5 shrink-0" />
-                                                                <div class="min-w-0">
-                                                                    <p class="text-sm text-red-700 dark:text-red-300 font-medium">{{ $syncError }}</p>
-                                                                    <p class="text-xs text-red-600 dark:text-red-400 mt-0.5">{{ $helpAdvice }}</p>
-                                                                </div>
-                                                            </div>
-                                                            <div class="flex items-center gap-1 shrink-0">
-                                                                <button
-                                                                    type="button"
-                                                                    wire:click.stop="openProviderHelp('{{ $provider->name }}', '{{ $provider->auth_type ?? 'api_key' }}')"
-                                                                    class="text-xs text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200 underline whitespace-nowrap"
-                                                                >
-                                                                    {{ __('Get help') }}
-                                                                </button>
-                                                                <button
-                                                                    wire:click.stop="clearSyncError"
-                                                                    class="p-0.5 rounded text-red-400 hover:text-red-600 dark:hover:text-red-200 hover:bg-red-100 dark:hover:bg-red-800/50"
-                                                                    type="button"
-                                                                    title="{{ __('Dismiss') }}"
-                                                                    aria-label="{{ __('Dismiss error') }}"
-                                                                >
-                                                                    <x-icon name="heroicon-o-x-mark" class="w-3.5 h-3.5" />
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                @endif
-
-                                                @if($expandedModels->count() > 0)
-                                                    <table class="min-w-full divide-y divide-border-default text-sm">
-                                                         <thead class="bg-surface-subtle/80">
-                                                            <tr>
-                                                                <th class="px-table-cell-x py-table-header-y text-left text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Model ID') }}</th>
-                                                                <th class="hidden lg:table-cell px-table-cell-x py-table-header-y text-right text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Cost Override Input $/1M') }}</th>
-                                                                <th class="hidden lg:table-cell px-table-cell-x py-table-header-y text-right text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Cost Override Output $/1M') }}</th>
-                                                                <th class="hidden lg:table-cell px-table-cell-x py-table-header-y text-right text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Cache Read $/1M') }}</th>
-                                                                <th class="hidden lg:table-cell px-table-cell-x py-table-header-y text-right text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Cache Write $/1M') }}</th>
-                                                                <th class="px-table-cell-x py-table-header-y text-center text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Available') }}</th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody class="bg-surface-card divide-y divide-border-default">
-                                                            @foreach($expandedModels as $model)
-                                                                <tr wire:key="model-{{ $model->id }}" class="hover:bg-surface-subtle/50 transition-colors">
-                                                                    <td class="px-table-cell-x py-table-cell-y whitespace-nowrap text-sm font-medium text-ink font-mono">
-                                                                        <div class="flex items-center gap-1.5">
-                                                                            @if($model->is_default)
-                                                                                <span class="text-accent" title="{{ __('Default model') }}" aria-label="{{ __('Default model') }}">★</span>
-                                                                            @else
-                                                                                <button
-                                                                                    wire:click="setDefaultModel({{ $model->id }})"
-                                                                                    class="text-muted hover:text-accent transition-colors"
-                                                                                    type="button"
-                                                                                    title="{{ __('Set as default') }}"
-                                                                                    aria-label="{{ __('Set as default model') }}"
-                                                                                >☆</button>
-                                                                            @endif
-                                                                            <span>{{ $model->model_id }}</span>
-                                                                        </div>
-                                                                    </td>
-                                                                    @php $cost = $model->cost_override ?? []; @endphp
-                                                                    @foreach(['input', 'output', 'cache_read', 'cache_write'] as $costField)
-                                                                        <td
-                                                                            class="hidden lg:table-cell px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted tabular-nums text-right"
-                                                                            x-data="{ editing: false, value: '{{ $cost[$costField] ?? '' }}' }"
-                                                                        >
-                                                                            <template x-if="!editing">
-                                                                                <button
-                                                                                    type="button"
-                                                                                    @click="editing = true; $nextTick(() => $refs.input.select())"
-                                                                                    class="w-full text-right cursor-pointer hover:text-ink transition-colors"
-                                                                                    title="{{ __('Click to edit') }}"
-                                                                                >
-                                                                                    {{ $this->formatCost($cost[$costField] ?? null) }}
-                                                                                </button>
-                                                                            </template>
-                                                                            <template x-if="editing">
-                                                                                <input
-                                                                                    x-ref="input"
-                                                                                    type="number"
-                                                                                    step="0.000001"
-                                                                                    min="0"
-                                                                                    x-model="value"
-                                                                                    @blur="editing = false; $wire.updateModelCost({{ $model->id }}, '{{ $costField }}', value)"
-                                                                                    @keydown.enter="editing = false; $wire.updateModelCost({{ $model->id }}, '{{ $costField }}', value)"
-                                                                                    @keydown.escape="editing = false"
-                                                                                    class="w-24 text-right text-sm tabular-nums px-1 py-0.5 border border-border-input rounded bg-surface-card text-ink focus:ring-2 focus:ring-accent focus:ring-offset-2"
-                                                                                />
-                                                                            </template>
-                                                                        </td>
-                                                                    @endforeach
-                                                                    <td class="px-table-cell-x py-table-cell-y whitespace-nowrap" @click.stop>
-                                                                        <div class="flex justify-center">
-                                                                        <x-ui.checkbox
-                                                                            :checked="$model->is_active"
-                                                                            wire:click="toggleModelActive({{ $model->id }})"
-                                                                            aria-label="{{ $model->is_active ? __('Deactivate :model', ['model' => $model->model_id]) : __('Activate :model', ['model' => $model->model_id]) }}"
-                                                                        />
-                                                                        </div>
-                                                                    </td>
-                                                                </tr>
-                                                            @endforeach
-                                                        </tbody>
-                                                    </table>
-                                                @else
-                                                    <p class="text-sm text-muted py-4 text-center">{{ __('No models registered for this provider.') }}</p>
-                                                @endif
-                                            </div>
+                                            @include('livewire.ai.providers.partials.model-table', [
+                                                'provider' => $provider,
+                                                'models' => $expandedModels,
+                                            ])
                                         </td>
                                     </tr>
                                 @endif

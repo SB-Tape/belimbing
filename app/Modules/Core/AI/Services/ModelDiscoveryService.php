@@ -83,26 +83,28 @@ class ModelDiscoveryService
             return $this->importFromCatalog($provider);
         }
 
-        $existingModels = AiProviderModel::query()
-            ->where('ai_provider_id', $provider->id)
-            ->pluck('id', 'model_id')
-            ->all();
-
         $added = 0;
         $updated = 0;
 
         foreach ($discovered as $model) {
-            if (isset($existingModels[$model['model_id']])) {
-                $updated++;
-            } else {
-                AiProviderModel::query()->create([
-                    'ai_provider_id' => $provider->id,
-                    'model_id' => $model['model_id'],
-                    'is_active' => true,
-                ]);
+            $modelId = $model['model_id'] ?? null;
 
-                $added++;
+            if (! is_string($modelId) || $modelId === '') {
+                continue;
             }
+
+            $providerModel = AiProviderModel::query()->firstOrCreate([
+                'ai_provider_id' => $provider->id,
+                'model_id' => $modelId,
+            ]);
+
+            if ($providerModel->wasRecentlyCreated) {
+                $added++;
+
+                continue;
+            }
+
+            $updated++;
         }
 
         // Auto-set default model if none exists for this provider
@@ -130,27 +132,23 @@ class ModelDiscoveryService
             return ['added' => 0, 'updated' => 0, 'total' => 0];
         }
 
-        $existingIds = AiProviderModel::query()
-            ->where('ai_provider_id', $provider->id)
-            ->pluck('model_id')
-            ->all();
-
         $added = 0;
 
         foreach ($catalogModels as $modelId => $modelData) {
             $id = is_string($modelId) ? $modelId : ($modelData['id'] ?? '');
 
-            if ($id === '' || in_array($id, $existingIds, true)) {
+            if ($id === '') {
                 continue;
             }
 
-            AiProviderModel::query()->create([
+            $providerModel = AiProviderModel::query()->firstOrCreate([
                 'ai_provider_id' => $provider->id,
                 'model_id' => $id,
-                'is_active' => true,
             ]);
 
-            $added++;
+            if ($providerModel->wasRecentlyCreated) {
+                $added++;
+            }
         }
 
         // Auto-set default model if none exists for this provider

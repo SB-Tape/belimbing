@@ -36,7 +36,7 @@ use App\Base\Menu\Services\PagePinResolver;
                 @endif
             </div>
             @if($subtitle)
-                <p class="mt-1 text-sm text-muted">{{ $subtitle }}</p>
+                <p class="mt-1 text-sm text-muted">{!! $subtitle !!}</p>
             @endif
         </div>
         @if($actions)

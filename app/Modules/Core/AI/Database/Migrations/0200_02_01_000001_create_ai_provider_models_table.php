@@ -18,7 +18,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('ai_provider_id')->constrained('ai_providers')->cascadeOnDelete();
             $table->string('model_id');
-            $table->boolean('is_active')->default(true);
+            $table->boolean('is_active')->default(false);
             $table->boolean('is_default')->default(false);
             $table->json('cost_override')->nullable();
             $table->timestamps();

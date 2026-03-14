@@ -13,6 +13,7 @@
 namespace App\Modules\Core\AI\Livewire\Providers;
 
 use App\Base\AI\Services\ModelCatalogService;
+use App\Modules\Core\AI\Livewire\Concerns\FormatsDisplayValues;
 use App\Modules\Core\AI\Livewire\Concerns\ManagesModels;
 use App\Modules\Core\AI\Livewire\Concerns\ManagesProviderHelp;
 use App\Modules\Core\AI\Livewire\Concerns\ManagesProviders;
@@ -24,13 +25,11 @@ use Livewire\Component;
 
 class Providers extends Component
 {
+    use FormatsDisplayValues;
     use ManagesModels;
     use ManagesProviderHelp;
     use ManagesProviders;
     use ManagesSync;
-
-    /** Search filter for the connected providers table. */
-    public string $search = '';
 
     /** Which connected provider row is expanded to show models. */
     public ?int $expandedProviderId = null;
@@ -64,43 +63,6 @@ class Providers extends Component
         $this->redirectRoute('admin.ai.providers.setup', ['providerKey' => $key], navigate: true);
     }
 
-    /**
-     * Format a cost value for display (2 decimal places).
-     */
-    public function formatCost(?string $cost): string
-    {
-        if ($cost === null || $cost === '') {
-            return '—';
-        }
-
-        return '$'.number_format((float) $cost, 2);
-    }
-
-    /**
-     * Format a token count for display (e.g. 200000 → "200K", 1048576 → "1M").
-     */
-    public function formatTokenCount(?int $count): string
-    {
-        if ($count === null) {
-            return '—';
-        }
-
-        $value = (float) $count;
-        $suffix = '';
-
-        if ($count >= 1_000_000) {
-            $value = $count / 1_000_000;
-            $suffix = 'M';
-        } elseif ($count >= 1_000) {
-            $value = $count / 1_000;
-            $suffix = 'K';
-        }
-
-        return $suffix === ''
-            ? (string) $count
-            : rtrim(rtrim(number_format($value, 1), '0'), '.').$suffix;
-    }
-
     public function render(): \Illuminate\Contracts\View\View
     {
         $catalogService = app(ModelCatalogService::class);
@@ -112,19 +74,12 @@ class Providers extends Component
         $connectedNames = [];
 
         if ($companyId !== null) {
-            $query = AiProvider::query()
+            $providers = AiProvider::query()
                 ->forCompany($companyId)
-                ->withCount('models');
-
-            if ($this->search !== '') {
-                $search = $this->search;
-                $query->where(function ($q) use ($search): void {
-                    $q->where('name', 'like', '%'.$search.'%')
-                        ->orWhere('display_name', 'like', '%'.$search.'%');
-                });
-            }
-
-            $providers = $query->orderBy('priority')->orderBy('display_name')->get();
+                ->withCount('models')
+                ->orderBy('priority')
+                ->orderBy('display_name')
+                ->get();
             $connectedNames = AiProvider::query()->forCompany($companyId)->pluck('name')->all();
 
             if ($this->expandedProviderId !== null) {

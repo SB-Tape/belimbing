@@ -281,7 +281,6 @@ return [
             'description' => 'GitHub device login — subscription includes models from OpenAI, Anthropic, Google, and xAI',
             'base_url' => 'https://api.individual.githubcopilot.com',
             'auth_type' => 'device_flow',
-            'api_key_url' => 'https://github.com/settings/copilot',
         ],
         'chutes' => [
             'category' => ['inference-platform'],

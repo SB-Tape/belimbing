@@ -3,9 +3,7 @@
 
     $licenseeExists = \App\Modules\Core\Company\Models\Company::query()->where('id', \App\Modules\Core\Company\Models\Company::LICENSEE_ID)->exists();
 
-    $laraState = \App\Modules\Core\Employee\Models\Employee::laraActivationState();
-    $laraExists = $laraState !== null;
-    $laraActivated = $laraState === true;
+    $laraActivated = \App\Modules\Core\Employee\Models\Employee::laraActivationState() === true;
 @endphp
 
 <div class="h-6 bg-surface-bar border-t border-border-default flex items-center justify-between px-4 text-xs text-muted shrink-0">
@@ -32,32 +30,35 @@
                     {{ __('Licensee not set') }}
                 </a>
             @endif
-            @if (!$laraExists)
-                <a href="{{ route('admin.setup.lara') }}" wire:navigate class="text-status-danger hover:underline flex items-center gap-1">
-                    <x-icon name="heroicon-o-exclamation-triangle" class="w-3.5 h-3.5" />
-                    {{ __('Lara not set up') }}
-                </a>
-            @elseif (!$laraActivated)
-                <a href="{{ route('admin.setup.lara') }}" wire:navigate class="text-status-warning hover:underline flex items-center gap-1">
-                    <x-icon name="heroicon-o-exclamation-triangle" class="w-3.5 h-3.5" />
-                    {{ __('Lara not activated') }}
-                </a>
-            @endif
+
         @endauth
     </div>
 
     {{-- Right: Lara + Version --}}
     <div class="flex items-center gap-4">
         @auth
-            <button
-                type="button"
-                @click="$dispatch('open-agent-chat')"
-                class="text-accent hover:underline inline-flex items-center gap-1"
-                title="{{ __('Open Lara chat (Ctrl+K)') }}"
-                aria-label="{{ __('Open Lara chat (Ctrl+K)') }}"
-            >
-                <x-ai.lara-identity compact :show-role="false" />
-            </button>
+            @if ($laraActivated)
+                <button
+                    type="button"
+                    @click="$dispatch('open-agent-chat')"
+                    class="text-accent hover:underline inline-flex items-center gap-1"
+                    title="{{ __('Open Lara chat (Ctrl+K)') }}"
+                    aria-label="{{ __('Open Lara chat (Ctrl+K)') }}"
+                >
+                    <x-ai.lara-identity compact :show-role="false" />
+                </button>
+            @else
+                <a
+                    href="{{ route('admin.setup.lara') }}"
+                    wire:navigate
+                    class="text-status-warning hover:underline inline-flex items-center gap-1"
+                    title="{{ __('Set up Lara') }}"
+                    aria-label="{{ __('Set up Lara') }}"
+                >
+                    <x-icon name="heroicon-o-sparkles" class="w-4 h-4" />
+                    {{ __('Activate Lara') }}
+                </a>
+            @endif
         @endauth
         <span>v1.0.0</span>
     </div>

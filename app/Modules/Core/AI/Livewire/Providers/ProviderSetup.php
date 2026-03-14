@@ -4,19 +4,29 @@
 // (c) Ng Kiat Siong <kiatsiong.ng@gmail.com>
 //
 // Full-page component for setting up a single AI provider connection.
-// Handles API key entry, device flow (GitHub Copilot), and Cloudflare
-// AI Gateway configuration. Replaces the multi-provider ConnectWizard.
+// Handles shared setup concerns (credential entry, validation, connect, and
+// generic device-flow lifecycle). Provider-specific variants extend this class.
 
 namespace App\Modules\Core\AI\Livewire\Providers;
 
 use App\Base\AI\Services\ModelCatalogService;
+use App\Modules\Core\AI\Livewire\Concerns\FormatsDisplayValues;
+use App\Modules\Core\AI\Livewire\Concerns\ManagesModels;
+use App\Modules\Core\AI\Livewire\Concerns\ManagesProviderHelp;
+use App\Modules\Core\AI\Livewire\Concerns\ManagesSync;
 use App\Modules\Core\AI\Models\AiProvider;
+use App\Modules\Core\AI\Models\AiProviderModel;
 use App\Modules\Core\AI\Services\ModelDiscoveryService;
 use App\Modules\Core\AI\Services\ProviderAuthFlowService;
 use Livewire\Component;
 
 class ProviderSetup extends Component
 {
+    use FormatsDisplayValues;
+    use ManagesModels;
+    use ManagesProviderHelp;
+    use ManagesSync;
+
     public string $providerKey = '';
 
     public string $displayName = '';
@@ -32,11 +42,10 @@ class ProviderSetup extends Component
     /** @var array{status: string, user_code: string|null, verification_uri: string|null, error: string|null} */
     public array $deviceFlow = ['status' => 'idle', 'user_code' => null, 'verification_uri' => null, 'error' => null];
 
-    public string $cloudflareAccountId = '';
-
-    public string $cloudflareGatewayId = '';
-
     public ?string $connectError = null;
+
+    /** The connected provider record, set after successful connection. */
+    public ?int $connectedProviderId = null;
 
     /**
      * Initialise component from route parameter and catalog template.
@@ -63,7 +72,14 @@ class ProviderSetup extends Component
         if ($this->authType === 'device_flow') {
             $this->startDeviceFlow();
         }
+
+        $this->setUpProvider();
     }
+
+    /**
+     * Hook for provider-specific setup. Override in child classes.
+     */
+    protected function setUpProvider(): void {}
 
     /**
      * Start an interactive auth flow (e.g. GitHub device flow).
@@ -120,19 +136,14 @@ class ProviderSetup extends Component
 
         $rules = $this->buildValidationRules();
 
-        $this->validate($rules, [
-            'baseUrl.required' => __('Base URL is required.'),
-            'apiKey.required' => __('API key is required.'),
-            'cloudflareAccountId.required' => __('Account ID is required.'),
-            'cloudflareGatewayId.required' => __('Gateway ID is required.'),
-        ]);
+        $this->validate($rules, $this->buildValidationMessages());
 
         $this->connectError = null;
 
         try {
-            $this->connectProvider($companyId);
+            $provider = $this->connectProvider($companyId);
             $this->cleanupAuthFlows();
-            $this->redirectRoute('admin.ai.providers', navigate: true);
+            $this->connectedProviderId = $provider->id;
         } catch (\Illuminate\Http\Client\ConnectionException $e) {
             $this->connectError = __('Could not connect to :url — is the server running?', [
                 'url' => $this->baseUrl,
@@ -156,6 +167,71 @@ class ProviderSetup extends Component
     }
 
     /**
+     * Auto-connect when the API key field is updated (blur).
+     *
+     * For standard providers (api_key, custom, oauth, subscription, local),
+     * connecting as soon as credentials are entered removes the manual
+     * "Connect & Import Models" step.
+     */
+    public function updatedApiKey(): void
+    {
+        if ($this->connectedProviderId !== null || $this->authType === 'device_flow') {
+            return;
+        }
+
+        $this->tryAutoConnect();
+    }
+
+    /**
+     * Auto-connect when the base URL is updated (blur).
+     *
+     * For local/oauth providers where API key is optional, the base URL
+     * alone is sufficient to attempt connection.
+     */
+    public function updatedBaseUrl(): void
+    {
+        if ($this->connectedProviderId !== null || $this->authType === 'device_flow') {
+            return;
+        }
+
+        $this->tryAutoConnect();
+    }
+
+    /**
+     * Attempt auto-connect if all required fields are populated.
+     */
+    protected function tryAutoConnect(): void
+    {
+        if ($this->baseUrl === '') {
+            return;
+        }
+
+        $keyRequired = in_array($this->authType, ['api_key', 'custom'], true);
+
+        if ($keyRequired && $this->apiKey === '') {
+            return;
+        }
+
+        $this->connect();
+    }
+
+    /**
+     * Mask the API key for visual verification: first 7 and last 4 chars.
+     *
+     * Returns null when the key is too short or empty.
+     */
+    public function getMaskedApiKeyProperty(): ?string
+    {
+        $len = mb_strlen($this->apiKey);
+
+        if ($len < 12) {
+            return null;
+        }
+
+        return mb_substr($this->apiKey, 0, 7) . '…' . mb_substr($this->apiKey, -4);
+    }
+
+    /**
      * Navigate back to the provider catalog.
      */
     public function backToCatalog(): void
@@ -164,9 +240,34 @@ class ProviderSetup extends Component
         $this->redirectRoute('admin.ai.providers', navigate: true);
     }
 
+    /**
+     * Navigate to the main AI Providers page after setup is complete.
+     */
+    public function done(): void
+    {
+        $this->redirectRoute('admin.ai.providers', navigate: true);
+    }
+
     public function render(): \Illuminate\Contracts\View\View
     {
-        return view('livewire.ai.providers.provider-setup');
+        $connectedProvider = null;
+        $models = collect();
+
+        if ($this->connectedProviderId !== null) {
+            $connectedProvider = AiProvider::query()->find($this->connectedProviderId);
+
+            if ($connectedProvider) {
+                $models = AiProviderModel::query()
+                    ->where('ai_provider_id', $connectedProvider->id)
+                    ->orderBy('model_id')
+                    ->get();
+            }
+        }
+
+        return view('livewire.ai.providers.provider-setup', [
+            'connectedProvider' => $connectedProvider,
+            'models' => $models,
+        ]);
     }
 
     /**
@@ -174,16 +275,11 @@ class ProviderSetup extends Component
      *
      * @return array<string, list<string>>
      */
-    private function buildValidationRules(): array
+    protected function buildValidationRules(): array
     {
         $rules = [];
 
-        if ($this->providerKey === 'cloudflare-ai-gateway') {
-            $rules['cloudflareAccountId'] = ['required', 'string', 'max:255'];
-            $rules['cloudflareGatewayId'] = ['required', 'string', 'max:255'];
-        } else {
-            $rules['baseUrl'] = ['required', 'string', 'max:2048'];
-        }
+        $rules['baseUrl'] = ['required', 'string', 'max:2048'];
 
         if (in_array($this->authType, ['api_key', 'custom', 'device_flow'], true)) {
             $rules['apiKey'] = ['required', 'string', 'max:2048'];
@@ -195,9 +291,25 @@ class ProviderSetup extends Component
     }
 
     /**
-     * Create the provider record and run initial model discovery.
+     * Build validation messages for shared provider setup fields.
+     *
+     * @return array<string, string>
      */
-    private function connectProvider(int $companyId): void
+    protected function buildValidationMessages(): array
+    {
+        return [
+            'baseUrl.required' => __('Base URL is required.'),
+            'apiKey.required' => __('API key is required.'),
+        ];
+    }
+
+    /**
+     * Create the provider record and run initial model discovery.
+     *
+     * Returns the connected provider (existing or newly created) so the
+     * setup page can transition to model management without redirecting.
+     */
+    private function connectProvider(int $companyId): AiProvider
     {
         $existing = AiProvider::query()
             ->forCompany($companyId)
@@ -211,7 +323,7 @@ class ProviderSetup extends Component
                 $discovery->syncModels($existing);
             }
 
-            return;
+            return $existing;
         }
 
         $discovery = app(ModelDiscoveryService::class);
@@ -228,21 +340,16 @@ class ProviderSetup extends Component
 
         $provider->assignNextPriority();
         $discovery->syncModels($provider);
+
+        return $provider;
     }
 
     /**
-     * Build the provider base URL, handling Cloudflare's Account+Gateway ID pattern.
+     * Build the provider base URL used for connection and model discovery.
      */
-    private function resolveBaseUrl(): string
+    protected function resolveBaseUrl(): string
     {
-        if ($this->providerKey !== 'cloudflare-ai-gateway') {
-            return $this->baseUrl;
-        }
-
-        $accountId = trim($this->cloudflareAccountId);
-        $gatewayId = trim($this->cloudflareGatewayId);
-
-        return "https://gateway.ai.cloudflare.com/v1/{$accountId}/{$gatewayId}/openai";
+        return $this->baseUrl;
     }
 
     private function getCompanyId(): ?int

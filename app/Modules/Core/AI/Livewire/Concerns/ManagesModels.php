@@ -6,6 +6,7 @@
 namespace App\Modules\Core\AI\Livewire\Concerns;
 
 use App\Modules\Core\AI\Models\AiProviderModel;
+use App\Modules\Core\AI\Services\ModelDiscoveryService;
 
 /**
  * Model management state and actions for the provider manager component.
@@ -42,6 +43,10 @@ trait ManagesModels
         }
 
         $model->update(['is_active' => ! $model->is_active]);
+
+        if ($model->is_active) {
+            app(ModelDiscoveryService::class)->ensureDefaultModel($model->provider);
+        }
     }
 
     /**
@@ -90,11 +95,13 @@ trait ManagesModels
             'modelModelName' => ['required', 'string', 'max:255'],
         ]);
 
-        AiProviderModel::query()->create([
-            'ai_provider_id' => $this->modelProviderId,
-            'model_id' => $this->modelModelName,
-            'is_active' => true,
-        ]);
+        AiProviderModel::query()->updateOrCreate(
+            [
+                'ai_provider_id' => $this->modelProviderId,
+                'model_id' => $this->modelModelName,
+            ],
+            ['is_active' => true],
+        );
 
         $this->showModelForm = false;
         $this->resetModelForm();

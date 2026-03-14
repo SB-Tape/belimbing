@@ -6,7 +6,6 @@
 use App\Modules\Core\AI\Http\Controllers\ChatStreamController;
 use App\Modules\Core\AI\Livewire\Playground;
 use App\Modules\Core\AI\Livewire\Providers\Providers;
-use App\Modules\Core\AI\Livewire\Providers\ProviderSetup;
 use App\Modules\Core\AI\Livewire\Setup\Lara;
 use App\Modules\Core\AI\Livewire\Tools;
 use Illuminate\Support\Facades\Route;
@@ -25,7 +24,9 @@ Route::middleware(['auth'])->group(function () {
     // Unified AI Providers page (management + catalog)
     Route::get('admin/ai/providers', Providers::class)
         ->name('admin.ai.providers');
-    Route::get('admin/ai/providers/setup/{providerKey}', ProviderSetup::class)
+
+    // Dynamic provider setup - resolve component class in controller
+    Route::get('admin/ai/providers/setup/{providerKey}', \App\Modules\Core\AI\Http\Controllers\ProviderSetupController::class)
         ->name('admin.ai.providers.setup');
 
     // Legacy redirects — old Browse and Connections URLs point to the unified page.

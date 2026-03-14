@@ -193,6 +193,7 @@ trait ManagesProviders
 
         if ($above) {
             $provider->swapPriority($above);
+            $this->dispatch('priority-changed', $providerId);
         }
     }
 

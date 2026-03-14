@@ -11,14 +11,7 @@
         <x-ui.page-header
             :title="$laraActivated ? __('Lara') : __('Set Up Lara')"
             :subtitle="$laraActivated ? __('Manage Lara\'s AI configuration') : __('Activate BLB\'s built-in AI assistant')"
-        >
-            <x-slot name="actions">
-                <x-ui.button variant="ghost" href="{{ route('admin.ai.playground') }}" wire:navigate>
-                    <x-icon name="heroicon-o-chat-bubble-left-right" class="w-5 h-5" />
-                    {{ __('Playground') }}
-                </x-ui.button>
-            </x-slot>
-        </x-ui.page-header>
+        />
 
         @if ($laraActivated)
             <x-ui.card>
@@ -134,7 +127,7 @@
             @if ($providers->isEmpty())
                 <x-ui.card>
                     <h3 class="text-[11px] uppercase tracking-wider font-semibold text-muted mb-4">{{ __('Connect a Provider') }}</h3>
-                    <p class="text-xs text-muted mb-4">{{ __('No AI providers are configured yet. Connect your first provider and model, then return to activate Lara.') }}</p>
+                    <p class="text-xs text-muted mb-4">{{ __('No AI providers are configured yet. Lara needs a provider to process AI requests. She is activated when a provider is connected.') }}</p>
 
                     <x-ui.button variant="primary" href="{{ route('admin.ai.providers') }}" wire:navigate>
                         <x-icon name="heroicon-o-magnifying-glass" class="w-4 h-4" />
