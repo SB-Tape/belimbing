@@ -33,15 +33,15 @@ use App\Base\Menu\Services\PinMetadataNormalizer;
         "
     @endif
 >
-    <div class="flex items-center justify-between">
-        <div>
-            <div class="flex items-center gap-2">
-                <h1 class="text-xl font-medium tracking-tight text-ink">{{ $title }}</h1>
+    <div class="flex items-center justify-between gap-4">
+        <div class="min-w-0 flex-1">
+            <div class="inline-flex items-center gap-2 max-w-full">
+                <h1 class="min-w-0 text-xl font-medium tracking-tight text-ink">{{ $title }}</h1>
                 @if($resolvedPinnable)
                     <button
                         type="button"
                         @click="$dispatch('toggle-page-pin', pinData)"
-                        class="inline-flex items-center justify-center w-6 h-6 rounded-sm transition-colors"
+                        class="shrink-0 inline-flex items-center justify-center w-6 h-6 rounded-sm transition-colors"
                         :class="pagePinned ? 'text-accent' : 'text-muted hover:text-accent'"
                         :title="pagePinned ? '{{ __('Unpin from sidebar') }}' : '{{ __('Pin to sidebar') }}'"
                         :aria-label="pagePinned ? '{{ __('Unpin :page from sidebar', ['page' => $title]) }}' : '{{ __('Pin :page to sidebar', ['page' => $title]) }}'"
@@ -58,7 +58,7 @@ use App\Base\Menu\Services\PinMetadataNormalizer;
             @endif
         </div>
         @if($actions)
-            <div class="flex items-center gap-2">
+            <div class="shrink-0 flex items-center gap-2">
                 {{ $actions }}
             </div>
         @endif

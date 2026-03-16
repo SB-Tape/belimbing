@@ -98,6 +98,27 @@ class Show extends Component
     }
 
     /**
+     * Delete this query and remove any associated user pins, then redirect to the index.
+     */
+    public function delete(): void
+    {
+        $queryId = $this->query->id;
+        $slug = $this->query->slug;
+
+        UserPin::query()
+            ->where('user_id', auth()->id())
+            ->where('url', 'like', '%/database-queries/'.$slug)
+            ->delete();
+
+        Query::query()
+            ->where('id', $queryId)
+            ->where('user_id', auth()->id())
+            ->delete();
+
+        $this->redirect(route('admin.system.database-queries.index'), navigate: true);
+    }
+
+    /**
      * Run the current SQL query — persists first, then re-renders results.
      */
     public function runQuery(): void
@@ -417,6 +438,22 @@ class Show extends Component
             return null;
         }
 
+        // Verify the model belongs to this provider
+        $modelExists = AiProviderModel::query()
+            ->where('ai_provider_id', $provider->id)
+            ->where('model_id', $modelId)
+            ->active()
+            ->exists();
+
+        if (! $modelExists) {
+            $this->aiError = __('Model ":model" is not available on provider ":provider". Please re-select the model.', [
+                'model' => $modelId,
+                'provider' => $provider->display_name,
+            ]);
+
+            return null;
+        }
+
         $credentials = app(RuntimeCredentialResolver::class)->resolve([
             'api_key' => $provider->api_key,
             'base_url' => $provider->base_url,
@@ -490,7 +527,7 @@ class Show extends Component
             $description = trim($m[1]);
         }
 
-        if (preg_match('/^SQL:\s*(.+)/si', $content, $m)) {
+        if (preg_match('/^SQL:\s*(.+)/msi', $content, $m)) {
             $sql = trim($m[1]);
             $sql = preg_replace('/^```(?:sql)?\s*/i', '', $sql);
             $sql = preg_replace('/\s*```\s*$/', '', $sql);

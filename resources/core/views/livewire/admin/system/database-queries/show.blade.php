@@ -19,17 +19,41 @@
             ]"
         >
             <x-slot name="title">
-                <input
-                    type="text"
-                    wire:model="editName"
-                    class="w-full bg-transparent border-0 border-b border-transparent hover:border-border-input focus:border-accent focus:ring-0 text-2xl font-medium tracking-tight text-ink px-0 py-0 transition-colors"
-                    aria-label="{{ __('Query name') }}"
-                />
+                <span x-data="{ editing: false }">
+                    <span
+                        x-show="!editing"
+                        x-text="$wire.editName"
+                        x-on:click="editing = true; $nextTick(() => { $refs.titleInput.focus(); $refs.titleInput.select(); })"
+                        class="cursor-text"
+                    ></span>
+                    <input
+                        x-show="editing"
+                        x-cloak
+                        x-ref="titleInput"
+                        x-on:blur="editing = false"
+                        x-on:keydown.enter.prevent="editing = false"
+                        x-on:keydown.escape="editing = false"
+                        wire:model="editName"
+                        type="text"
+                        class="bg-transparent border-0 border-b border-accent focus:ring-0 px-0 py-0 outline-none transition-colors min-w-[200px]"
+                        :size="Math.max(($wire.editName || '').length, 10)"
+                        aria-label="{{ __('Query name') }}"
+                    />
+                </span>
             </x-slot>
             <x-slot name="actions">
                 <x-ui.button variant="ghost" size="sm" href="{{ route('admin.system.database-queries.index') }}" wire:navigate>
                     <x-icon name="heroicon-o-arrow-left" class="w-4 h-4" />
                     {{ __('Back to Database Queries') }}
+                </x-ui.button>
+                <x-ui.button
+                    variant="danger-ghost"
+                    size="sm"
+                    wire:click="delete"
+                    wire:confirm="{{ __('Are you sure you want to delete this query?') }}"
+                >
+                    <x-icon name="heroicon-o-trash" class="w-4 h-4" />
+                    {{ __('Delete') }}
                 </x-ui.button>
                 <x-ui.button variant="primary" wire:click="save">
                     @if($this->isDirty)
@@ -70,7 +94,7 @@
             @if(count($availableModels) > 0)
                 <div class="mt-3 flex flex-wrap items-center gap-2">
                     <select
-                        wire:model="selectedModelId"
+                        wire:model.live="selectedModelId"
                         class="rounded-lg border border-border-input bg-surface-card text-xs text-ink px-input-x py-input-y focus:border-accent focus:ring-0 transition-colors max-w-xs"
                         aria-label="{{ __('AI model') }}"
                     >
