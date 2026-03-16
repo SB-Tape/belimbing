@@ -209,12 +209,6 @@ class Show extends Component
 
             $content = trim($result['content'] ?? '');
 
-            if ($content === '') {
-                $this->aiError = __('The AI model returned an empty response. Please try again.');
-
-                return;
-            }
-
             $parsed = $this->parseGeneratedOutput($content);
 
             if ($parsed['title'] === '' && $parsed['description'] === '' && $parsed['sql'] === '') {

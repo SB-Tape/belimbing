@@ -89,7 +89,16 @@ class LlmClient
         $choice = $data['choices'][0]['message'] ?? [];
         $content = $choice['content'] ?? '';
         $toolCalls = $choice['tool_calls'] ?? null;
+        $hasToolCalls = is_array($toolCalls) && count($toolCalls) > 0;
         $usage = $data['usage'] ?? [];
+
+        if (($content === '' || $content === null) && ! $hasToolCalls) {
+            return [
+                'error' => "Model \"{$request->model}\" returned an empty response — it may be unavailable via this provider.",
+                'error_type' => 'empty_response',
+                'latency_ms' => $latencyMs,
+            ];
+        }
 
         $result = [
             'content' => $content,
@@ -100,7 +109,7 @@ class LlmClient
             'latency_ms' => $latencyMs,
         ];
 
-        if (is_array($toolCalls) && count($toolCalls) > 0) {
+        if ($hasToolCalls) {
             $result['tool_calls'] = $toolCalls;
         }
 
