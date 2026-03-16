@@ -5,7 +5,7 @@
 
 namespace App\Base\Database\Services;
 
-use App\Base\Database\Exceptions\DbViewQueryException;
+use App\Base\Database\Exceptions\BlbQueryException;
 use Illuminate\Database\Connection;
 use Illuminate\Support\Facades\DB;
 
@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\DB;
  * Uses a dedicated read-only database connection and enforces guardrails
  * including SELECT-only validation, row limits, and query timeouts.
  */
-class DbViewQueryExecutor
+class QueryExecutor
 {
     /**
      * Maximum number of rows that can be returned.
@@ -60,7 +60,7 @@ class DbViewQueryExecutor
      * @param  int  $perPage  Rows per page (max 1000)
      * @return array{columns: list<string>, rows: list<array<string, mixed>>, total: int, per_page: int, current_page: int, last_page: int}
      *
-     * @throws DbViewQueryException
+     * @throws BlbQueryException
      */
     public function execute(string $sql, int $page = 1, int $perPage = 25): array
     {
@@ -73,6 +73,7 @@ class DbViewQueryExecutor
 
         try {
             return $connection->transaction(function () use ($connection, $sql, $page, $perPage): array {
+                $this->applyReadOnly($connection);
                 $this->applyTimeout($connection);
 
                 $total = $this->countResults($connection, $sql);
@@ -96,10 +97,10 @@ class DbViewQueryExecutor
                     'last_page' => $lastPage,
                 ];
             });
-        } catch (DbViewQueryException $e) {
+        } catch (BlbQueryException $e) {
             throw $e;
         } catch (\Throwable $e) {
-            throw DbViewQueryException::executionFailed($e->getMessage(), $e);
+            throw BlbQueryException::executionFailed($e->getMessage(), $e);
         }
     }
 
@@ -108,26 +109,43 @@ class DbViewQueryExecutor
      *
      * @param  string  $sql  The SQL string to validate
      *
-     * @throws DbViewQueryException
+     * @throws BlbQueryException
      */
     public function validate(string $sql): void
     {
         $trimmed = trim($sql);
 
         if ($trimmed === '') {
-            throw DbViewQueryException::invalidQuery('Query must not be empty.');
+            throw BlbQueryException::invalidQuery('Query must not be empty.');
         }
 
         if (! preg_match('/^\s*SELECT\b/i', $trimmed)) {
-            throw DbViewQueryException::invalidQuery('Query must start with SELECT.');
+            throw BlbQueryException::invalidQuery('Query must start with SELECT.');
         }
 
         $upperSql = strtoupper($trimmed);
         foreach (self::FORBIDDEN_KEYWORDS as $keyword) {
             if (preg_match('/\b'.$keyword.'\b/', $upperSql)) {
-                throw DbViewQueryException::invalidQuery("Query must not contain {$keyword}.");
+                throw BlbQueryException::invalidQuery("Query must not contain {$keyword}.");
             }
         }
+    }
+
+    /**
+     * Set the current transaction to read-only at the database level.
+     *
+     * Belt-and-suspenders alongside application-level SELECT validation.
+     * SQLite has no transaction-level read-only equivalent, so enforcement
+     * is application-level only there.
+     *
+     * @param  Connection  $connection  The database connection
+     */
+    private function applyReadOnly(Connection $connection): void
+    {
+        match ($connection->getDriverName()) {
+            'pgsql' => $connection->statement('SET TRANSACTION READ ONLY'),
+            default => null,
+        };
     }
 
     /**

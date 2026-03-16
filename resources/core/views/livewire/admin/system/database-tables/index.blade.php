@@ -1,7 +1,7 @@
 <div>
     <x-slot name="title">{{ __('Database Tables') }}</x-slot>
 
-    <div class="space-y-section-gap">
+    <div class="space-y-section-gap" x-data="{ localTime: false }">
         <x-ui.page-header :title="__('Database Tables')" :subtitle="__('Browse and inspect all registered database tables')">
             <x-slot name="help">
                 @if(app()->environment('local'))
@@ -12,11 +12,27 @@
         </x-ui.page-header>
 
         <x-ui.card>
-            <div class="mb-2">
-                <x-ui.search-input
-                    wire:model.live.debounce.300ms="search"
-                    placeholder="{{ __('Search by table name or module...') }}"
-                />
+            <div class="mb-2 flex items-center gap-4 flex-wrap">
+                <div class="flex-1 min-w-0">
+                    <x-ui.search-input
+                        wire:model.live.debounce.300ms="search"
+                        placeholder="{{ __('Search by table name or module...') }}"
+                    />
+                </div>
+                @if(app()->environment('local'))
+                    <x-ui.button
+                        variant="ghost"
+                        size="sm"
+                        @click="localTime = !localTime"
+                        ::class="localTime ? 'ring-2 ring-accent' : ''"
+                        x-bind:aria-pressed="localTime.toString()"
+                        title="{{ __('Toggle timestamp display between UTC and Local Time.') }}"
+                        aria-label="{{ __('Toggle timestamp display between UTC and Local Time.') }}"
+                    >
+                        <x-icon name="heroicon-o-clock" class="w-4 h-4" />
+                        <span x-text="localTime ? '{{ __('Local Time') }}' : '{{ __('UTC') }}'"></span>
+                    </x-ui.button>
+                @endif
             </div>
 
             <div class="overflow-x-auto -mx-card-inner px-card-inner">
@@ -35,7 +51,7 @@
                     <tbody class="bg-surface-card divide-y divide-border-default">
                         @forelse($tables as $table)
                             @php
-                                $tableUrl = route('admin.system.tables.show', $table->table_name);
+                                $tableUrl = route('admin.system.database-tables.show', $table->table_name);
                             @endphp
                             <tr wire:key="table-{{ $table->id }}" class="hover:bg-surface-subtle/50 transition-colors cursor-pointer" tabindex="0" onclick="window.location='{{ $tableUrl }}'" onkeydown="if(event.key==='Enter'||event.key===' '){window.location='{{ $tableUrl }}';event.preventDefault();}">
                                 <td class="px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-ink font-mono">{{ $table->table_name }}</td>
@@ -54,7 +70,22 @@
                                             </x-ui.badge>
                                         </button>
                                     </td>
-                                    <td class="px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted tabular-nums">{{ $table->stabilized_at?->format('Y-m-d H:i:s') ?? '—' }}</td>
+                                    <td
+                                        class="px-table-cell-x py-table-cell-y whitespace-nowrap text-sm text-muted tabular-nums"
+                                        @if($table->stabilized_at)
+                                            data-utc-display="{{ $table->stabilized_at->format('Y-m-d H:i:s') }}"
+                                            data-raw="{{ $table->stabilized_at->utc()->format('Y-m-d\TH:i:s\Z') }}"
+                                            x-data
+                                            x-effect="
+                                                if (localTime) {
+                                                    const raw = $el.getAttribute('data-raw');
+                                                    try { $el.textContent = raw ? new Date(raw).toLocaleString() : '—'; } catch(e) {}
+                                                } else {
+                                                    $el.textContent = $el.getAttribute('data-utc-display') || '—';
+                                                }
+                                            "
+                                        @endif
+                                    >{{ $table->stabilized_at?->format('Y-m-d H:i:s') ?? '—' }}</td>
                                 @endif
                             </tr>
                         @empty

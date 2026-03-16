@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
 
 /**
- * A user-owned saved SQL query that renders as a pinnable page.
+ * A user-owned SQL query that renders as a pinnable page.
  *
  * Each user gets their own independent copy (copy-on-share model).
  * Slugs are unique per user for human-readable URLs.
@@ -19,20 +19,22 @@ use Illuminate\Support\Str;
  * @property int $user_id
  * @property string $name
  * @property string $slug
+ * @property string|null $prompt
  * @property string $sql_query
  * @property string|null $description
  * @property string|null $icon
  * @property \Illuminate\Support\Carbon $created_at
  * @property \Illuminate\Support\Carbon $updated_at
  */
-class DbView extends Model
+class Query extends Model
 {
-    protected $table = 'user_db_views';
+    protected $table = 'user_database_queries';
 
     protected $fillable = [
         'user_id',
         'name',
         'slug',
+        'prompt',
         'sql_query',
         'description',
         'icon',
@@ -44,7 +46,7 @@ class DbView extends Model
      * Appends a numeric suffix (-2, -3, …) if the base slug already
      * exists for the given user.
      *
-     * @param  string  $name  The view title to slugify
+     * @param  string  $name  The query title to slugify
      * @param  int  $userId  The owning user's ID
      */
     public static function generateSlug(string $name, int $userId): string
@@ -62,7 +64,7 @@ class DbView extends Model
     }
 
     /**
-     * Get the user who owns this DB view.
+     * Get the user who owns this query.
      */
     public function user(): BelongsTo
     {

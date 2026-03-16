@@ -57,11 +57,10 @@ return [
             'sslmode' => 'prefer',
         ],
 
-        // Read-only connection for DB Views feature.
-        // Mirrors the default connection. PostgreSQL enforces read-only at the
-        // transaction level via default_transaction_read_only. SQLite has no
-        // equivalent; read-only is enforced at the application level only
-        // (DbViewQueryExecutor validates SELECT-only).
+        // Read-only connection for Database Queries feature.
+        // Mirrors the default connection. Read-only is enforced at two levels:
+        // 1. Database: QueryExecutor sets the transaction read-only (PostgreSQL)
+        // 2. Application: QueryExecutor validates SELECT-only queries
         'readonly' => match (env('DB_CONNECTION', 'pgsql')) {
             'sqlite' => [
                 'driver' => 'sqlite',
@@ -83,7 +82,6 @@ return [
                 'prefix_indexes' => true,
                 'search_path' => 'public',
                 'sslmode' => 'prefer',
-                'options' => '-c default_transaction_read_only=on',
             ],
         },
 

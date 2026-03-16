@@ -1,7 +1,7 @@
 # Table Browser
 
 **Module:** `app/Base/Database`
-**Routes:** `admin/system/tables`
+**Routes:** `admin/system/database-tables`
 **Last Updated:** 2026-03-15
 
 ## Overview
@@ -12,7 +12,7 @@ All data access goes through Laravel's Schema Builder and Query Builder — full
 
 ## Pages
 
-### Index (`admin/system/tables`)
+### Index (`admin/system/database-tables`)
 
 Lists all registered tables with search filtering by table name or module. Displays:
 
@@ -21,13 +21,13 @@ Lists all registered tables with search filtering by table name or module. Displ
 - Row count
 - Stability status (toggle, visible only when `APP_ENV=local`)
 
-**Component:** `App\Base\Database\Livewire\Tables\Index`
+**Component:** `App\Base\Database\Livewire\DatabaseTables\Index`
 
-### Show (`admin/system/tables/{tableName}`)
+### Show (`admin/system/database-tables/{tableName}`)
 
 Displays the rows and column metadata of a single table.
 
-**Component:** `App\Base\Database\Livewire\Tables\Show`
+**Component:** `App\Base\Database\Livewire\DatabaseTables\Show`
 
 ## Features
 
@@ -113,7 +113,7 @@ Only tables registered in `TableRegistry` (the `base_table_registry` table) are 
 ```
 app/Base/Database/
 ├── Livewire/
-│   └── Tables/
+│   └── DatabaseTables/
 │       ├── Index.php              # Table listing with stability toggle
 │       └── Show.php               # Table row viewer
 ├── Services/
@@ -124,7 +124,7 @@ app/Base/Database/
 │   └── web.php                    # Route definitions
 └── ServiceProvider.php
 
-resources/core/views/livewire/admin/system/tables/
+resources/core/views/livewire/admin/system/database-tables/
 ├── index.blade.php
 └── show.blade.php
 ```
@@ -133,5 +133,5 @@ resources/core/views/livewire/admin/system/tables/
 
 | Route | Name | Component |
 |-------|------|-----------|
-| `GET admin/system/tables` | `admin.system.tables.index` | `Tables\Index` |
-| `GET admin/system/tables/{tableName}` | `admin.system.tables.show` | `Tables\Show` |
+| `GET admin/system/database-tables` | `admin.system.database-tables.index` | `DatabaseTables\Index` |
+| `GET admin/system/database-tables/{tableName}` | `admin.system.database-tables.show` | `DatabaseTables\Show` |

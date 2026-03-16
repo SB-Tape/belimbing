@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // (c) Ng Kiat Siong <kiatsiong.ng@gmail.com>
 
-/** @var \App\Base\Database\Livewire\Tables\Show $this */
+/** @var \App\Base\Database\Livewire\DatabaseTables\Show $this */
 ?>
 
 <div
@@ -86,7 +86,7 @@
                     @foreach($recentTables as $recent)
                         @if($recent !== $this->tableName)
                             <a
-                                href="{{ route('admin.system.tables.show', $recent) }}"
+                                href="{{ route('admin.system.database-tables.show', $recent) }}"
                                 wire:navigate
                                 class="flex items-center px-1.5 py-0.5 text-xs font-mono rounded-sm transition text-link hover:bg-surface-subtle truncate"
                                 x-show="!navFilter || '{{ $recent }}'.toLowerCase().includes(navFilter.toLowerCase())"
@@ -144,7 +144,7 @@
                         @foreach($tables as $tableEntry)
                             @php $isCurrentTable = $tableEntry['table_name'] === $this->tableName; @endphp
                             <a
-                                href="{{ route('admin.system.tables.show', $tableEntry['table_name']) }}"
+                                href="{{ route('admin.system.database-tables.show', $tableEntry['table_name']) }}"
                                 wire:navigate
                                 @class([
                                     'flex items-center px-1.5 py-0.5 text-xs font-mono rounded-sm transition truncate',
@@ -201,7 +201,7 @@
                         <x-icon name="heroicon-o-bars-3-bottom-left" class="w-4 h-4" />
                         {{ __('Tables') }}
                     </x-ui.button>
-                    <x-ui.button variant="ghost" size="sm" href="{{ route('admin.system.tables.index') }}">
+                    <x-ui.button variant="ghost" size="sm" href="{{ route('admin.system.database-tables.index') }}">
                         <x-icon name="heroicon-o-arrow-left" class="w-4 h-4" />
                         {{ __('Back to Registry') }}
                     </x-ui.button>
@@ -215,7 +215,7 @@
                         <span class="text-muted font-medium">{{ __('References:') }}</span>
                         @foreach($foreignKeys['outgoing'] as $fk)
                             <a
-                                href="{{ route('admin.system.tables.show', $fk['foreign_table']) }}"
+                                href="{{ route('admin.system.database-tables.show', $fk['foreign_table']) }}"
                                 wire:navigate
                                 class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-border-default bg-surface-card text-link hover:bg-surface-subtle transition-colors font-mono"
                                 title="{{ $fk['column'] }} → {{ $fk['foreign_table'] }}.{{ $fk['foreign_column'] }}"
@@ -229,7 +229,7 @@
                         <span class="text-muted font-medium {{ count($foreignKeys['outgoing']) > 0 ? 'ml-2' : '' }}">{{ __('Referenced by:') }}</span>
                         @foreach($foreignKeys['incoming'] as $fk)
                             <a
-                                href="{{ route('admin.system.tables.show', $fk['table']) }}"
+                                href="{{ route('admin.system.database-tables.show', $fk['table']) }}"
                                 wire:navigate
                                 class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-border-default bg-surface-card text-link hover:bg-surface-subtle transition-colors font-mono"
                                 title="{{ $fk['table'] }}.{{ $fk['column'] }} → {{ $fk['local_column'] }}"
@@ -296,7 +296,7 @@
                                             {{ $col['name'] }}
                                             @if($outgoingFk)
                                                 <a
-                                                    href="{{ route('admin.system.tables.show', $outgoingFk['foreign_table']) }}"
+                                                    href="{{ route('admin.system.database-tables.show', $outgoingFk['foreign_table']) }}"
                                                     wire:navigate
                                                     class="text-accent hover:text-accent-hover"
                                                     title="{{ __('Go to :table', ['table' => $outgoingFk['foreign_table']]) }}"
@@ -351,7 +351,7 @@
                                         >
                                             @if($outgoingFk && $value !== null)
                                                 <a
-                                                    href="{{ route('admin.system.tables.show', $outgoingFk['foreign_table']) }}?search={{ urlencode((string) $value) }}"
+                                                    href="{{ route('admin.system.database-tables.show', $outgoingFk['foreign_table']) }}?search={{ urlencode((string) $value) }}"
                                                     wire:navigate
                                                     class="text-link hover:underline"
                                                     title="{{ __('View in :table', ['table' => $outgoingFk['foreign_table']]) }}"

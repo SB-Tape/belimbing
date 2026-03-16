@@ -9,9 +9,9 @@ use App\Base\Foundation\Enums\BlbErrorCode;
 use App\Base\Foundation\Exceptions\BlbDataContractException;
 
 /**
- * Thrown when a DB View query fails validation or execution.
+ * Thrown when a user-defined database query fails validation or execution.
  */
-final class DbViewQueryException extends BlbDataContractException
+final class BlbQueryException extends BlbDataContractException
 {
     /**
      * Create an exception for an invalid query.
@@ -21,8 +21,8 @@ final class DbViewQueryException extends BlbDataContractException
     public static function invalidQuery(string $reason): self
     {
         return new self(
-            'Invalid DB View query: '.$reason,
-            BlbErrorCode::DB_VIEW_QUERY_INVALID,
+            'Invalid query: '.$reason,
+            BlbErrorCode::DATABASE_QUERY_INVALID,
             ['reason' => $reason],
         );
     }
@@ -36,8 +36,8 @@ final class DbViewQueryException extends BlbDataContractException
     public static function executionFailed(string $message, \Throwable $previous): self
     {
         return new self(
-            'DB View query execution failed: '.$message,
-            BlbErrorCode::DB_VIEW_QUERY_EXECUTION_FAILED,
+            'Query execution failed: '.$message,
+            BlbErrorCode::DATABASE_QUERY_EXECUTION_FAILED,
             ['error' => $message],
             previous: $previous,
         );

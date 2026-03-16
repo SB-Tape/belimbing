@@ -6,19 +6,19 @@
 return [
     'items' => [
         [
-            'id' => 'system.tables',
+            'id' => 'system.database-tables',
             'label' => 'Database Tables',
             'icon' => 'heroicon-o-table-cells',
-            'route' => 'admin.system.tables.index',
+            'route' => 'admin.system.database-tables.index',
             'permission' => 'admin.system_table.list',
             'parent' => 'system',
             'position' => 10,
         ],
         [
-            'id' => 'system.db-views',
-            'label' => 'DB Views',
+            'id' => 'system.database-queries',
+            'label' => 'Database Queries',
             'icon' => 'heroicon-o-circle-stack',
-            'route' => 'admin.system.db-views.index',
+            'route' => 'admin.system.database-queries.index',
             'permission' => 'admin.system_table.list',
             'parent' => 'system',
             'position' => 11,

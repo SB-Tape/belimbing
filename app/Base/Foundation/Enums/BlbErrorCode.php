@@ -23,8 +23,8 @@ enum BlbErrorCode: string
     case AUTHZ_DENIED = 'authz_denied';
     case AUTHZ_UNKNOWN_CAPABILITY = 'authz_unknown_capability';
 
-    case DB_VIEW_QUERY_INVALID = 'db_view_query_invalid';
-    case DB_VIEW_QUERY_EXECUTION_FAILED = 'db_view_query_execution_failed';
+    case DATABASE_QUERY_INVALID = 'database_query_invalid';
+    case DATABASE_QUERY_EXECUTION_FAILED = 'database_query_execution_failed';
 
     case LICENSEE_COMPANY_DELETION_FORBIDDEN = 'licensee_company_deletion_forbidden';
     case SYSTEM_EMPLOYEE_DELETION_FORBIDDEN = 'system_employee_deletion_forbidden';

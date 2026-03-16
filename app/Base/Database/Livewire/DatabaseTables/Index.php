@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // (c) Ng Kiat Siong <kiatsiong.ng@gmail.com>
 
-namespace App\Base\Database\Livewire\Tables;
+namespace App\Base\Database\Livewire\DatabaseTables;
 
 use App\Base\Database\Models\TableRegistry;
 use App\Base\Foundation\Livewire\Concerns\ResetsPaginationOnSearch;
@@ -42,7 +42,7 @@ class Index extends Component
 
     public function render(): \Illuminate\Contracts\View\View
     {
-        return view('livewire.admin.system.tables.index', [
+        return view('livewire.admin.system.database-tables.index', [
             'tables' => TableRegistry::query()
                 ->when($this->search, function ($query, $search): void {
                     $query->where(function ($q) use ($search): void {

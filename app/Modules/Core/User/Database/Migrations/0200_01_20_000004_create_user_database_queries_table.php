@@ -15,17 +15,18 @@ return new class extends Migration
     /**
      * Run the migrations.
      *
-     * Creates the db_views table for user-owned saved SQL queries
+     * Creates the user_database_queries table for user-owned SQL queries
      * that render as pinnable pages. Each user gets their own
      * independent copy (copy-on-share model).
      */
     public function up(): void
     {
-        Schema::create('user_db_views', function (Blueprint $table): void {
+        Schema::create('user_database_queries', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
             $table->string('name', 150);
             $table->string('slug', 200);
+            $table->text('prompt')->nullable();
             $table->text('sql_query');
             $table->text('description')->nullable();
             $table->string('icon', 100)->nullable();
@@ -35,7 +36,7 @@ return new class extends Migration
             $table->index('user_id');
         });
 
-        $this->registerTable('user_db_views');
+        $this->registerTable('user_database_queries');
     }
 
     /**
@@ -43,7 +44,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        $this->unregisterTable('user_db_views');
-        Schema::dropIfExists('user_db_views');
+        $this->unregisterTable('user_database_queries');
+        Schema::dropIfExists('user_database_queries');
     }
 };

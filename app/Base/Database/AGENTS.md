@@ -179,7 +179,7 @@ php artisan blb:table:unstable --module=AI
 php artisan blb:table:unstable --list
 ```
 
-Or toggle it off in the admin UI at `admin/system/tables` (local env only).
+Or toggle it off in the admin UI at `admin/system/database-tables` (local env only).
 
 **Rule:** Never modify the schema of a stable table without first marking it unstable. `migrate:fresh` skips stable tables — if the schema is outdated, the migration will fail or produce silent data corruption.
 

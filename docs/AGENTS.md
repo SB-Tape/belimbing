@@ -9,7 +9,7 @@
 | UI / Blade / Tailwind / Alpine | `resources/core/views/AGENTS.md` |
 | AI tool framework (Tool contract, AbstractTool, schema builder) | `docs/Base/AI/tool-framework.md` |
 | Log Viewer (admin/system/logs) | `docs/Base/Log/log-viewer.md` |
-| Table Browser (admin/system/tables) | `docs/Base/Database/table-browser.md` |
+| Table Browser (admin/system/database-tables) | `docs/Base/Database/table-browser.md` |
 | Scratch / temporary work | `docs/scratch/` |
 
 ## For Developers & Licensees

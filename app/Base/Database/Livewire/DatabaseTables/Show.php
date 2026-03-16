@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // (c) Ng Kiat Siong <kiatsiong.ng@gmail.com>
 
-namespace App\Base\Database\Livewire\Tables;
+namespace App\Base\Database\Livewire\DatabaseTables;
 
 use App\Base\Database\Services\TableInspector;
 use App\Base\Foundation\Livewire\Concerns\ResetsPaginationOnSearch;
@@ -135,7 +135,7 @@ class Show extends Component
         $tablesGrouped = $inspector->allTablesGroupedByModule();
         $recentTables = session('recent_tables', []);
 
-        return view('livewire.admin.system.tables.show', [
+        return view('livewire.admin.system.database-tables.show', [
             'columns' => $columns,
             'rows' => $inspector->rows(
                 $this->tableName,
