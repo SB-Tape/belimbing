@@ -102,7 +102,7 @@ describe('parallel provider', function () {
         Http::fake([
             'api.parallel.ai/*' => Http::response([
                 'results' => [
-                    ['title' => 'Test', 'url' => SEARCH_EXAMPLE_URL, 'snippet' => 'A test result'],
+                    ['title' => 'Test', 'url' => SEARCH_EXAMPLE_URL, 'excerpts' => ['A test result']],
                 ],
             ]),
         ]);
@@ -118,8 +118,8 @@ describe('parallel provider', function () {
         Http::fake([
             'api.parallel.ai/*' => Http::response([
                 'results' => [
-                    ['title' => 'First Result', 'url' => SEARCH_EXAMPLE_URL.'/1', 'snippet' => 'First snippet'],
-                    ['title' => 'Second Result', 'url' => SEARCH_EXAMPLE_URL.'/2', 'snippet' => 'Second snippet'],
+                    ['title' => 'First Result', 'url' => SEARCH_EXAMPLE_URL.'/1', 'excerpts' => ['First snippet']],
+                    ['title' => 'Second Result', 'url' => SEARCH_EXAMPLE_URL.'/2', 'excerpts' => ['Second snippet']],
                 ],
             ]),
         ]);
@@ -253,7 +253,7 @@ describe('multi-provider fallback', function () {
 
         Http::fake([
             'api.parallel.ai/*' => Http::response([
-                'results' => [['title' => 'Should Not Appear', 'url' => SEARCH_EXAMPLE_URL, 'snippet' => 'nope']],
+                'results' => [['title' => 'Should Not Appear', 'url' => SEARCH_EXAMPLE_URL, 'excerpts' => ['nope']]],
             ]),
             'api.search.brave.com/*' => Http::response([
                 'web' => [
@@ -291,12 +291,12 @@ describe('caching', function () {
             'api.parallel.ai/*' => Http::sequence()
                 ->push([
                     'results' => [
-                        ['title' => 'First Call', 'url' => SEARCH_EXAMPLE_URL, 'snippet' => 'First'],
+                        ['title' => 'First Call', 'url' => SEARCH_EXAMPLE_URL, 'excerpts' => ['First']],
                     ],
                 ])
                 ->push([
                     'results' => [
-                        ['title' => 'Second Call', 'url' => SEARCH_EXAMPLE_URL, 'snippet' => 'Second'],
+                        ['title' => 'Second Call', 'url' => SEARCH_EXAMPLE_URL, 'excerpts' => ['Second']],
                     ],
                 ]),
         ]);

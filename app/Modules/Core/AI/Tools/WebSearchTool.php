@@ -216,12 +216,20 @@ class WebSearchTool extends AbstractTool
         $providerNames = implode(',', array_column($providers, 'name'));
         $cacheKey = 'lara_tool:web_search:'.md5($providerNames.$query.$count.$freshness);
 
-        /** @var string $cached */
-        $cached = Cache::remember($cacheKey, $cacheTtl * 60, function () use ($providers, $query, $count, $freshness): string {
-            return $this->performSearchWithFallback($providers, $query, $count, $freshness);
-        });
+        $cached = Cache::get($cacheKey);
 
-        return ToolResult::success($cached);
+        if (is_string($cached)) {
+            return ToolResult::success($cached);
+        }
+
+        $result = $this->performSearchWithFallback($providers, $query, $count, $freshness);
+
+        // Only cache successful results — never cache errors.
+        if (! str_starts_with($result, 'Search failed:')) {
+            Cache::put($cacheKey, $result, $cacheTtl * 60);
+        }
+
+        return ToolResult::success($result);
     }
 
     /**

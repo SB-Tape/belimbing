@@ -133,7 +133,7 @@
                                 @else
                                     {{-- Success result --}}
                                     <div class="rounded-lg bg-surface-subtle border border-border-default p-3 max-h-64 overflow-y-auto">
-                                        <pre class="text-xs text-ink whitespace-pre-wrap break-words font-mono">{{ $tryItResult }}</pre>
+                                        <div class="agent-prose max-w-full overflow-x-auto text-xs">{!! $markdown->render($tryItResult) !!}</div>
                                     </div>
                                 @endif
                             </div>
@@ -216,7 +216,7 @@
 
                 {{-- Configuration / Setup --}}
                 @if($toolName === 'web_search')
-                    @include('core::livewire.ai.tools.web-search-config')
+                    @include('livewire.ai.tools.web-search-config')
                 @endif
 
                 @if($toolName !== 'web_search' && count($metadata->configFields) > 0)

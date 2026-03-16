@@ -59,7 +59,20 @@ class WebSearchService
             return ['results' => []];
         }
 
-        return ['results' => $this->normalizeResults($results, 'snippet')];
+        return ['results' => array_values(array_map(function (array $result): array {
+            $title = $result['title'] ?? 'Untitled';
+            $url = $result['url'] ?? '';
+
+            // Parallel returns excerpts as an array of strings.
+            $excerpts = $result['excerpts'] ?? [];
+            $snippet = is_array($excerpts) ? implode(' ', $excerpts) : ($excerpts ?? '');
+
+            return [
+                'title' => is_string($title) ? $title : 'Untitled',
+                'url' => is_string($url) ? $url : '',
+                'snippet' => is_string($snippet) ? $snippet : '',
+            ];
+        }, $results))];
     }
 
     /**
@@ -107,7 +120,8 @@ class WebSearchService
             ])
                 ->timeout($timeoutSeconds)
                 ->post(self::PARALLEL_ENDPOINT, [
-                    'query' => $query,
+                    'objective' => $query,
+                    'search_queries' => [$query],
                     'max_results' => $count,
                 ]);
         } catch (ConnectionException $e) {
@@ -115,7 +129,7 @@ class WebSearchService
         }
 
         return $response->failed()
-            ? ['error' => 'HTTP '.$response->status()]
+            ? ['error' => $this->describeFailure($response)]
             : ['response' => $response];
     }
 
@@ -136,7 +150,7 @@ class WebSearchService
         }
 
         return $response->failed()
-            ? ['error' => 'HTTP '.$response->status()]
+            ? ['error' => $this->describeFailure($response)]
             : ['response' => $response];
     }
 
@@ -157,5 +171,21 @@ class WebSearchService
                 'snippet' => is_string($snippet) ? $snippet : '',
             ];
         }, $results));
+    }
+
+    /**
+     * Build a descriptive error string from a failed HTTP response.
+     */
+    private function describeFailure(\Illuminate\Http\Client\Response $response): string
+    {
+        $status = $response->status();
+        $body = $response->json('error.message')
+            ?? $response->json('message')
+            ?? $response->json('detail')
+            ?? trim(mb_substr($response->body(), 0, 200));
+
+        return $body !== '' && $body !== null
+            ? "HTTP {$status}: {$body}"
+            : "HTTP {$status}";
     }
 }

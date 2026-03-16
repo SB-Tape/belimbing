@@ -12,6 +12,7 @@ use App\Base\AI\Tools\ToolResult;
 use App\Base\Settings\Contracts\SettingsService;
 use App\Modules\Core\AI\Enums\ToolReadiness;
 use App\Modules\Core\AI\Services\AgentToolRegistry;
+use App\Modules\Core\AI\Services\ChatMarkdownRenderer;
 use App\Modules\Core\AI\Services\ToolMetadataRegistry;
 use App\Modules\Core\AI\Services\ToolReadinessService;
 use App\Modules\Core\AI\Tools\WebSearchTool;
@@ -243,6 +244,7 @@ class Workspace extends Component
                 'readiness' => ToolReadiness::UNAVAILABLE,
                 'lastVerified' => null,
                 'availableProviders' => [],
+                'markdown' => app(ChatMarkdownRenderer::class),
             ]);
         }
 
@@ -251,6 +253,7 @@ class Workspace extends Component
             'readiness' => $readinessService->readiness($this->toolName),
             'lastVerified' => $this->getLastVerified(),
             'availableProviders' => WebSearchTool::PROVIDERS,
+            'markdown' => app(ChatMarkdownRenderer::class),
         ]);
     }
 
