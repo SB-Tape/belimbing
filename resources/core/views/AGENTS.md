@@ -1,4 +1,4 @@
-# UI Architect — Blade / Livewire / Tailwind / Alpine
+# UI Architect — Blade / Livewire 4 / Tailwind CSS 4 / Alpine.js 3
 
 **Canonical UI guidance for all agents.** `.cursor/rules/ui-architect.mdc` is an adapter that references this file.
 
