@@ -5,7 +5,47 @@
 /** @var \App\Base\Database\Livewire\Queries\Show $this */
 ?>
 
-<div>
+<div
+    x-data="{
+        savedName: @js($savedName),
+        savedSql: @js($savedSql),
+        savedDescription: @js($savedDescription),
+        savedPrompt: @js($savedPrompt),
+        unsavedChanges: false,
+        skipNextNavigateConfirm: false,
+    }"
+    @allow-next-navigate.window="skipNextNavigateConfirm = true"
+    @query-saved.window="
+        savedName = $wire.editName;
+        savedSql = $wire.editSql;
+        savedDescription = $wire.editDescription;
+        savedPrompt = $wire.editPrompt;
+        skipNextNavigateConfirm = false;
+    "
+    x-init="
+        window.__navGuardCleanup?.();
+        const isDirty = () => $wire.editName !== savedName || $wire.editSql !== savedSql || $wire.editDescription !== savedDescription || $wire.editPrompt !== savedPrompt;
+        const beforeUnloadHandler = (e) => { if (isDirty()) { e.preventDefault(); e.returnValue = 'unsaved'; } };
+        const navigateHandler = (e) => {
+            if (skipNextNavigateConfirm) { skipNextNavigateConfirm = false; return; }
+            if (!isDirty()) return;
+            e.preventDefault();
+            if (confirm({{ json_encode(__('You have unsaved changes. Leave anyway?')) }})) {
+                window.__navGuardCleanup?.();
+                const url = e.detail.url;
+                Livewire.navigate(typeof url === 'string' ? url : url.toString());
+            }
+        };
+        window.addEventListener('beforeunload', beforeUnloadHandler);
+        document.addEventListener('alpine:navigate', navigateHandler);
+        window.__navGuardCleanup = () => {
+            window.removeEventListener('beforeunload', beforeUnloadHandler);
+            document.removeEventListener('alpine:navigate', navigateHandler);
+            window.__navGuardCleanup = null;
+        };
+    "
+    x-effect="unsavedChanges = $wire.editName !== savedName || $wire.editSql !== savedSql || $wire.editDescription !== savedDescription || $wire.editPrompt !== savedPrompt;"
+>
     <x-slot name="title">{{ $editName }}</x-slot>
 
     <div class="space-y-section-gap">
@@ -113,6 +153,7 @@
                         size="sm"
                         wire:click="delete"
                         wire:confirm="{{ __('Are you sure you want to delete this query?') }}"
+                        @click="$dispatch('allow-next-navigate')"
                     >
                         <x-icon name="heroicon-o-trash" class="w-4 h-4" />
                         {{ __('Delete') }}
@@ -122,12 +163,13 @@
                         variant="danger-ghost"
                         size="sm"
                         wire:click="delete"
+                        @click="$dispatch('allow-next-navigate')"
                     >
                         <x-icon name="heroicon-o-x-mark" class="w-4 h-4" />
                         {{ __('Discard') }}
                     </x-ui.button>
                 @endif
-                <x-ui.button variant="primary" wire:click="save">
+                <x-ui.button variant="primary" wire:click="save" @click="$dispatch('allow-next-navigate')">
                     @if($this->isDirty)
                         <span class="relative flex h-2 w-2">
                             <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent-on opacity-75"></span>
@@ -228,7 +270,7 @@
 
         {{-- Action row: Run --}}
         <div class="flex flex-wrap items-center gap-2">
-            <x-ui.button variant="primary" size="sm" wire:click="runQuery">
+            <x-ui.button variant="primary" size="sm" wire:click="runQuery" @click="$dispatch('allow-next-navigate')">
                 <x-icon name="heroicon-o-play" class="w-4 h-4" />
                 {{ __('Run') }}
             </x-ui.button>

@@ -14,7 +14,9 @@ use App\Base\Database\Services\QueryExecutor;
 use App\Modules\Core\User\Models\Query;
 use App\Modules\Core\User\Models\User;
 use App\Modules\Core\User\Models\UserPin;
+use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -137,6 +139,8 @@ class Show extends Component
         $this->query->description = $validated['description'];
         $this->query->sql_query = $validated['sql_query'];
         $this->query->save();
+
+        $this->dispatch('query-saved');
     }
 
     /**
@@ -271,7 +275,7 @@ class Show extends Component
 
             if ($parsed['title'] === '' && $parsed['description'] === '' && $parsed['sql'] === '') {
                 $this->aiError = __('Could not parse the AI response. Raw output: :output', [
-                    'output' => \Illuminate\Support\Str::limit($content, 200),
+                    'output' => Str::limit($content, 200),
                 ]);
 
                 return;
@@ -365,7 +369,7 @@ class Show extends Component
             ->all();
     }
 
-    public function render(): \Illuminate\Contracts\View\View
+    public function render(): View
     {
         $columns = [];
         $rows = [];
@@ -395,6 +399,11 @@ class Show extends Component
             }
         }
 
+        $savedName = $this->query?->name ?? __('Untitled Query');
+        $savedSql = $this->query?->sql_query ?? '';
+        $savedDescription = $this->query?->description ?? '';
+        $savedPrompt = $this->query?->prompt ?? '';
+
         return view('livewire.admin.system.database-queries.show', [
             'columns' => $columns,
             'rows' => $rows,
@@ -406,6 +415,10 @@ class Show extends Component
             'availableModels' => $this->loadAvailableModels(
                 (int) auth()->user()?->getCompanyId()
             ),
+            'savedName' => $savedName,
+            'savedSql' => $savedSql,
+            'savedDescription' => $savedDescription,
+            'savedPrompt' => $savedPrompt,
         ]);
     }
 
