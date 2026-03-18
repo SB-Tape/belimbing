@@ -14,6 +14,7 @@
         <x-ui.card>
             <form wire:submit="store" class="space-y-6">
                 <x-ui.select
+                    id="user-company"
                     wire:model="companyId"
                     label="{{ __('Company') }}"
                     :error="$errors->first('companyId')"

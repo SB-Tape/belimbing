@@ -33,7 +33,7 @@
         <x-ui.card>
             <h3 class="text-[11px] uppercase tracking-wider font-semibold text-muted mb-4">{{ __('Role Details') }}</h3>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <dl class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 @if (! $role->is_system && $canEdit)
                     <div x-data="{ editing: false, val: @js($role->name) }">
                         <dt class="text-[11px] uppercase tracking-wider font-semibold text-muted">{{ __('Name') }}</dt>
@@ -134,7 +134,7 @@
                         <dd class="mt-0.5 text-sm text-ink">{{ $role->description ?? '—' }}</dd>
                     </div>
                 @endif
-            </div>
+            </dl>
         </x-ui.card>
 
         {{-- Capabilities --}}

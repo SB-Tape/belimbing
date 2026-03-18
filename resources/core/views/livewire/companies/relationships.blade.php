@@ -96,25 +96,19 @@
         <form wire:submit="createRelationship" class="space-y-6 p-6">
             <h3 class="text-xl font-medium tracking-tight text-ink">{{ __('Add Relationship') }}</h3>
 
-            <div class="space-y-1">
-                <label class="block text-[11px] uppercase tracking-wider font-semibold text-muted">{{ __('Related Company') }}</label>
-                <x-ui.select wire:model="createRelatedCompanyId">
+            <x-ui.select id="relationship-related-company" wire:model="createRelatedCompanyId" :label="__('Related Company')">
                     <option value="0">{{ __('— Select Company —') }}</option>
                     @foreach($availableCompanies as $availableCompany)
                         <option value="{{ $availableCompany->id }}">{{ $availableCompany->name }}</option>
                     @endforeach
-                </x-ui.select>
-            </div>
+            </x-ui.select>
 
-            <div class="space-y-1">
-                <label class="block text-[11px] uppercase tracking-wider font-semibold text-muted">{{ __('Relationship Type') }}</label>
-                <x-ui.select wire:model="createRelationshipTypeId">
+            <x-ui.select id="relationship-type" wire:model="createRelationshipTypeId" :label="__('Relationship Type')">
                     <option value="0">{{ __('— Select Type —') }}</option>
                     @foreach($relationshipTypes as $type)
                         <option value="{{ $type->id }}">{{ $type->name }}</option>
                     @endforeach
-                </x-ui.select>
-            </div>
+            </x-ui.select>
 
             <x-ui.input
                 wire:model="createEffectiveFrom"

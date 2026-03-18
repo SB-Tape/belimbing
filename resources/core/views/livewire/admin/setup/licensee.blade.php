@@ -23,7 +23,7 @@
                 <p class="text-xs text-muted mb-4">{{ __('Choose a company to designate as the licensee. Its internal ID will be reassigned to 1.') }}</p>
 
                 <form wire:submit="promoteExisting" class="space-y-4 max-w-md">
-                    <x-ui.select wire:model="selectedCompanyId" label="{{ __('Company') }}" :error="$errors->first('selectedCompanyId')">
+                    <x-ui.select id="licensee-company" wire:model="selectedCompanyId" label="{{ __('Company') }}" :error="$errors->first('selectedCompanyId')">
                         <option value="">{{ __('Select a company...') }}</option>
                         @foreach($companies as $company)
                             <option value="{{ $company->id }}">{{ $company->name }}{{ $company->legal_name ? ' ('.$company->legal_name.')' : '' }}</option>

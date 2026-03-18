@@ -1,11 +1,11 @@
 @props(['user'])
 
 <div class="dropdown dropdown-end">
-    <label tabindex="0" class="w-10 h-10 rounded-full inline-flex items-center justify-center hover:bg-surface-subtle transition-colors">
+    <button type="button" class="w-10 h-10 rounded-full inline-flex items-center justify-center hover:bg-surface-subtle transition-colors" aria-label="{{ __('Open user menu') }}">
         <div class="w-10 rounded-full bg-surface-subtle flex items-center justify-center">
             <span class="text-sm font-semibold text-ink">{{ $user->initials() }}</span>
         </div>
-    </label>
+    </button>
     <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-surface-card rounded-box w-52">
         <li class="disabled">
             <div class="flex flex-col items-start">
@@ -32,4 +32,3 @@
         </li>
     </ul>
 </div>
-

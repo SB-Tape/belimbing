@@ -14,14 +14,14 @@
         <x-ui.card>
             <form wire:submit="store" class="space-y-6">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <x-ui.select wire:model="companyId" label="{{ __('Company') }}" :error="$errors->first('companyId')">
+                    <x-ui.select id="employee-company" wire:model="companyId" label="{{ __('Company') }}" :error="$errors->first('companyId')">
                         <option value="">{{ __('Select company...') }}</option>
                         @foreach($companies as $company)
                             <option value="{{ $company->id }}">{{ $company->name }}</option>
                         @endforeach
                     </x-ui.select>
 
-                    <x-ui.select wire:model="departmentId" label="{{ __('Department') }}" :error="$errors->first('departmentId')">
+                    <x-ui.select id="employee-department" wire:model="departmentId" label="{{ __('Department') }}" :error="$errors->first('departmentId')">
                         <option value="">{{ __('None') }}</option>
                         @foreach($departments as $dept)
                             <option value="{{ $dept->id }}">{{ $dept->type->name }}</option>
@@ -68,7 +68,7 @@
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <x-ui.select wire:model.live="employeeType" label="{{ __('Employee Type') }}" :error="$errors->first('employeeType')">
+                    <x-ui.select id="employee-type" wire:model.live="employeeType" label="{{ __('Employee Type') }}" :error="$errors->first('employeeType')">
                         <optgroup label="{{ __('Human') }}">
                             @foreach($employeeTypes->where('code', '!=', 'agent') as $type)
                                 <option value="{{ $type->code }}">{{ $type->label }}</option>
@@ -81,7 +81,7 @@
                         </optgroup>
                     </x-ui.select>
 
-                    <x-ui.select wire:model="status" label="{{ __('Status') }}" :error="$errors->first('status')">
+                    <x-ui.select id="employee-status" wire:model="status" label="{{ __('Status') }}" :error="$errors->first('status')">
                         <option value="pending">{{ __('Pending') }}</option>
                         <option value="probation">{{ __('Probation') }}</option>
                         <option value="active">{{ __('Active') }}</option>
@@ -135,7 +135,7 @@
                 @endif
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <x-ui.select wire:model="supervisorId" label="{{ __('Supervisor') }}" :error="$errors->first('supervisorId')">
+                    <x-ui.select id="employee-supervisor" wire:model="supervisorId" label="{{ __('Supervisor') }}" :error="$errors->first('supervisorId')">
                         <option value="">{{ $employeeType === 'agent' ? __('Select supervisor (required)') : __('None') }}</option>
                         @foreach($supervisors as $supervisor)
                             <option value="{{ $supervisor->id }}">{{ $supervisor->full_name }}</option>
@@ -143,7 +143,7 @@
                     </x-ui.select>
 
                         @if($employeeType !== 'agent')
-                    <x-ui.select wire:model="userId" label="{{ __('User Account') }}" :error="$errors->first('userId')">
+                    <x-ui.select id="employee-user-account" wire:model="userId" label="{{ __('User Account') }}" :error="$errors->first('userId')">
                         <option value="">{{ __('None') }}</option>
                         @foreach($users as $u)
                             <option value="{{ $u->id }}">{{ $u->name }}</option>

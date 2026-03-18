@@ -146,7 +146,7 @@
                     :error="$errors->first('createDescription')"
                 />
 
-                <x-ui.checkbox wire:model="createIsActive" label="{{ __('Active') }}" />
+                <x-ui.checkbox id="legal-entity-type-is-active" wire:model="createIsActive" label="{{ __('Active') }}" />
             </div>
 
             <div class="flex items-center gap-4">

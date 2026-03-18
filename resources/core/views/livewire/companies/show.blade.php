@@ -485,15 +485,12 @@
             <div class="p-6 space-y-4">
                 <h3 class="text-[11px] uppercase tracking-wider font-semibold text-muted">{{ __('Attach Address') }}</h3>
 
-                <div class="space-y-1">
-                    <label class="block text-[11px] uppercase tracking-wider font-semibold text-muted">{{ __('Address') }}</label>
-                    <x-ui.select wire:model="attachAddressId">
+                <x-ui.select id="company-attach-address" wire:model="attachAddressId" :label="__('Address')">
                         <option value="0">{{ __('Select an address...') }}</option>
                         @foreach($availableAddresses as $addr)
                             <option value="{{ $addr->id }}">{{ $addr->label }} — {{ collect([$addr->line1, $addr->locality, $addr->country_iso])->filter()->implode(', ') }}</option>
                         @endforeach
-                    </x-ui.select>
-                </div>
+                </x-ui.select>
 
                 <div class="space-y-1">
                     <label class="block text-[11px] uppercase tracking-wider font-semibold text-muted">{{ __('Kind') }}</label>
@@ -507,7 +504,7 @@
                     </div>
                 </div>
 
-                <x-ui.checkbox wire:model="attachIsPrimary" label="{{ __('Primary Address') }}" />
+                <x-ui.checkbox id="company-attach-is-primary" wire:model="attachIsPrimary" label="{{ __('Primary Address') }}" />
 
                 <div>
                     <x-ui.input wire:model="attachPriority" label="{{ __('Priority') }}" type="number" />
@@ -600,7 +597,7 @@
                         </div>
                     </div>
                     <div class="mt-3">
-                        <x-ui.checkbox wire:model="isPrimary" label="{{ __('Primary Address') }}" />
+                        <x-ui.checkbox id="company-address-is-primary" wire:model="isPrimary" label="{{ __('Primary Address') }}" />
                     </div>
                 </div>
                 @endif

@@ -141,7 +141,7 @@
                         />
 
                         <div class="md:col-span-2">
-                            <x-ui.select wire:model="verificationStatus" label="{{ __('Verification Status') }}" :error="$errors->first('verificationStatus')">
+                            <x-ui.select id="address-verification-status" wire:model="verificationStatus" label="{{ __('Verification Status') }}" :error="$errors->first('verificationStatus')">
                                 <option value="unverified">{{ __('Unverified') }}</option>
                                 <option value="suggested">{{ __('Suggested') }}</option>
                                 <option value="verified">{{ __('Verified') }}</option>

@@ -14,7 +14,7 @@
         <x-ui.card>
             <form wire:submit="save" class="space-y-4 max-w-lg">
                 <div>
-                    <label class="block text-[11px] uppercase tracking-wider font-semibold text-muted">{{ __('Code') }}</label>
+                    <p class="block text-[11px] uppercase tracking-wider font-semibold text-muted">{{ __('Code') }}</p>
                     <p class="text-sm text-ink font-mono mt-0.5">{{ $employeeType->code }}</p>
                     <p class="text-xs text-muted mt-1">{{ __('Code cannot be changed.') }}</p>
                 </div>

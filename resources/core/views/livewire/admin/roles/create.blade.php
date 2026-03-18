@@ -39,6 +39,7 @@
                 />
 
                 <x-ui.select
+                    id="role-company-scope"
                     wire:model="companyId"
                     label="{{ __('Company Scope') }}"
                     :error="$errors->first('companyId')"

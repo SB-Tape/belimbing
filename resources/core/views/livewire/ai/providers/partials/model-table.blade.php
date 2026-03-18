@@ -1,4 +1,9 @@
 <?php
+
+use App\Modules\Core\AI\Models\AiProvider;
+use App\Modules\Core\AI\Models\AiProviderModel;
+use Illuminate\Support\Collection;
+
 // SPDX-License-Identifier: AGPL-3.0-only
 // (c) Ng Kiat Siong <kiatsiong.ng@gmail.com>
 
@@ -9,8 +14,8 @@
  * flow (inline after connection). Requires parent Livewire component to use
  * ManagesModels, ManagesSync, ManagesProviderHelp, and FormatsDisplayValues traits.
  *
- * @var \App\Modules\Core\AI\Models\AiProvider $provider
- * @var \Illuminate\Support\Collection<\App\Modules\Core\AI\Models\AiProviderModel> $models
+ * @var AiProvider $provider
+ * @var Collection<AiProviderModel> $models
  */
 ?>
 <div class="bg-surface-subtle/30 border-t border-border-default px-8 py-3">
@@ -138,6 +143,7 @@
                         <td class="px-table-cell-x py-table-cell-y whitespace-nowrap" @click.stop>
                             <div class="flex justify-center">
                             <x-ui.checkbox
+                                id="model-active-{{ $model->id }}"
                                 :checked="$model->is_active"
                                 wire:click="toggleModelActive({{ $model->id }})"
                                 aria-label="{{ $model->is_active ? __('Deactivate :model', ['model' => $model->model_id]) : __('Activate :model', ['model' => $model->model_id]) }}"

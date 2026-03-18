@@ -14,7 +14,7 @@
         <x-ui.card>
             <h3 class="text-[11px] uppercase tracking-wider font-semibold text-muted mb-4">{{ __('Address Details') }}</h3>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <dl class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div x-data="{ editing: false, val: '{{ addslashes($address->label ?? '') }}' }">
                     <dt class="text-[11px] uppercase tracking-wider font-semibold text-muted">{{ __('Label') }}</dt>
                     <dd class="text-sm text-ink">
@@ -174,7 +174,7 @@
                         </select>
                     </dd>
                 </div>
-            </div>
+            </dl>
         </x-ui.card>
 
         <x-ui.card>

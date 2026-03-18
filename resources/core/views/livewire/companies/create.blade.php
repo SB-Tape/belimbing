@@ -14,14 +14,14 @@
         <x-ui.card>
             <form wire:submit="store" class="space-y-6">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <x-ui.select wire:model="parentId" label="{{ __('Parent Company') }}" :error="$errors->first('parentId')">
+                    <x-ui.select id="company-parent" wire:model="parentId" label="{{ __('Parent Company') }}" :error="$errors->first('parentId')">
                         <option value="">{{ __('None') }}</option>
                         @foreach($parentCompanies as $parentCompany)
                             <option value="{{ $parentCompany->id }}">{{ $parentCompany->name }}</option>
                         @endforeach
                     </x-ui.select>
 
-                    <x-ui.select wire:model="status" label="{{ __('Status') }}" :error="$errors->first('status')">
+                    <x-ui.select id="company-status" wire:model="status" label="{{ __('Status') }}" :error="$errors->first('status')">
                         <option value="active">{{ __('Active') }}</option>
                         <option value="suspended">{{ __('Suspended') }}</option>
                         <option value="pending">{{ __('Pending') }}</option>
@@ -55,7 +55,7 @@
                         :error="$errors->first('legalName')"
                     />
 
-                    <x-ui.select wire:model="legalEntityTypeId" label="{{ __('Legal Entity Type') }}" :error="$errors->first('legalEntityTypeId')">
+                    <x-ui.select id="company-legal-entity-type" wire:model="legalEntityTypeId" label="{{ __('Legal Entity Type') }}" :error="$errors->first('legalEntityTypeId')">
                         <option value="">{{ __('Select type...') }}</option>
                         @foreach($legalEntityTypes as $type)
                             <option value="{{ $type->id }}">{{ $type->name }}</option>
@@ -80,7 +80,7 @@
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <x-ui.select wire:model="jurisdiction" label="{{ __('Jurisdiction') }}" :error="$errors->first('jurisdiction')">
+                    <x-ui.select id="company-jurisdiction" wire:model="jurisdiction" label="{{ __('Jurisdiction') }}" :error="$errors->first('jurisdiction')">
                         <option value="">{{ __('Select country...') }}</option>
                         @foreach($countries as $country)
                             <option value="{{ $country->iso }}">{{ $country->country }} ({{ $country->iso }})</option>

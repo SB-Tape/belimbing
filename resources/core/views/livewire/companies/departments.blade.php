@@ -103,26 +103,20 @@
         <form wire:submit="createDepartment" class="p-6 space-y-6">
             <h2 class="text-lg font-medium tracking-tight text-ink">{{ __('Add Department') }}</h2>
 
-            <div class="space-y-4">
-                <div class="space-y-1">
-                    <label class="block text-[11px] uppercase tracking-wider font-semibold text-muted">{{ __('Department Type') }}</label>
-                    <x-ui.select wire:model="createDepartmentTypeId">
+                <div class="space-y-4">
+                    <x-ui.select id="department-type" wire:model="createDepartmentTypeId" :label="__('Department Type')">
                         <option value="0">{{ __('Select a department type...') }}</option>
                         @foreach($availableTypes as $type)
                             <option value="{{ $type->id }}">{{ $type->code ? $type->code . ' — ' : '' }}{{ $type->name }}</option>
                         @endforeach
                     </x-ui.select>
-                </div>
 
-                <div class="space-y-1">
-                    <label class="block text-[11px] uppercase tracking-wider font-semibold text-muted">{{ __('Status') }}</label>
-                    <x-ui.select wire:model="createStatus">
+                    <x-ui.select id="department-status" wire:model="createStatus" :label="__('Status')">
                         <option value="active">{{ __('Active') }}</option>
                         <option value="inactive">{{ __('Inactive') }}</option>
                         <option value="suspended">{{ __('Suspended') }}</option>
                     </x-ui.select>
                 </div>
-            </div>
 
             <div class="flex items-center gap-4">
                 <x-ui.button type="submit" variant="primary">

@@ -29,14 +29,17 @@
 
             <!-- Action Buttons -->
             <div class="hidden lg:flex gap-2">
-                <a href="#" class="inline-flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg hover:bg-surface-subtle text-accent transition-colors" title="{{ __('Search') }}">
+                <a href="#" class="inline-flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg hover:bg-surface-subtle text-accent transition-colors" title="{{ __('Search') }}" aria-label="{{ __('Search') }}">
                     <x-icon name="heroicon-o-magnifying-glass" class="w-5 h-5" />
+                    <span class="sr-only">{{ __('Search') }}</span>
                 </a>
-                <a href="https://github.com/BelimbingApp/lara" target="_blank" class="inline-flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg hover:bg-surface-subtle text-accent transition-colors" title="{{ __('Repository') }}">
+                <a href="https://github.com/BelimbingApp/lara" target="_blank" class="inline-flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg hover:bg-surface-subtle text-accent transition-colors" title="{{ __('Repository') }}" aria-label="{{ __('Repository') }}">
                     <x-icon name="heroicon-o-folder" class="w-5 h-5" />
+                    <span class="sr-only">{{ __('Repository') }}</span>
                 </a>
-                <a href="https://laravel.com/docs/starter-kits#livewire" target="_blank" class="inline-flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg hover:bg-surface-subtle text-accent transition-colors" title="{{ __('Documentation') }}">
+                <a href="https://laravel.com/docs/starter-kits#livewire" target="_blank" class="inline-flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg hover:bg-surface-subtle text-accent transition-colors" title="{{ __('Documentation') }}" aria-label="{{ __('Documentation') }}">
                     <x-icon name="heroicon-o-book-open" class="w-5 h-5" />
+                    <span class="sr-only">{{ __('Documentation') }}</span>
                 </a>
             </div>
 
@@ -53,8 +56,9 @@
             <div class="drawer-side">
                 <label for="mobile-drawer" class="drawer-overlay"></label>
                 <aside class="w-64 min-h-full bg-surface-subtle border-r border-border-default p-4">
-                    <label for="mobile-drawer" class="w-10 h-10 inline-flex items-center justify-center rounded-lg hover:bg-surface-subtle transition-colors mb-4">
+                    <label for="mobile-drawer" class="w-10 h-10 inline-flex items-center justify-center rounded-lg hover:bg-surface-subtle transition-colors mb-4" aria-label="{{ __('Close menu') }}">
                         <x-icon name="heroicon-o-x-mark" class="w-6 h-6" />
+                        <span class="sr-only">{{ __('Close menu') }}</span>
                     </label>
                     <ul class="flex flex-col space-y-1 w-full">
                         <li>

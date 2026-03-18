@@ -109,7 +109,11 @@ Canonical primitives in `resources/core/views/components/ui/`. **Always use thes
 
 When a needed primitive doesn't exist, create it in `resources/core/views/components/ui/` following the patterns of existing components (props via `@props`, class merging via `$attributes->class([...])`, semantic tokens).
 
-**Always set an explicit `id`** on form controls and form components such as `x-ui.input`, `x-ui.select`, `x-ui.textarea`, `x-ui.checkbox`, and `x-ui.radio`.
+### Form control ids
+
+- **Always set an explicit `id`** on form controls and form components such as `x-ui.input`, `x-ui.select`, `x-ui.textarea`, `x-ui.checkbox`, and `x-ui.radio`.
+- Do not rely on auto-generated or randomized ids in callers. Use stable, readable ids based on the field purpose, such as `employee-company`, `company-status`, or `provider-is-active`.
+- When a control has a visible label, ensure the label targets that explicit `id` so accessibility relationships remain deterministic across renders.
 
 ## Elevating to Modern Sleek
 

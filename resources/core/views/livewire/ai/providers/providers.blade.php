@@ -1,8 +1,11 @@
 <?php
+
+use App\Modules\Core\AI\Livewire\Providers\Providers;
+
 // SPDX-License-Identifier: AGPL-3.0-only
 // (c) Ng Kiat Siong <kiatsiong.ng@gmail.com>
 
-/** @var \App\Modules\Core\AI\Livewire\Providers\Providers $this */
+/** @var Providers $this */
 /** @var bool $laraActivated */
 ?>
 <div>
@@ -438,7 +441,7 @@
 
             <form wire:submit="saveProvider" class="space-y-4">
                 @unless($isEditingProvider)
-                    <x-ui.select wire:change="applyTemplate($event.target.value)" label="{{ __('Template') }}">
+                    <x-ui.select id="provider-template" wire:change="applyTemplate($event.target.value)" label="{{ __('Template') }}">
                         <option value="">{{ __('Other provider') }}</option>
                         @foreach($templateOptions as $tpl)
                             <option value="{{ $tpl['value'] }}" @selected($selectedTemplate === $tpl['value'])>{{ $tpl['label'] }}</option>
@@ -479,7 +482,7 @@
                     :error="$errors->first('providerApiKey')"
                 />
 
-                <x-ui.checkbox wire:model="providerIsActive" label="{{ __('Active') }}" />
+                <x-ui.checkbox id="provider-is-active" wire:model="providerIsActive" label="{{ __('Active') }}" />
 
                 <div class="flex justify-end gap-2 pt-2">
                     <x-ui.button variant="ghost" wire:click="$set('showProviderForm', false)">{{ __('Cancel') }}</x-ui.button>
