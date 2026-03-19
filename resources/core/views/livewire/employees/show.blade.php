@@ -541,7 +541,7 @@
                 <x-ui.checkbox id="employee-attach-is-primary" wire:model="attachIsPrimary" label="{{ __('Primary Address') }}" />
 
                 <div>
-                    <x-ui.input wire:model="attachPriority" label="{{ __('Priority') }}" type="number" />
+                    <x-ui.input id="employee-attach-priority" wire:model="attachPriority" label="{{ __('Priority') }}" type="number" />
                     <p class="text-xs text-muted mt-1">{{ __('Lower number = higher priority. Used to order addresses of the same kind (0 = top).') }}</p>
                 </div>
 

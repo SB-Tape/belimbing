@@ -7,6 +7,7 @@
     <form method="POST" wire:submit="resetPassword" class="flex flex-col gap-6">
         <!-- Email Address -->
         <x-ui.input
+            id="reset-email"
             wire:model="email"
             label="{{ __('Email') }}"
             type="email"
@@ -16,6 +17,7 @@
 
         <!-- Password -->
         <x-ui.input
+            id="reset-password"
             wire:model="password"
             label="{{ __('Password') }}"
             type="password"
@@ -26,6 +28,7 @@
 
         <!-- Confirm Password -->
         <x-ui.input
+            id="reset-password-confirmation"
             wire:model="passwordConfirmation"
             label="{{ __('Confirm password') }}"
             type="password"

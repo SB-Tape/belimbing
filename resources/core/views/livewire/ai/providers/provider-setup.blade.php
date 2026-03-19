@@ -94,6 +94,7 @@
 
                     <form wire:submit="saveModel" class="space-y-4">
                         <x-ui.input
+                            id="provider-setup-model-name"
                             wire:model="modelModelName"
                             label="{{ __('Model ID') }}"
                             required
@@ -157,6 +158,7 @@
                     <div class="space-y-4">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <x-ui.input
+                                id="cloudflare-account-id"
                                 wire:model="cloudflareAccountId"
                                 label="{{ __('Account ID') }}"
                                 required
@@ -164,6 +166,7 @@
                                 :error="$errors->first('cloudflareAccountId')"
                             />
                             <x-ui.input
+                                id="cloudflare-gateway-id"
                                 wire:model.live.blur="cloudflareGatewayId"
                                 label="{{ __('Gateway ID') }}"
                                 required
@@ -172,6 +175,7 @@
                             />
                         </div>
                         <x-ui.input
+                            id="cloudflare-api-key"
                             wire:model.live.blur="apiKey"
                             type="password"
                             label="{{ __('API Key') }}"
@@ -189,6 +193,7 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <x-ui.input
+                                id="provider-base-url"
                                 wire:model.live.blur="baseUrl"
                                 label="{{ __('Base URL') }}"
                                 required
@@ -225,6 +230,7 @@
 
                         <div>
                             <x-ui.input
+                                id="provider-api-key"
                                 wire:model.live.blur="apiKey"
                                 type="password"
                                 :label="in_array($authType, ['local', 'oauth', 'subscription']) ? __('API Key (optional)') : __('API Key')"

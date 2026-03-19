@@ -137,6 +137,7 @@
                             {{-- API key input --}}
                             <div class="w-full">
                                 <x-ui.input
+                                    id="web-search-provider-{{ $index }}-api-key"
                                     type="password"
                                     wire:model="webSearchProviders.{{ $index }}.api_key"
                                     placeholder="{{ $provider['has_key'] ? ($provider['key_preview'] !== '' ? $provider['key_preview'] : __('Key saved · enter to replace')) : __('Enter API key') }}"
@@ -182,6 +183,7 @@
                     </div>
                 @else
                     <x-ui.input
+                        id="web-search-config-{{ $field->key }}"
                         type="text"
                         wire:model="configValues.{{ $field->key }}"
                         label="{{ $field->label }}"

@@ -26,6 +26,7 @@
                 </x-ui.select>
 
                 <x-ui.input
+                    id="user-edit-name"
                     wire:model="name"
                     label="{{ __('Name') }}"
                     type="text"
@@ -37,6 +38,7 @@
                 />
 
                 <x-ui.input
+                    id="user-edit-email"
                     wire:model="email"
                     label="{{ __('Email') }}"
                     type="email"
@@ -51,6 +53,7 @@
                 </div>
 
                 <x-ui.input
+                    id="user-edit-password"
                     wire:model="password"
                     label="{{ __('New Password') }}"
                     type="password"
@@ -60,6 +63,7 @@
                 />
 
                 <x-ui.input
+                    id="user-edit-password-confirmation"
                     wire:model="passwordConfirmation"
                     label="{{ __('Confirm New Password') }}"
                     type="password"

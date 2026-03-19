@@ -15,6 +15,7 @@
             <form wire:submit="store" class="space-y-6">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <x-ui.input
+                        id="address-label"
                         wire:model="label"
                         label="{{ __('Label') }}"
                         type="text"
@@ -23,6 +24,7 @@
                     />
 
                     <x-ui.input
+                        id="address-phone"
                         wire:model="phone"
                         label="{{ __('Phone') }}"
                         type="text"
@@ -33,6 +35,7 @@
 
                 <div class="space-y-4">
                     <x-ui.input
+                        id="address-line1"
                         wire:model="line1"
                         label="{{ __('Address Line 1') }}"
                         type="text"
@@ -41,6 +44,7 @@
                     />
 
                     <x-ui.input
+                        id="address-line2"
                         wire:model="line2"
                         label="{{ __('Address Line 2') }}"
                         type="text"
@@ -49,6 +53,7 @@
                     />
 
                     <x-ui.input
+                        id="address-line3"
                         wire:model="line3"
                         label="{{ __('Address Line 3') }}"
                         type="text"
@@ -106,6 +111,7 @@
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <x-ui.input
+                            id="address-source"
                             wire:model="source"
                             label="{{ __('Source') }}"
                             type="text"
@@ -114,6 +120,7 @@
                         />
 
                         <x-ui.input
+                            id="address-source-ref"
                             wire:model="sourceRef"
                             label="{{ __('Source Reference') }}"
                             type="text"
@@ -122,6 +129,7 @@
                         />
 
                         <x-ui.input
+                            id="address-parser-version"
                             wire:model="parserVersion"
                             label="{{ __('Parser Version') }}"
                             type="text"
@@ -130,6 +138,7 @@
                         />
 
                         <x-ui.input
+                            id="address-parse-confidence"
                             wire:model="parseConfidence"
                             label="{{ __('Parse Confidence') }}"
                             type="number"
@@ -151,6 +160,7 @@
                 </div>
 
                 <x-ui.textarea
+                    id="address-raw-input"
                     wire:model="rawInput"
                     label="{{ __('Raw Input') }}"
                     rows="4"

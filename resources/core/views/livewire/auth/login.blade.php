@@ -7,6 +7,7 @@
     <form method="POST" wire:submit="login" class="flex flex-col gap-6">
         <!-- Email Address -->
         <x-ui.input
+            id="login-email"
             wire:model="email"
             label="{{ __('Email address') }}"
             type="email"
@@ -20,6 +21,7 @@
         <!-- Password -->
         <div class="relative">
             <x-ui.input
+                id="login-password"
                 wire:model="password"
                 label="{{ __('Password') }}"
                 type="password"

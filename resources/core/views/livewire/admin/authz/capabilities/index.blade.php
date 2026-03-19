@@ -12,7 +12,7 @@
                         placeholder="{{ __('Search by capability or module...') }}"
                     />
                 </div>
-                <x-ui.select wire:model.live="filterDomain">
+                <x-ui.select id="filter-domain" wire:model.live="filterDomain">
                     <option value="">{{ __('All Domains') }}</option>
                     @foreach($domains as $domain)
                         <option value="{{ $domain }}">{{ $domain }}</option>

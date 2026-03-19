@@ -4,6 +4,7 @@
     <x-settings.layout :heading="__('Update password')" :subheading="__('Ensure your account is using a long, random password to stay secure')">
         <form method="POST" wire:submit="updatePassword" class="mt-6 space-y-6">
             <x-ui.input
+                id="current-password"
                 wire:model="currentPassword"
                 label="{{ __('Current password') }}"
                 type="password"
@@ -11,6 +12,7 @@
                 autocomplete="current-password"
             />
             <x-ui.input
+                id="new-password"
                 wire:model="password"
                 label="{{ __('New password') }}"
                 type="password"
@@ -18,6 +20,7 @@
                 autocomplete="new-password"
             />
             <x-ui.input
+                id="password-confirmation"
                 wire:model="passwordConfirmation"
                 label="{{ __('Confirm Password') }}"
                 type="password"

@@ -31,6 +31,7 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <x-ui.input
+                        id="company-name"
                         wire:model="name"
                         label="{{ __('Name') }}"
                         type="text"
@@ -40,6 +41,7 @@
                     />
 
                     <x-ui.input
+                        id="company-code"
                         wire:model="code"
                         label="{{ __('Code') }}"
                         type="text"
@@ -48,6 +50,7 @@
                     />
 
                     <x-ui.input
+                        id="company-legal-name"
                         wire:model="legalName"
                         label="{{ __('Legal Name') }}"
                         type="text"
@@ -63,6 +66,7 @@
                     </x-ui.select>
 
                     <x-ui.input
+                        id="company-registration-number"
                         wire:model="registrationNumber"
                         label="{{ __('Registration Number') }}"
                         type="text"
@@ -71,6 +75,7 @@
                     />
 
                     <x-ui.input
+                        id="company-tax-id"
                         wire:model="taxId"
                         label="{{ __('Tax ID') }}"
                         type="text"
@@ -88,6 +93,7 @@
                     </x-ui.select>
 
                     <x-ui.input
+                        id="company-email"
                         wire:model="email"
                         label="{{ __('Email') }}"
                         type="email"
@@ -96,6 +102,7 @@
                     />
 
                     <x-ui.input
+                        id="company-website"
                         wire:model="website"
                         label="{{ __('Website') }}"
                         type="text"
@@ -106,6 +113,7 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <x-ui.textarea
+                        id="company-scope-activities"
                         wire:model="scopeActivitiesJson"
                         label="{{ __('Business Activities (JSON)') }}"
                         rows="6"
@@ -114,6 +122,7 @@
                     />
 
                     <x-ui.textarea
+                        id="company-metadata"
                         wire:model="metadataJson"
                         label="{{ __('Metadata (JSON)') }}"
                         rows="6"

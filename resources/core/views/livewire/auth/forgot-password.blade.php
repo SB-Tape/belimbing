@@ -7,6 +7,7 @@
     <form method="POST" wire:submit="sendPasswordResetLink" class="flex flex-col gap-6">
         <!-- Email Address -->
         <x-ui.input
+            id="forgot-email"
             wire:model="email"
             label="{{ __('Email Address') }}"
             type="email"

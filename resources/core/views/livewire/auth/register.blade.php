@@ -7,6 +7,7 @@
     <form method="POST" wire:submit="register" class="flex flex-col gap-6">
         <!-- Name -->
         <x-ui.input
+            id="register-name"
             wire:model="name"
             label="{{ __('Name') }}"
             type="text"
@@ -18,6 +19,7 @@
 
         <!-- Email Address -->
         <x-ui.input
+            id="register-email"
             wire:model="email"
             label="{{ __('Email address') }}"
             type="email"
@@ -28,6 +30,7 @@
 
         <!-- Password -->
         <x-ui.input
+            id="register-password"
             wire:model="password"
             label="{{ __('Password') }}"
             type="password"
@@ -38,6 +41,7 @@
 
         <!-- Confirm Password -->
         <x-ui.input
+            id="register-password-confirmation"
             wire:model="passwordConfirmation"
             label="{{ __('Confirm password') }}"
             type="password"

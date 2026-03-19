@@ -143,6 +143,7 @@
 
             <div class="space-y-4">
                 <x-ui.input
+                    id="dept-type-code"
                     wire:model="createCode"
                     label="{{ __('Code') }}"
                     type="text"
@@ -152,6 +153,7 @@
                 />
 
                 <x-ui.input
+                    id="dept-type-name"
                     wire:model="createName"
                     label="{{ __('Name') }}"
                     type="text"
@@ -161,6 +163,7 @@
                 />
 
                 <x-ui.select
+                    id="dept-type-category"
                     wire:model="createCategory"
                     label="{{ __('Category') }}"
                     required
@@ -173,6 +176,7 @@
                 </x-ui.select>
 
                 <x-ui.textarea
+                    id="dept-type-description"
                     wire:model="createDescription"
                     label="{{ __('Description') }}"
                     rows="3"

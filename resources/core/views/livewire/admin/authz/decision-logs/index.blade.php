@@ -12,7 +12,7 @@
                         placeholder="{{ __('Search by capability, reason, actor, or resource...') }}"
                     />
                 </div>
-                <x-ui.select wire:model.live="filterResult">
+                <x-ui.select id="filter-result" wire:model.live="filterResult">
                     <option value="">{{ __('All Results') }}</option>
                     <option value="allowed">{{ __('Allowed') }}</option>
                     <option value="denied">{{ __('Denied') }}</option>

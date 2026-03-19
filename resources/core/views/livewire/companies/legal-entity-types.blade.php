@@ -121,6 +121,7 @@
 
             <div class="space-y-4">
                 <x-ui.input
+                    id="legal-entity-type-code"
                     wire:model="createCode"
                     label="{{ __('Code') }}"
                     type="text"
@@ -130,6 +131,7 @@
                 />
 
                 <x-ui.input
+                    id="legal-entity-type-name"
                     wire:model="createName"
                     label="{{ __('Name') }}"
                     type="text"
@@ -139,6 +141,7 @@
                 />
 
                 <x-ui.textarea
+                    id="legal-entity-type-description"
                     wire:model="createDescription"
                     label="{{ __('Description') }}"
                     rows="3"

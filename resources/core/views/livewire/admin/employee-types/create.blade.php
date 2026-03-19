@@ -14,6 +14,7 @@
         <x-ui.card>
             <form wire:submit="createType" class="space-y-4 max-w-lg">
                 <x-ui.input
+                    id="employee-type-code"
                     wire:model="code"
                     label="{{ __('Code') }}"
                     required
@@ -23,6 +24,7 @@
                 <p class="text-xs text-muted -mt-2">{{ __('Lowercase letters, numbers, and underscores. Must start with a letter.') }}</p>
 
                 <x-ui.input
+                    id="employee-type-label"
                     wire:model="label"
                     label="{{ __('Label') }}"
                     required

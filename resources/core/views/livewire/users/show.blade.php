@@ -370,6 +370,7 @@
                 >
                     <form wire:submit="updatePassword" class="space-y-4 max-w-md">
                         <x-ui.input
+                            id="user-reset-password"
                             wire:model="password"
                             label="{{ __('New Password') }}"
                             type="password"
@@ -380,6 +381,7 @@
                         />
 
                         <x-ui.input
+                            id="user-reset-password-confirmation"
                             wire:model="passwordConfirmation"
                             label="{{ __('Confirm New Password') }}"
                             type="password"
@@ -509,13 +511,13 @@
                 />
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <x-ui.input wire:model="newEmpEmployeeNumber" label="{{ __('Employee Number') }}" type="text" required :error="$errors->first('newEmpEmployeeNumber')" />
-                    <x-ui.input wire:model="newEmpFullName" label="{{ __('Full Name') }}" type="text" required :error="$errors->first('newEmpFullName')" />
+                    <x-ui.input id="new-emp-employee-number" wire:model="newEmpEmployeeNumber" label="{{ __('Employee Number') }}" type="text" required :error="$errors->first('newEmpEmployeeNumber')" />
+                    <x-ui.input id="new-emp-full-name" wire:model="newEmpFullName" label="{{ __('Full Name') }}" type="text" required :error="$errors->first('newEmpFullName')" />
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <x-ui.input wire:model="newEmpDesignation" label="{{ __('Designation') }}" type="text" placeholder="{{ __('Job title') }}" :error="$errors->first('newEmpDesignation')" />
-                    <x-ui.input wire:model="newEmpEmploymentStart" label="{{ __('Employment Start') }}" type="date" :error="$errors->first('newEmpEmploymentStart')" />
+                    <x-ui.input id="new-emp-designation" wire:model="newEmpDesignation" label="{{ __('Designation') }}" type="text" placeholder="{{ __('Job title') }}" :error="$errors->first('newEmpDesignation')" />
+                    <x-ui.input id="new-emp-employment-start" wire:model="newEmpEmploymentStart" label="{{ __('Employment Start') }}" type="date" :error="$errors->first('newEmpEmploymentStart')" />
                 </div>
 
                 <div class="flex items-center gap-4 pt-2">

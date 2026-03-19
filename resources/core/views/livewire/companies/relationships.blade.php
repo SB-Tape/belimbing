@@ -111,12 +111,14 @@
             </x-ui.select>
 
             <x-ui.input
+                id="rel-create-effective-from"
                 wire:model="createEffectiveFrom"
                 label="{{ __('Effective From') }}"
                 type="date"
             />
 
             <x-ui.input
+                id="rel-create-effective-to"
                 wire:model="createEffectiveTo"
                 label="{{ __('Effective To') }}"
                 type="date"
@@ -138,12 +140,14 @@
             <h3 class="text-xl font-medium tracking-tight text-ink">{{ __('Edit Relationship Dates') }}</h3>
 
             <x-ui.input
+                id="rel-edit-effective-from"
                 wire:model="editEffectiveFrom"
                 label="{{ __('Effective From') }}"
                 type="date"
             />
 
             <x-ui.input
+                id="rel-edit-effective-to"
                 wire:model="editEffectiveTo"
                 label="{{ __('Effective To') }}"
                 type="date"

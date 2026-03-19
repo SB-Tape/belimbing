@@ -507,7 +507,7 @@
                 <x-ui.checkbox id="company-attach-is-primary" wire:model="attachIsPrimary" label="{{ __('Primary Address') }}" />
 
                 <div>
-                    <x-ui.input wire:model="attachPriority" label="{{ __('Priority') }}" type="number" />
+                    <x-ui.input id="company-attach-priority" wire:model="attachPriority" label="{{ __('Priority') }}" type="number" />
                     <p class="text-xs text-muted mt-1">{{ __('Lower number = higher priority. Used to order addresses of the same kind (0 = top).') }}</p>
                 </div>
 
@@ -525,13 +525,13 @@
                 </h3>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <x-ui.input wire:model="label" label="{{ __('Label') }}" type="text" placeholder="{{ __('HQ, Warehouse, etc.') }}" :error="$errors->first('label')" />
-                    <x-ui.input wire:model="phone" label="{{ __('Phone') }}" type="text" placeholder="{{ __('Contact number') }}" :error="$errors->first('phone')" />
+                    <x-ui.input id="company-address-label" wire:model="label" label="{{ __('Label') }}" type="text" placeholder="{{ __('HQ, Warehouse, etc.') }}" :error="$errors->first('label')" />
+                    <x-ui.input id="company-address-phone" wire:model="phone" label="{{ __('Phone') }}" type="text" placeholder="{{ __('Contact number') }}" :error="$errors->first('phone')" />
                 </div>
 
-                <x-ui.input wire:model="line1" label="{{ __('Address Line 1') }}" type="text" placeholder="{{ __('Street and number') }}" :error="$errors->first('line1')" />
-                <x-ui.input wire:model="line2" label="{{ __('Address Line 2') }}" type="text" placeholder="{{ __('Building, suite (optional)') }}" :error="$errors->first('line2')" />
-                <x-ui.input wire:model="line3" label="{{ __('Address Line 3') }}" type="text" placeholder="{{ __('Additional detail (optional)') }}" :error="$errors->first('line3')" />
+                <x-ui.input id="company-address-line1" wire:model="line1" label="{{ __('Address Line 1') }}" type="text" placeholder="{{ __('Street and number') }}" :error="$errors->first('line1')" />
+                <x-ui.input id="company-address-line2" wire:model="line2" label="{{ __('Address Line 2') }}" type="text" placeholder="{{ __('Building, suite (optional)') }}" :error="$errors->first('line2')" />
+                <x-ui.input id="company-address-line3" wire:model="line3" label="{{ __('Address Line 3') }}" type="text" placeholder="{{ __('Additional detail (optional)') }}" :error="$errors->first('line3')" />
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <x-ui.combobox
@@ -592,7 +592,7 @@
                             </div>
                         </div>
                         <div>
-                            <x-ui.input wire:model="priority" label="{{ __('Priority') }}" type="number" />
+                            <x-ui.input id="company-address-priority" wire:model="priority" label="{{ __('Priority') }}" type="number" />
                             <p class="text-xs text-muted mt-1">{{ __('Lower number = higher priority. Used to order addresses of the same kind (0 = top).') }}</p>
                         </div>
                     </div>

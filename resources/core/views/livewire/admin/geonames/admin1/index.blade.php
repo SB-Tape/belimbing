@@ -29,7 +29,7 @@
                     />
                 </div>
                 <div class="sm:w-64">
-                    <x-ui.select wire:model.live="filterCountryIso">
+                    <x-ui.select id="filter-country-iso" wire:model.live="filterCountryIso">
                         <option value="">{{ __('All Countries') }}</option>
                         @foreach($importedCountries as $iso => $name)
                             <option value="{{ $iso }}">{{ $name }} ({{ $iso }})</option>

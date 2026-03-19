@@ -10,6 +10,7 @@
     <form method="POST" wire:submit="confirmPassword" class="flex flex-col gap-6">
         <!-- Password -->
         <x-ui.input
+            id="confirm-password"
             wire:model="password"
             label="{{ __('Password') }}"
             type="password"

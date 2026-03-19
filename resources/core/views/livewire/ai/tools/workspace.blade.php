@@ -237,6 +237,7 @@
                                 @if($showWhenMatch)
                                     @if($field->type === 'select')
                                         <x-ui.select
+                                            id="workspace-config-{{ $field->key }}"
                                             wire:model.live="configValues.{{ $field->key }}"
                                             label="{{ $field->label }}"
                                         >
@@ -247,6 +248,7 @@
                                         </x-ui.select>
                                     @elseif($field->type === 'secret')
                                         <x-ui.input
+                                            id="workspace-config-{{ $field->key }}"
                                             type="password"
                                             wire:model="configValues.{{ $field->key }}"
                                             label="{{ $field->label }}"
@@ -272,6 +274,7 @@
                                         </div>
                                     @else
                                         <x-ui.input
+                                            id="workspace-config-{{ $field->key }}"
                                             type="text"
                                             wire:model="configValues.{{ $field->key }}"
                                             label="{{ $field->label }}"

@@ -123,6 +123,7 @@
                         <form wire:submit="sendMessage" class="flex gap-2 items-end">
                             <div class="flex-1 min-w-0">
                                 <x-ui.input
+                                    id="playground-message-input"
                                     wire:model="messageInput"
                                     placeholder="{{ __('Type a message...') }}"
                                     autocomplete="off"
@@ -273,6 +274,7 @@
 
                         <div class="grid grid-cols-2 gap-3">
                             <x-ui.select
+                                id="llm-model-{{ $index }}-provider"
                                 wire:model.live="llmModels.{{ $index }}.provider"
                                 label="{{ __('Provider') }}"
                             >
@@ -287,6 +289,7 @@
                                 $modelOptions = $providerModelsMap[$selectedProvider] ?? [];
                             @endphp
                             <x-ui.select
+                                id="llm-model-{{ $index }}-model"
                                 wire:model="llmModels.{{ $index }}.model"
                                 label="{{ __('Model') }}"
                                 :disabled="$selectedProvider === ''"
@@ -302,6 +305,7 @@
                             </x-ui.select>
 
                             <x-ui.input
+                                id="llm-model-{{ $index }}-max-tokens"
                                 wire:model="llmModels.{{ $index }}.max_tokens"
                                 type="number"
                                 min="1"
@@ -309,6 +313,7 @@
                             />
 
                             <x-ui.input
+                                id="llm-model-{{ $index }}-temperature"
                                 wire:model="llmModels.{{ $index }}.temperature"
                                 type="number"
                                 step="0.1"

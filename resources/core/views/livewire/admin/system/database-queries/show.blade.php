@@ -198,6 +198,7 @@
                 <span class="text-[11px] uppercase tracking-wider font-semibold text-muted">{{ __('Prompt') }}</span>
             </div>
             <x-ui.textarea
+                id="db-query-prompt"
                 wire:model="editPrompt"
                 rows="3"
                 placeholder="{{ __('Describe the data you would like to view...') }}"

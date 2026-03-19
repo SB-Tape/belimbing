@@ -20,6 +20,7 @@
                 </div>
 
                 <x-ui.input
+                    id="employee-type-label"
                     wire:model="label"
                     label="{{ __('Label') }}"
                     required

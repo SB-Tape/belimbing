@@ -31,6 +31,7 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <x-ui.input
+                        id="employee-number"
                         wire:model="employeeNumber"
                         label="{{ __('Employee Number') }}"
                         type="text"
@@ -40,6 +41,7 @@
                     />
 
                     <x-ui.input
+                        id="employee-full-name"
                         wire:model="fullName"
                         label="{{ __('Full Name') }}"
                         type="text"
@@ -51,6 +53,7 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <x-ui.input
+                        id="employee-short-name"
                         wire:model="shortName"
                         label="{{ __('Short Name') }}"
                         type="text"
@@ -59,6 +62,7 @@
                     />
 
                     <x-ui.input
+                        id="employee-designation"
                         wire:model="designation"
                         label="{{ __('Designation') }}"
                         type="text"
@@ -92,6 +96,7 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <x-ui.input
+                        id="employee-email"
                         wire:model="email"
                         label="{{ __('Email') }}"
                         type="email"
@@ -100,6 +105,7 @@
                     />
 
                     <x-ui.input
+                        id="employee-mobile-number"
                         wire:model="mobileNumber"
                         label="{{ __('Mobile Number') }}"
                         type="text"
@@ -110,6 +116,7 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <x-ui.input
+                        id="employee-employment-start"
                         wire:model="employmentStart"
                         label="{{ __('Employment Start') }}"
                         type="date"
@@ -117,6 +124,7 @@
                     />
 
                     <x-ui.input
+                        id="employee-employment-end"
                         wire:model="employmentEnd"
                         label="{{ __('Employment End') }}"
                         type="date"
@@ -126,6 +134,7 @@
 
                 @if($employeeType === 'agent')
                 <x-ui.textarea
+                    id="employee-job-description"
                     wire:model="jobDescription"
                     label="{{ __('Job Description') }}"
                     rows="3"
@@ -153,6 +162,7 @@
                 </div>
 
                 <x-ui.textarea
+                    id="employee-metadata"
                     wire:model="metadataJson"
                     label="{{ __('Metadata (JSON)') }}"
                     rows="6"

@@ -450,6 +450,7 @@ use App\Modules\Core\AI\Livewire\Providers\Providers;
                 @endunless
 
                 <x-ui.input
+                    id="new-provider-name"
                     wire:model="providerName"
                     label="{{ __('Name') }}"
                     required
@@ -459,6 +460,7 @@ use App\Modules\Core\AI\Livewire\Providers\Providers;
                 />
 
                 <x-ui.input
+                    id="new-provider-display-name"
                     wire:model="providerDisplayName"
                     label="{{ __('Display Name') }}"
                     placeholder="{{ __('e.g. OpenAI') }}"
@@ -466,6 +468,7 @@ use App\Modules\Core\AI\Livewire\Providers\Providers;
                 />
 
                 <x-ui.input
+                    id="new-provider-base-url"
                     wire:model="providerBaseUrl"
                     label="{{ __('Base URL') }}"
                     required
@@ -474,6 +477,7 @@ use App\Modules\Core\AI\Livewire\Providers\Providers;
                 />
 
                 <x-ui.input
+                    id="new-provider-api-key"
                     wire:model="providerApiKey"
                     type="password"
                     label="{{ __('API Key') }}"
@@ -525,6 +529,7 @@ use App\Modules\Core\AI\Livewire\Providers\Providers;
 
             <form wire:submit="saveModel" class="space-y-4">
                 <x-ui.input
+                    id="providers-model-name"
                     wire:model="modelModelName"
                     label="{{ __('Model ID') }}"
                     required

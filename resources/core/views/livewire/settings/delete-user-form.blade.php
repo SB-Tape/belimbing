@@ -18,7 +18,7 @@
                 </p>
             </div>
 
-            <x-ui.input wire:model="password" label="{{ __('Password') }}" type="password" />
+            <x-ui.input id="delete-user-password" wire:model="password" label="{{ __('Password') }}" type="password" />
 
             <div class="flex justify-end space-x-2 rtl:space-x-reverse">
                 <x-ui.button wire:click="$set('showDeleteModal', false)" variant="ghost">

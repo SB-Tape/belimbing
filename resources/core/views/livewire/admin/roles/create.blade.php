@@ -14,6 +14,7 @@
         <x-ui.card>
             <form wire:submit="createRole" class="space-y-4 max-w-lg">
                 <x-ui.input
+                    id="role-name"
                     wire:model="name"
                     label="{{ __('Name') }}"
                     required
@@ -22,6 +23,7 @@
                 />
 
                 <x-ui.input
+                    id="role-code"
                     wire:model="code"
                     label="{{ __('Code') }}"
                     required
@@ -31,6 +33,7 @@
                 <p class="text-xs text-muted -mt-2">{{ __('Lowercase letters, numbers, and underscores only.') }}</p>
 
                 <x-ui.textarea
+                    id="role-description"
                     wire:model="description"
                     label="{{ __('Description') }}"
                     rows="3"

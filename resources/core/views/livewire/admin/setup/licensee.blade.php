@@ -49,6 +49,7 @@
                 <form wire:submit="createLicensee" class="space-y-6">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <x-ui.input
+                            id="licensee-name"
                             wire:model="name"
                             label="{{ __('Name') }}"
                             type="text"
@@ -58,6 +59,7 @@
                         />
 
                         <x-ui.input
+                            id="licensee-legal-name"
                             wire:model="legalName"
                             label="{{ __('Legal Name') }}"
                             type="text"
@@ -66,6 +68,7 @@
                         />
 
                         <x-ui.input
+                            id="licensee-legal-entity-type"
                             wire:model="legalEntityType"
                             label="{{ __('Legal Entity Type') }}"
                             type="text"
@@ -74,6 +77,7 @@
                         />
 
                         <x-ui.input
+                            id="licensee-registration-number"
                             wire:model="registrationNumber"
                             label="{{ __('Registration Number') }}"
                             type="text"
@@ -82,6 +86,7 @@
                         />
 
                         <x-ui.input
+                            id="licensee-tax-id"
                             wire:model="taxId"
                             label="{{ __('Tax ID') }}"
                             type="text"
@@ -92,6 +97,7 @@
 
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <x-ui.input
+                            id="licensee-jurisdiction"
                             wire:model="jurisdiction"
                             label="{{ __('Jurisdiction') }}"
                             type="text"
@@ -100,6 +106,7 @@
                         />
 
                         <x-ui.input
+                            id="licensee-email"
                             wire:model="email"
                             label="{{ __('Email') }}"
                             type="email"
@@ -108,6 +115,7 @@
                         />
 
                         <x-ui.input
+                            id="licensee-website"
                             wire:model="website"
                             label="{{ __('Website') }}"
                             type="text"
