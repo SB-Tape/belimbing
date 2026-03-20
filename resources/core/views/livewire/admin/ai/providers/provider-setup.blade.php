@@ -20,7 +20,7 @@
             </x-slot>
             <x-slot name="help">
                 <div class="space-y-3">
-                    @include('livewire.ai.providers.partials.model-help')
+                    @include('livewire.admin.ai.providers.partials.model-help')
                 </div>
             </x-slot>
             <x-slot name="actions">
@@ -76,7 +76,7 @@
                     <span class="text-sm font-medium text-ink">{{ __(':provider connected successfully.', ['provider' => $displayName]) }}</span>
                 </div>
 
-                @include('livewire.ai.providers.partials.model-table', [
+                @include('livewire.admin.ai.providers.partials.model-table', [
                     'provider' => $connectedProvider,
                     'models' => $models,
                 ])
@@ -152,7 +152,7 @@
 
                 @if($authType === 'device_flow')
                     {{-- ── Device Flow UI (GitHub Copilot) ── --}}
-                    @include('livewire.ai.providers.partials.auth-device-flow')
+                    @include('livewire.admin.ai.providers.partials.auth-device-flow')
                 @elseif($providerKey === 'cloudflare-ai-gateway')
                     {{-- ── Cloudflare AI Gateway (Account ID + Gateway ID + API Key) ── --}}
                     <div class="space-y-4">

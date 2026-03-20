@@ -216,7 +216,7 @@
 
                 {{-- Configuration / Setup --}}
                 @if($toolName === 'web_search')
-                    @include('livewire.ai.tools.web-search-config')
+                    @include('livewire.admin.ai.tools.web-search-config')
                 @endif
 
                 @if($toolName !== 'web_search' && count($metadata->configFields) > 0)

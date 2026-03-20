@@ -263,7 +263,7 @@ class ProviderSetup extends Component
             }
         }
 
-        return view('livewire.ai.providers.provider-setup', [
+        return view('livewire.admin.ai.providers.provider-setup', [
             'connectedProvider' => $connectedProvider,
             'models' => $models,
         ]);

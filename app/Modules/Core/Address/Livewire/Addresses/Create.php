@@ -92,6 +92,6 @@ class Create extends AbstractAddressForm
 
     public function render(): \Illuminate\Contracts\View\View
     {
-        return view('livewire.addresses.create', $this->with());
+        return view('livewire.admin.addresses.create', $this->with());
     }
 }

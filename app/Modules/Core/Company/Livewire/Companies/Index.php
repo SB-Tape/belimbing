@@ -51,7 +51,7 @@ class Index extends Component
 
     public function render(): \Illuminate\Contracts\View\View
     {
-        return view('livewire.companies.index', [
+        return view('livewire.admin.companies.index', [
             'companies' => Company::query()
                 ->with('parent')
                 ->when($this->search, function ($query, $search): void {

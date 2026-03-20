@@ -77,6 +77,6 @@ class Profile extends Component
 
     public function render(): \Illuminate\Contracts\View\View
     {
-        return view('livewire.settings.profile');
+        return view('livewire.profile.profile');
     }
 }

@@ -72,7 +72,7 @@ class Departments extends Component
             ->pluck('department_type_id')
             ->toArray();
 
-        return view('livewire.companies.departments', [
+        return view('livewire.admin.companies.departments', [
             'departments' => Department::query()
                 ->where('company_id', $this->company->id)
                 ->with('type')

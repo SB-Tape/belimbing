@@ -16,6 +16,6 @@ class Tools extends Component
 
     public function render(): \Illuminate\Contracts\View\View
     {
-        return view('livewire.ai.tools');
+        return view('livewire.admin.ai.tools');
     }
 }

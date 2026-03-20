@@ -392,7 +392,7 @@ class Show extends Component
             $availableCapabilities[$domain][] = $cap;
         }
 
-        return view('livewire.users.show', [
+        return view('livewire.admin.users.show', [
             'companies' => Company::query()->orderBy('name')->get(['id', 'name']),
             'assignedRoles' => $assignedRoles,
             'availableRoles' => $availableRoles,

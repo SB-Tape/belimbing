@@ -83,7 +83,7 @@ class LegalEntityTypes extends Component
 
     public function render(): \Illuminate\Contracts\View\View
     {
-        return view('livewire.companies.legal-entity-types', [
+        return view('livewire.admin.companies.legal-entity-types', [
             'types' => LegalEntityType::query()
                 ->orderBy('name')
                 ->paginate(15),

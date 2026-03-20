@@ -242,7 +242,7 @@ class Show extends AbstractAddressForm
     {
         $linkedIds = $this->company->addresses->pluck('id')->toArray();
 
-        return view('livewire.companies.show', [
+        return view('livewire.admin.companies.show', [
             'availableAddresses' => Address::query()
                 ->whereNotIn('id', $linkedIds)
                 ->orderBy('label')

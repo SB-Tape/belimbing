@@ -105,7 +105,7 @@ class Relationships extends Component
             ->get()
             ->map(fn ($r) => (object) ['relationship' => $r, 'direction' => 'incoming', 'other' => $r->company]);
 
-        return view('livewire.companies.relationships', [
+        return view('livewire.admin.companies.relationships', [
             'allRelationships' => $outgoing->merge($incoming),
             'availableCompanies' => Company::query()
                 ->where('id', '!=', $this->company->id)

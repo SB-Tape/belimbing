@@ -393,7 +393,7 @@ class Playground extends Component
             );
         }
 
-        return view('livewire.ai.playground', [
+        return view('livewire.admin.ai.playground', [
             'agents' => $agents,
             'sessions' => $sessions,
             'messages' => $messages,

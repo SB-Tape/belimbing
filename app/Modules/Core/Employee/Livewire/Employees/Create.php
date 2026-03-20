@@ -111,7 +111,7 @@ class Create extends Component
 
     public function render(): \Illuminate\Contracts\View\View
     {
-        return view('livewire.employees.create', [
+        return view('livewire.admin.employees.create', [
             'companies' => Company::query()
                 ->orderBy('name')
                 ->get(['id', 'name']),

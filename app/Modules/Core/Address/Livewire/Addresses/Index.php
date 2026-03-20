@@ -66,6 +66,6 @@ class Index extends Component
 
     public function render(): \Illuminate\Contracts\View\View
     {
-        return view('livewire.addresses.index', $this->with());
+        return view('livewire.admin.addresses.index', $this->with());
     }
 }

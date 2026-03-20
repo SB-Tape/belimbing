@@ -27,7 +27,7 @@ use App\Modules\Core\AI\Livewire\Providers\Providers;
                         </ul>
                     </div>
 
-                    @include('livewire.ai.providers.partials.model-help')
+                    @include('livewire.admin.ai.providers.partials.model-help')
 
                     <p>{!! __('Once providers and models are set up here, assign them to Agents from the :link.', ['link' => '<a href="' . route('admin.ai.playground') . '" class="text-accent hover:underline">' . e(__('AI Playground')) . '</a>']) !!}</p>
                 </div>
@@ -150,7 +150,7 @@ use App\Modules\Core\AI\Livewire\Providers\Providers;
                                 @if($expandedProviderId === $provider->id)
                                     <tr wire:key="provider-{{ $provider->id }}-models">
                                         <td colspan="8" class="p-0">
-                                            @include('livewire.ai.providers.partials.model-table', [
+                                            @include('livewire.admin.ai.providers.partials.model-table', [
                                                 'provider' => $provider,
                                                 'models' => $expandedModels,
                                             ])

@@ -123,6 +123,6 @@ class Show extends AbstractAddressForm
 
     public function render(): \Illuminate\Contracts\View\View
     {
-        return view('livewire.addresses.show', $this->with());
+        return view('livewire.admin.addresses.show', $this->with());
     }
 }

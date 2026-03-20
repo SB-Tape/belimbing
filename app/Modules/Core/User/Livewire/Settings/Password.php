@@ -48,6 +48,6 @@ class Password extends Component
 
     public function render(): \Illuminate\Contracts\View\View
     {
-        return view('livewire.settings.password');
+        return view('livewire.profile.password');
     }
 }

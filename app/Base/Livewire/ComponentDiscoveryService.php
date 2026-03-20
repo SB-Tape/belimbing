@@ -93,7 +93,7 @@ class ComponentDiscoveryService
      *
      * Extracts the first view('livewire.xxx') call from the source
      * and strips the 'livewire.' prefix. For example, a class returning
-     * view('livewire.companies.index') gets the name 'companies.index'.
+     * view('livewire.admin.companies.index') gets the name 'admin.companies.index'.
      *
      * Falls back to VIEW_NAME constant if no view() call is found.
      *

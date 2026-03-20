@@ -31,6 +31,6 @@ class DeleteUserForm extends Component
 
     public function render(): \Illuminate\Contracts\View\View
     {
-        return view('livewire.settings.delete-user-form');
+        return view('livewire.profile.delete-user-form');
     }
 }

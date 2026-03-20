@@ -184,7 +184,7 @@ class Show extends Component
 
     public function render(): \Illuminate\Contracts\View\View
     {
-        return view('livewire.employees.show', [
+        return view('livewire.admin.employees.show', [
             'departments' => Department::query()
                 ->where('company_id', $this->employee->company_id)
                 ->with('type')

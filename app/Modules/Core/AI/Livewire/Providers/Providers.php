@@ -126,7 +126,7 @@ class Providers extends Component
             ->values()
             ->all();
 
-        return view('livewire.ai.providers.providers', [
+        return view('livewire.admin.ai.providers.providers', [
             'providers' => $providers,
             'expandedModels' => $expandedModels,
             'templateOptions' => $templates,

@@ -249,7 +249,7 @@ class Workspace extends Component
         $metadata = $metadataRegistry->get($this->toolName);
 
         if (! $metadata) {
-            return view('livewire.ai.tools.workspace', [
+            return view('livewire.admin.ai.tools.workspace', [
                 'metadata' => null,
                 'readiness' => ToolReadiness::UNAVAILABLE,
                 'lastVerified' => null,
@@ -258,7 +258,7 @@ class Workspace extends Component
             ]);
         }
 
-        return view('livewire.ai.tools.workspace', [
+        return view('livewire.admin.ai.tools.workspace', [
             'metadata' => $metadata,
             'readiness' => $readinessService->readiness($this->toolName),
             'lastVerified' => $this->getLastVerified(),

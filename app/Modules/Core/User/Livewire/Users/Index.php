@@ -57,7 +57,7 @@ class Index extends Component
             ->can($actor, 'core.user.delete')
             ->allowed;
 
-        return view('livewire.users.index', [
+        return view('livewire.admin.users.index', [
             'users' => User::query()
                 ->with('company')
                 ->when($this->search, function ($query, $search): void {

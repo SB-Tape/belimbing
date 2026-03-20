@@ -89,7 +89,7 @@ class DepartmentTypes extends Component
 
     public function render(): \Illuminate\Contracts\View\View
     {
-        return view('livewire.companies.department-types', [
+        return view('livewire.admin.companies.department-types', [
             'types' => DepartmentType::query()
                 ->orderBy('category')
                 ->orderBy('name')

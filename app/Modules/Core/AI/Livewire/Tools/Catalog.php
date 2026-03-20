@@ -80,7 +80,7 @@ class Catalog extends Component
             $categories[$cat->value] = $cat->label();
         }
 
-        return view('livewire.ai.tools.catalog', [
+        return view('livewire.admin.ai.tools.catalog', [
             'snapshots' => $snapshots,
             'categories' => $categories,
         ]);
