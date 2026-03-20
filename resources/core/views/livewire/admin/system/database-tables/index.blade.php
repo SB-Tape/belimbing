@@ -1,3 +1,9 @@
+<?php
+// SPDX-License-Identifier: AGPL-3.0-only
+// (c) Ng Kiat Siong <kiatsiong.ng@gmail.com>
+
+/** @var \App\Base\Database\Livewire\DatabaseTables\Index $this */
+?>
 <div>
     <x-slot name="title">{{ __('Database Tables') }}</x-slot>
 
@@ -39,12 +45,57 @@
                 <table class="min-w-full divide-y divide-border-default text-sm">
                     <thead class="bg-surface-subtle/80">
                         <tr>
-                            <th class="px-table-cell-x py-table-header-y text-left text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Table') }}</th>
-                            <th class="px-table-cell-x py-table-header-y text-left text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Module') }}</th>
-                            <th class="px-table-cell-x py-table-header-y text-left text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Migration') }}</th>
+                            <th class="px-table-cell-x py-table-header-y text-left text-[11px] font-semibold text-muted uppercase tracking-wider">
+                                <button wire:click="sort('table_name')" class="flex items-center gap-1 hover:text-ink transition-colors group" aria-label="{{ __('Sort by table name') }}">
+                                    <span>{{ __('Table') }}</span>
+                                    @if($sortBy === 'table_name')
+                                        <x-icon name="{{ $sortDir === 'asc' ? 'heroicon-m-chevron-up' : 'heroicon-m-chevron-down' }}" class="w-3 h-3 shrink-0" />
+                                    @else
+                                        <x-icon name="heroicon-m-chevron-up-down" class="w-3 h-3 shrink-0 opacity-0 group-hover:opacity-60 transition-opacity" />
+                                    @endif
+                                </button>
+                            </th>
+                            <th class="px-table-cell-x py-table-header-y text-left text-[11px] font-semibold text-muted uppercase tracking-wider">
+                                <button wire:click="sort('module_name')" class="flex items-center gap-1 hover:text-ink transition-colors group" aria-label="{{ __('Sort by module') }}">
+                                    <span>{{ __('Module') }}</span>
+                                    @if($sortBy === 'module_name')
+                                        <x-icon name="{{ $sortDir === 'asc' ? 'heroicon-m-chevron-up' : 'heroicon-m-chevron-down' }}" class="w-3 h-3 shrink-0" />
+                                    @else
+                                        <x-icon name="heroicon-m-chevron-up-down" class="w-3 h-3 shrink-0 opacity-0 group-hover:opacity-60 transition-opacity" />
+                                    @endif
+                                </button>
+                            </th>
+                            <th class="px-table-cell-x py-table-header-y text-left text-[11px] font-semibold text-muted uppercase tracking-wider">
+                                <button wire:click="sort('migration_file')" class="flex items-center gap-1 hover:text-ink transition-colors group" aria-label="{{ __('Sort by migration') }}">
+                                    <span>{{ __('Migration') }}</span>
+                                    @if($sortBy === 'migration_file')
+                                        <x-icon name="{{ $sortDir === 'asc' ? 'heroicon-m-chevron-up' : 'heroicon-m-chevron-down' }}" class="w-3 h-3 shrink-0" />
+                                    @else
+                                        <x-icon name="heroicon-m-chevron-up-down" class="w-3 h-3 shrink-0 opacity-0 group-hover:opacity-60 transition-opacity" />
+                                    @endif
+                                </button>
+                            </th>
                             @if(app()->environment('local'))
-                                <th class="px-table-cell-x py-table-header-y text-left text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Stable') }}</th>
-                                <th class="px-table-cell-x py-table-header-y text-left text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Stabilized At') }}</th>
+                                <th class="px-table-cell-x py-table-header-y text-left text-[11px] font-semibold text-muted uppercase tracking-wider">
+                                    <button wire:click="sort('is_stable')" class="flex items-center gap-1 hover:text-ink transition-colors group" aria-label="{{ __('Sort by stability') }}">
+                                        <span>{{ __('Stable') }}</span>
+                                        @if($sortBy === 'is_stable')
+                                            <x-icon name="{{ $sortDir === 'asc' ? 'heroicon-m-chevron-up' : 'heroicon-m-chevron-down' }}" class="w-3 h-3 shrink-0" />
+                                        @else
+                                            <x-icon name="heroicon-m-chevron-up-down" class="w-3 h-3 shrink-0 opacity-0 group-hover:opacity-60 transition-opacity" />
+                                        @endif
+                                    </button>
+                                </th>
+                                <th class="px-table-cell-x py-table-header-y text-left text-[11px] font-semibold text-muted uppercase tracking-wider">
+                                    <button wire:click="sort('stabilized_at')" class="flex items-center gap-1 hover:text-ink transition-colors group" aria-label="{{ __('Sort by stabilized at') }}">
+                                        <span>{{ __('Stabilized At') }}</span>
+                                        @if($sortBy === 'stabilized_at')
+                                            <x-icon name="{{ $sortDir === 'asc' ? 'heroicon-m-chevron-up' : 'heroicon-m-chevron-down' }}" class="w-3 h-3 shrink-0" />
+                                        @else
+                                            <x-icon name="heroicon-m-chevron-up-down" class="w-3 h-3 shrink-0 opacity-0 group-hover:opacity-60 transition-opacity" />
+                                        @endif
+                                    </button>
+                                </th>
                             @endif
                         </tr>
                     </thead>

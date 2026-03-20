@@ -387,7 +387,7 @@ test('custom global roles appear in user role assignment list', function (): voi
 
     $targetUser = User::factory()->create(['company_id' => $admin->company_id]);
 
-    Livewire::test('users.show', ['user' => $targetUser])
+    Livewire::test('admin.users.show', ['user' => $targetUser])
         ->assertSee('Custom Global Role');
 });
 
@@ -406,7 +406,7 @@ test('cross-company roles appear in user role assignment list', function (): voi
 
     $targetUser = User::factory()->create(['company_id' => $admin->company_id]);
 
-    Livewire::test('users.show', ['user' => $targetUser])
+    Livewire::test('admin.users.show', ['user' => $targetUser])
         ->assertSee('Other Company Role');
 });
 
@@ -417,7 +417,7 @@ test('direct capabilities can be added to a user', function (): void {
 
     $this->actingAs($admin);
 
-    Livewire::test('users.show', ['user' => $targetUser])
+    Livewire::test('admin.users.show', ['user' => $targetUser])
         ->set('selectedCapabilityKeys', ['core.company.view'])
         ->call('addCapabilities');
 
@@ -445,7 +445,7 @@ test('direct capabilities can be removed from a user', function (): void {
 
     $this->actingAs($admin);
 
-    Livewire::test('users.show', ['user' => $targetUser])
+    Livewire::test('admin.users.show', ['user' => $targetUser])
         ->call('removeCapability', $cap->id);
 
     expect(PrincipalCapability::query()->where('id', $cap->id)->exists())->toBeFalse();
@@ -467,7 +467,7 @@ test('role capability can be denied for a user', function (): void {
 
     $this->actingAs($admin);
 
-    Livewire::test('users.show', ['user' => $targetUser])
+    Livewire::test('admin.users.show', ['user' => $targetUser])
         ->call('denyCapability', 'core.user.view');
 
     $deny = PrincipalCapability::query()
@@ -494,7 +494,7 @@ test('denied capability can be un-denied by removing it', function (): void {
 
     $this->actingAs($admin);
 
-    Livewire::test('users.show', ['user' => $targetUser])
+    Livewire::test('admin.users.show', ['user' => $targetUser])
         ->call('removeCapability', $deny->id);
 
     expect(PrincipalCapability::query()->where('id', $deny->id)->exists())->toBeFalse();

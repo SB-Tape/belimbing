@@ -16,7 +16,7 @@ test('licensee company cannot be deleted from index', function (): void {
 
     $this->actingAs($user);
 
-    Livewire::test('companies.index')
+    Livewire::test('admin.companies.index')
         ->call('delete', $licensee->id);
 
     expect(Company::query()->find($licensee->id))->not()->toBeNull();
@@ -42,7 +42,7 @@ test('company can be created from create page component', function (): void {
     $user = User::factory()->create();
     $this->actingAs($user);
 
-    Livewire::test('companies.create')
+    Livewire::test('admin.companies.create')
         ->set('name', 'Northwind Holdings')
         ->set('status', 'active')
         ->set('email', 'ops@northwind.example')

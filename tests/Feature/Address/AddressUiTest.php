@@ -40,7 +40,7 @@ test('address can be created from create page component', function (): void {
     $user = User::factory()->create();
     $this->actingAs($user);
 
-    Livewire::test('addresses.create')
+    Livewire::test('admin.addresses.create')
         ->set('label', 'Warehouse')
         ->set('line1', '88 River Road')
         ->set('locality', 'Boston')

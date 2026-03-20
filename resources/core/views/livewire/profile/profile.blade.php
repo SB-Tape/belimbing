@@ -40,6 +40,6 @@
             </div>
         </form>
 
-        <livewire:settings.delete-user-form />
+        <livewire:profile.delete-user-form />
     </x-settings.layout>
 </section>

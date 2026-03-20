@@ -8,8 +8,8 @@
     <x-slot name="title">{{ $toolName ? __('Tools') . ' — ' . $toolName : __('Tools') }}</x-slot>
 
     @if($toolName)
-        <livewire:ai.tools.workspace :tool-name="$toolName" :key="'workspace-' . $toolName" />
+        <livewire:admin.ai.tools.workspace :tool-name="$toolName" :key="'workspace-' . $toolName" />
     @else
-        <livewire:ai.tools.catalog />
+        <livewire:admin.ai.tools.catalog />
     @endif
 </div>

@@ -18,6 +18,10 @@ class Index extends Component
 
     public string $search = '';
 
+    public string $sortBy = 'table_name';
+
+    public string $sortDir = 'asc';
+
     /**
      * Toggle the stability flag for a table.
      */
@@ -40,6 +44,27 @@ class Index extends Component
         return $isStable ? 'success' : 'default';
     }
 
+    /**
+     * Sort by the given column, toggling direction if already active.
+     */
+    public function sort(string $column): void
+    {
+        $allowed = ['table_name', 'module_name', 'migration_file', 'is_stable', 'stabilized_at'];
+
+        if (! in_array($column, $allowed, true)) {
+            return;
+        }
+
+        if ($this->sortBy === $column) {
+            $this->sortDir = $this->sortDir === 'asc' ? 'desc' : 'asc';
+        } else {
+            $this->sortBy = $column;
+            $this->sortDir = 'asc';
+        }
+
+        $this->resetPage();
+    }
+
     public function render(): \Illuminate\Contracts\View\View
     {
         return view('livewire.admin.system.database-tables.index', [
@@ -50,8 +75,7 @@ class Index extends Component
                             ->orWhere('module_name', 'like', '%'.$search.'%');
                     });
                 })
-                ->orderBy('module_name')
-                ->orderBy('table_name')
+                ->orderBy($this->sortBy, $this->sortDir)
                 ->paginate(25),
         ]);
     }

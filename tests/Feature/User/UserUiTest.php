@@ -49,7 +49,7 @@ test('user can be created from create page component', function (): void {
     $actor = createAdminUser();
     $this->actingAs($actor);
 
-    Livewire::test('users.create')
+    Livewire::test('admin.users.create')
         ->set('name', 'Jane Doe')
         ->set('email', 'jane@example.com')
         ->set('password', TEST_PASSWORD)
@@ -70,7 +70,7 @@ test('user can be created with company', function (): void {
     $company = Company::factory()->create();
     $this->actingAs($actor);
 
-    Livewire::test('users.create')
+    Livewire::test('admin.users.create')
         ->set('companyId', (string) $company->id)
         ->set('name', 'John Smith')
         ->set('email', 'john@example.com')
@@ -91,13 +91,13 @@ test('user fields can be inline edited from show page', function (): void {
     $user = User::factory()->create(['name' => 'Old Name', 'email' => 'old@example.com']);
     $this->actingAs($actor);
 
-    Livewire::test('users.show', ['user' => $user])
+    Livewire::test('admin.users.show', ['user' => $user])
         ->call('saveField', 'name', 'New Name');
 
     $user->refresh();
     expect($user->name)->toBe('New Name');
 
-    Livewire::test('users.show', ['user' => $user])
+    Livewire::test('admin.users.show', ['user' => $user])
         ->call('saveField', 'email', 'new@example.com');
 
     $user->refresh();
@@ -112,7 +112,7 @@ test('email change resets email_verified_at', function (): void {
     ]);
     $this->actingAs($actor);
 
-    Livewire::test('users.show', ['user' => $user])
+    Livewire::test('admin.users.show', ['user' => $user])
         ->call('saveField', 'email', 'changed@example.com');
 
     $user->refresh();
@@ -126,13 +126,13 @@ test('company can be changed from show page', function (): void {
     $user = User::factory()->create(['company_id' => null]);
     $this->actingAs($actor);
 
-    Livewire::test('users.show', ['user' => $user])
+    Livewire::test('admin.users.show', ['user' => $user])
         ->call('saveCompany', $company->id);
 
     $user->refresh();
     expect($user->company_id)->toBe($company->id);
 
-    Livewire::test('users.show', ['user' => $user])
+    Livewire::test('admin.users.show', ['user' => $user])
         ->call('saveCompany', null);
 
     $user->refresh();
@@ -144,7 +144,7 @@ test('password can be updated from show page', function (): void {
     $user = User::factory()->create();
     $this->actingAs($actor);
 
-    Livewire::test('users.show', ['user' => $user])
+    Livewire::test('admin.users.show', ['user' => $user])
         ->set('password', TEST_PASSWORD_NEW)
         ->set('passwordConfirmation', TEST_PASSWORD_NEW)
         ->call('updatePassword')
@@ -156,7 +156,7 @@ test('password update requires confirmation', function (): void {
     $user = User::factory()->create();
     $this->actingAs($actor);
 
-    Livewire::test('users.show', ['user' => $user])
+    Livewire::test('admin.users.show', ['user' => $user])
         ->set('password', TEST_PASSWORD_NEW)
         ->set('passwordConfirmation', 'WrongConfirmation!')
         ->call('updatePassword')
@@ -178,7 +178,7 @@ test('user without delete capability cannot delete users', function (): void {
     $other = User::factory()->create();
     $this->actingAs($viewer);
 
-    Livewire::test('users.index')
+    Livewire::test('admin.users.index')
         ->call('delete', $other->id);
 
     expect(User::query()->find($other->id))->not()->toBeNull();
@@ -189,12 +189,12 @@ test('user can be deleted from index and cannot delete self', function (): void 
     $other = User::factory()->create();
     $this->actingAs($actor);
 
-    Livewire::test('users.index')
+    Livewire::test('admin.users.index')
         ->call('delete', $other->id);
 
     expect(User::query()->find($other->id))->toBeNull();
 
-    Livewire::test('users.index')
+    Livewire::test('admin.users.index')
         ->call('delete', $actor->id);
 
     expect(User::query()->find($actor->id))->not()->toBeNull();
