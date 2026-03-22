@@ -25,6 +25,24 @@ Intent: extend BLB auto-discovery infrastructure instead of adding manual module
 - Sorting and deterministic order are enforced before registration.
 - Validation runs at registry level (example: menu circular parent checks).
 
+## Module Config Discovery Convention
+
+Framework-level modules auto-discover `Config/{name}.php` from all Base and Module directories, merging module-declared values into the framework config. This keeps module-specific concerns local — modules never edit framework configs.
+
+| Framework Module | Discovered File | Merged Keys | Discovery Location |
+|---|---|---|---|
+| Authz | `Config/authz.php` | `capabilities`, `roles` | `Authz\ServiceProvider::discoverModuleAuthzConfigs()` |
+| Menu | `Config/menu.php` | `items` | `Menu\Services\MenuDiscoveryService` |
+| Audit | `Config/audit.php` | `exclude_models` | `Audit\ServiceProvider::discoverModuleAuditConfigs()` |
+
+**Principle:** When a module needs to influence framework behavior (e.g., exclude a model from auditing, declare capabilities, add menu items), it declares a local `Config/{name}.php` returning only the keys it cares about. The framework module's discovery method globs `app/Base/*/Config/{name}.php` and `app/Modules/*/*/Config/{name}.php`, skipping its own base config, and merges arrays additively.
+
+**When adding a new discoverable config key to a framework module:**
+
+1. Add the merge logic in the framework module's ServiceProvider (follow `discoverModuleAuthzConfigs` pattern).
+2. Update this table.
+3. Add the new config file to the auto-discovery list in `feat-new-business-module.md`.
+
 ## Required Invariants
 
 - Deterministic load order across runs.

@@ -139,6 +139,7 @@ These are discovered automatically from glob patterns — do not register manual
 - **Routes**: `app/Modules/*/*/Routes/web.php`
 - **Menu config**: `app/Modules/*/*/Config/menu.php`
 - **Authz config**: `app/Modules/*/*/Config/authz.php`
+- **Audit config**: `app/Modules/*/*/Config/audit.php` (optional — only when module needs audit exclusions)
 - **Migrations**: `app/Modules/*/*/Database/Migrations/`
 - **Livewire components**: `app/Modules/*/*/Livewire/**/*.php`
 - **Dev seeders**: `app/Modules/*/*/Database/Seeders/Dev/Dev*Seeder.php`

@@ -30,6 +30,7 @@ Intent: add a permissioned CRUD feature to a module — route, authz, Livewire c
 - **Routes**: auto-discovered from `Routes/web.php`. Group under `auth` middleware, add `authz:<capability>` per route.
 - **Menu**: auto-discovered from `Config/menu.php`. Each item needs `id`, `label`, `route`, `permission`, `parent`, `position`.
 - **Authz**: auto-discovered from `Config/authz.php`. Capability key grammar: `<domain>.<resource>.<action>`.
+- **Audit**: optional `Config/audit.php` for module-specific audit exclusions (e.g., `exclude_models`). See `FEAT-DISCOVERY` § Module Config Discovery Convention.
 - **ServiceProvider**: auto-discovered from `ServiceProvider.php`. Usually empty for pure modules.
 - Run authz seeder after any `Config/authz.php` change: `php artisan db:seed --class="App\Base\Authz\Database\Seeders\AuthzRoleCapabilitySeeder"`.
 

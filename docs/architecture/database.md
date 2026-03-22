@@ -114,6 +114,7 @@ This registry tracks the YYYY_MM_DD prefixes assigned to each module to prevent 
 | `0100_01_11_*` | Base | Authz | Database |
 | `0100_01_13_*` | Base | Settings | Database |
 | `0100_01_15_*` | Base | Workflow | None |
+| `0100_01_17_*` | Base | Audit | Database |
 | `0200_01_03_*` | Modules/Core | Geonames | None |
 | `0200_01_05_*` | Modules/Core | Address | Geonames |
 | `0200_01_07_*` | Modules/Core | Company | Geonames, Address |
@@ -162,7 +163,8 @@ Base Layer (0100)
   ├─ Database (01_01) → [no dependencies]
   ├─ Authz (01_11) → [depends on: Database]
   ├─ Settings (01_13) → [depends on: Database]
-  └─ Workflow (01_15) → [no dependencies]
+  ├─ Workflow (01_15) → [no dependencies]
+  └─ Audit (01_17) → [depends on: Database]
 
 Core Layer (0200)
   ├─ Geonames (01_03) → [no dependencies, runs first]
