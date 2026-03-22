@@ -248,7 +248,7 @@ Licensee overrides either side independently:
 
 ```
 app/{Licensee}/Http/Livewire/Dashboard.php                  # Override logic
-resources/{licensee}/views/livewire/dashboard.blade.php     # Override presentation
+resources/extensions/{licensee}/views/livewire/dashboard.blade.php     # Override presentation
 ```
 
 ### What Is Preserved
@@ -303,10 +303,10 @@ resources/                                # Presentation only
 
 | What | BLB core location | Licensee override location | Mechanism |
 |------|-------------------|---------------------------|-----------|
-| Design tokens | `resources/core/css/tokens.css` | `resources/{licensee}/css/tokens.css` | CSS cascade |
-| CSS components | `resources/core/css/components.css` | `resources/{licensee}/css/components.css` | CSS cascade |
-| Blade components | `resources/core/views/components/` | `resources/{licensee}/views/components/` | View resolution order |
-| Page templates | `resources/core/views/livewire/` | `resources/{licensee}/views/livewire/` | View resolution order |
+| Design tokens | `resources/core/css/tokens.css` | `resources/extensions/{licensee}/css/tokens.css` | CSS cascade |
+| CSS components | `resources/core/css/components.css` | `resources/extensions/{licensee}/css/components.css` | CSS cascade |
+| Blade components | `resources/core/views/components/` | `resources/extensions/{licensee}/views/components/` | View resolution order |
+| Page templates | `resources/core/views/livewire/` | `resources/extensions/{licensee}/views/livewire/` | View resolution order |
 | Page logic | `app/Http/Livewire/` | `app/{Licensee}/Http/Livewire/` | Class binding / service container |
 
 ### Configuration

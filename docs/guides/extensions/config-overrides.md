@@ -1,6 +1,6 @@
 # Extension Configuration Management
 
-This document explains how custom extensions can add or override configuration in Belimbing.
+This document explains how extensions can add or override configuration in Belimbing.
 
 ## Overview
 
@@ -18,7 +18,7 @@ Extensions can merge their own configuration arrays into existing config files d
 
 ### Example: Adding Relationship Types
 
-An extension can add new relationship types to `config/company.php`:
+An extension can add new relationship types to the `company` config:
 
 ```php
 <?php
@@ -26,11 +26,11 @@ An extension can add new relationship types to `config/company.php`:
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (c) 2026 Your Name
 
-namespace Extensions\Vendor\CompanyExtension\Providers;
+namespace Extensions\SbGroup\Quality;
 
 use Illuminate\Support\ServiceProvider;
 
-class CompanyExtensionServiceProvider extends ServiceProvider
+class ServiceProvider extends ServiceProvider
 {
     /**
      * Bootstrap services.
@@ -39,7 +39,7 @@ class CompanyExtensionServiceProvider extends ServiceProvider
     {
         // Merge additional relationship types into company config
         $this->mergeConfigFrom(
-            __DIR__ . '/../../config/company.php',
+            __DIR__ . '/Config/quality.php',
             'company'
         );
 
@@ -111,12 +111,10 @@ Extensions can publish their own config files that override or extend base confi
 ### Step 1: Create Config File in Extension
 
 ```
-extensions/vendor/company-extension/
-├── config/
-│   └── company.php          # Extension's config file
-└── src/
-    └── Providers/
-        └── CompanyExtensionServiceProvider.php
+extensions/sb-group/quality/
+├── Config/
+│   └── quality.php            # Extension's config file (PascalCase dir, lowercase file)
+└── ServiceProvider.php
 ```
 
 ### Step 2: Publish Config in Service Provider
@@ -124,11 +122,11 @@ extensions/vendor/company-extension/
 ```php
 <?php
 
-namespace Extensions\Vendor\CompanyExtension\Providers;
+namespace Extensions\SbGroup\Quality;
 
 use Illuminate\Support\ServiceProvider;
 
-class CompanyExtensionServiceProvider extends ServiceProvider
+class ServiceProvider extends ServiceProvider
 {
     /**
      * Register services.
@@ -137,7 +135,7 @@ class CompanyExtensionServiceProvider extends ServiceProvider
     {
         // Merge config during registration (before boot)
         $this->mergeConfigFrom(
-            __DIR__ . '/../../config/company.php',
+            __DIR__ . '/Config/quality.php',
             'company'
         );
     }
@@ -147,10 +145,10 @@ class CompanyExtensionServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Publish config file (allows users to customize)
+        // Publish config file (allows adopters to customize)
         $this->publishes([
-            __DIR__ . '/../../config/company.php' => config_path('company.php'),
-        ], 'company-extension-config');
+            __DIR__ . '/Config/quality.php' => config_path('quality.php'),
+        ], 'quality-config');
     }
 }
 ```
@@ -159,7 +157,7 @@ class CompanyExtensionServiceProvider extends ServiceProvider
 
 ```php
 <?php
-// extensions/vendor/company-extension/config/company.php
+// extensions/sb-group/quality/Config/quality.php
 
 return [
     'relationship_types' => [
@@ -232,7 +230,7 @@ Extensions can read from environment variables with sensible defaults.
 
 ```php
 <?php
-// extensions/vendor/company-extension/config/company.php
+// extensions/sb-group/quality/Config/quality.php
 
 return [
     'relationship_types' => [
@@ -254,36 +252,25 @@ return [
 
 ## Best Practices
 
-### 1. Use `mergeConfigFrom()` for Array Merging
-
-Laravel's `mergeConfigFrom()` automatically handles recursive array merging:
+### 1. Prefer Merging Over Replacing
 
 ```php
-// ✅ Good - Recursive merge
-$this->mergeConfigFrom(__DIR__ . '/../../config/company.php', 'company');
+// ✅ Merge with existing config
+$existing = config('company.relationship_types', []);
+config(['company.relationship_types' => array_merge($existing, $newTypes)]);
 
-// ❌ Avoid - Manual merge can be error-prone
-$base = config('company.relationship_types');
-$extension = [...];
-config(['company.relationship_types' => array_merge($base, $extension)]);
+// ❌ Replacing entire config (may break other extensions)
+config(['company.relationship_types' => $newTypes]);
 ```
 
-### 2. Merge in `register()`, Override in `boot()`
+### 2. Use Namespaced Config Keys
 
 ```php
-public function register(): void
-{
-    // Merge config files here (early in lifecycle)
-    $this->mergeConfigFrom(__DIR__ . '/../../config/company.php', 'company');
-}
+// ✅ Extension-specific config key
+config(['quality.vendor_timeout' => 30]);
 
-public function boot(): void
-{
-    // Override based on runtime conditions here
-    if ($someCondition) {
-        config(['company.some_key' => $newValue]);
-    }
-}
+// ❌ Generic key that may collide
+config(['timeout' => 30]);
 ```
 
 ### 3. Document Configuration Options
@@ -300,7 +287,7 @@ Always document what configuration your extension adds or modifies:
  */
 public function register(): void
 {
-    $this->mergeConfigFrom(__DIR__ . '/../../config/company.php', 'company');
+    $this->mergeConfigFrom(__DIR__ . '/Config/quality.php', 'company');
 }
 ```
 
@@ -320,42 +307,39 @@ return [
 ];
 ```
 
-### 5. Allow User Customization
+### 5. Allow Adopter Customization
 
-Publish config files so users can customize:
+Publish config files so adopters can customize:
 
 ```php
 public function boot(): void
 {
     $this->publishes([
-        __DIR__ . '/../../config/company.php' => config_path('company.php'),
-    ], 'company-extension-config');
+        __DIR__ . '/Config/quality.php' => config_path('quality.php'),
+    ], 'quality-config');
 }
 ```
 
-Users can then:
+Adopters can then:
 ```bash
-php artisan vendor:publish --tag=company-extension-config
+php artisan vendor:publish --tag=quality-config
 ```
 
-And edit `config/company.php` directly.
+And edit `config/quality.php` directly.
 
 ---
 
-## Complete Example: Company Extension
+## Complete Example: Quality Extension
 
 Here's a complete example of an extension that adds a "vendor" relationship type:
 
 ### Extension Structure
 
 ```
-extensions/vendor/company-extension/
-├── config/
-│   └── company.php
-├── src/
-│   └── Providers/
-│       └── CompanyExtensionServiceProvider.php
-└── composer.json
+extensions/sb-group/quality/
+├── Config/
+│   └── quality.php
+└── ServiceProvider.php
 ```
 
 ### Service Provider
@@ -366,11 +350,11 @@ extensions/vendor/company-extension/
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (c) 2026 Your Name
 
-namespace Extensions\Vendor\CompanyExtension\Providers;
+namespace Extensions\SbGroup\Quality;
 
 use Illuminate\Support\ServiceProvider;
 
-class CompanyExtensionServiceProvider extends ServiceProvider
+class ServiceProvider extends ServiceProvider
 {
     /**
      * Register services.
@@ -379,7 +363,7 @@ class CompanyExtensionServiceProvider extends ServiceProvider
     {
         // Merge extension config with base config
         $this->mergeConfigFrom(
-            __DIR__ . '/../../config/company.php',
+            __DIR__ . '/Config/quality.php',
             'company'
         );
     }
@@ -389,10 +373,10 @@ class CompanyExtensionServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Publish config for user customization
+        // Publish config for adopter customization
         $this->publishes([
-            __DIR__ . '/../../config/company.php' => config_path('company.php'),
-        ], 'company-extension-config');
+            __DIR__ . '/Config/quality.php' => config_path('quality.php'),
+        ], 'quality-config');
 
         // Optionally remove 'supplier' and 'agency' if vendor replaces them
         if (config('company.replace_with_vendor', false)) {
@@ -439,31 +423,24 @@ return [
 ];
 ```
 
-### Registering the Service Provider
+### Registering the Extension Service Provider
 
-Add to `bootstrap/providers.php`:
+Extension providers are registered via `ProviderRegistry::resolve()` in `bootstrap/providers.php`:
 
 ```php
-return [
-    App\Providers\AppServiceProvider::class,
-    App\Providers\VoltServiceProvider::class,
-    \Extensions\Vendor\CompanyExtension\Providers\CompanyExtensionServiceProvider::class,
-];
+<?php
+
+use App\Base\Foundation\Providers\ProviderRegistry;
+
+return ProviderRegistry::resolve(
+    appProviders: [
+        App\Providers\AppServiceProvider::class,
+        \Extensions\SbGroup\Quality\ServiceProvider::class,
+    ]
+);
 ```
 
-Or use auto-discovery in `composer.json`:
-
-```json
-{
-    "extra": {
-        "laravel": {
-            "providers": [
-                "Extensions\\Vendor\\CompanyExtension\\Providers\\CompanyExtensionServiceProvider"
-            ]
-        }
-    }
-}
-```
+The `ProviderRegistry` ensures a deterministic boot order: priority providers → Base infrastructure → business modules → app providers. Extension providers listed in `appProviders` load after all framework and module providers.
 
 ---
 
@@ -490,12 +467,12 @@ Test that your extension properly merges/overrides config:
 ```php
 <?php
 
-namespace Tests\Extensions\Vendor\CompanyExtension;
+namespace Tests\Extensions\SbGroup\Quality;
 
 use Tests\TestCase;
 use Illuminate\Support\Facades\Config;
 
-class CompanyExtensionConfigTest extends TestCase
+class QualityConfigTest extends TestCase
 {
     public function test_vendor_type_is_added(): void
     {
@@ -524,11 +501,11 @@ Extensions can modify configuration through:
 
 1. ✅ **`mergeConfigFrom()`** - Best for merging arrays
 2. ✅ **`config()->set()`** - For runtime overrides
-3. ✅ **Publishing config files** - Allows user customization
+3. ✅ **Publishing config files** - Allows adopter customization
 4. ✅ **Environment variables** - For environment-specific values
 
 Always:
 - Document what config your extension modifies
 - Provide sensible defaults
-- Allow user customization
+- Allow adopter customization
 - Test configuration merging

@@ -455,49 +455,37 @@ app/Admin/
 
 ## Extension Structure (`extensions/`)
 
+All extensions — licensee or third-party — follow the same two-level layout: `extensions/{owner}/{module}/`. The `{owner}` is the licensee name or vendor name.
+
 ```
 extensions/
-├── vendor/                    # Third-party extensions
-│   └── {vendor-name}/
-│       └── {extension-name}/
-│           ├── composer.json
-│           ├── manifest.json  # Extension manifest
-│           ├── src/
-│           ├── migrations/
-│           ├── seeders/
-│           ├── routes/
-│           ├── views/
-│           └── tests/
+├── {licensee}/                # Licensee-owned extensions (e.g. sb-group)
+│   ├── quality/               # One module
+│   │   ├── Config/
+│   │   │   ├── menu.php       # Menu items (auto-discovered)
+│   │   │   ├── authz.php
+│   │   │   └── quality.php    # Module config (lowercase)
+│   │   ├── Database/
+│   │   │   ├── Migrations/
+│   │   │   └── Seeders/
+│   │   ├── Livewire/
+│   │   ├── Models/
+│   │   ├── Services/
+│   │   ├── Routes/
+│   │   │   └── web.php
+│   │   ├── Tests/
+│   │   └── ServiceProvider.php
+│   └── logistics/             # Another module (scales to many)
+│       └── ...
 │
-└── custom/                    # Custom business extensions
-    └── {extension-name}/
+└── {vendor}/                  # Third-party vendor extensions (same structure)
+    └── {module}/
         └── [same structure]
 ```
 
-**Extension Manifest (`manifest.json`):**
+This layout matches the menu discovery glob (`extensions/*/*/Config/menu.php`) and mirrors BLB's internal module structure. Extension modules include only the internals they need.
 
-```json
-{
-  "name": "vendor/extension-name",
-  "version": "1.0.0",
-  "description": "Extension description",
-  "type": "module|service|hook",
-  "dependencies": {
-    "core": ">=1.0.0",
-    "modules": ["user", "workflow"]
-  },
-  "hooks": [
-    "user.created",
-    "workflow.transition.before"
-  ],
-  "permissions": [
-    "extension.permission.name"
-  ],
-  "config": {
-    "schema": "config/schema.json"
-  }
-}
-```
+Reference: `docs/guides/licensee-development-guide.md` for the full development model.
 
 ---
 
@@ -693,7 +681,7 @@ Hooks available at:
 
 ## Extension Development Workflow
 
-1. **Development**: Create extension in `extensions/custom/`
+1. **Development**: Create extension in `extensions/{owner}/{module}/`
 2. **Validation**: Run pre-installation validation
 3. **Testing**: Write and run tests
 4. **Installation**: Install via admin panel

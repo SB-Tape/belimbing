@@ -48,7 +48,7 @@ Tailwind CSS v4 uses CSS custom properties (`@theme`) for theming. BLB exposes t
 
 ### Customization Example
 
-**Create:** `resources/{licensee}/css/tokens.css` (licensee-specific, e.g. `resources/custom/css/tokens.css`)
+**Create:** `resources/extensions/{licensee}/css/tokens.css` (licensee-specific, e.g. `resources/extensions/{licensee}/css/tokens.css`)
 
 ```css
 @theme {
@@ -110,7 +110,7 @@ Laravel's component resolution checks **adopter directories first**, then framew
 ### Resolution Order
 
 ```
-1. resources/{licensee}/views/components/ui/button.blade.php  (licensee)
+1. resources/extensions/{licensee}/views/components/ui/button.blade.php  (licensee)
 2. app/View/Components/Ui/Button.php               (adopter class-based)
 3. [BLB framework components]                      (fallback)
 ```
@@ -121,7 +121,7 @@ Laravel's component resolution checks **adopter directories first**, then framew
 
 **BLB Default:** Uses blue-600 for primary buttons
 
-**Adopter Override:** Create `resources/{licensee}/views/components/ui/button.blade.php`
+**Adopter Override:** Create `resources/extensions/{licensee}/views/components/ui/button.blade.php`
 
 ```blade
 @props([
@@ -159,10 +159,10 @@ $sizeClasses = match($size) {
 ### What Can Be Overridden
 
 **UI Components:**
-- `resources/{licensee}/views/components/ui/button.blade.php`
-- `resources/{licensee}/views/components/ui/card.blade.php`
-- `resources/{licensee}/views/components/ui/input.blade.php`
-- `resources/{licensee}/views/components/ui/modal.blade.php`
+- `resources/extensions/{licensee}/views/components/ui/button.blade.php`
+- `resources/extensions/{licensee}/views/components/ui/card.blade.php`
+- `resources/extensions/{licensee}/views/components/ui/input.blade.php`
+- `resources/extensions/{licensee}/views/components/ui/modal.blade.php`
 - All other `<x-ui.*>` components
 
 **Layout Components:**
@@ -322,7 +322,7 @@ Ensure the root element has `data-palette` set before first paint when possible 
 
 ### Example: Purple Brand Theme
 
-**Step 1: Override colors** (`resources/{licensee}/css/tokens.css`)
+**Step 1: Override colors** (`resources/extensions/{licensee}/css/tokens.css`)
 
 ```css
 @theme {
@@ -334,7 +334,7 @@ Ensure the root element has `data-palette` set before first paint when possible 
 }
 ```
 
-**Step 2: Override button component** (`resources/{licensee}/views/components/ui/button.blade.php`)
+**Step 2: Override button component** (`resources/extensions/{licensee}/views/components/ui/button.blade.php`)
 
 ```blade
 @props(['variant' => 'primary'])
@@ -394,8 +394,8 @@ Merge conflicts resolved
 ```
 
 **Customization files (adopter-owned):**
-- `resources/{licensee}/css/tokens.css`
-- `resources/{licensee}/views/components/ui/*.blade.php` (overrides)
+- `resources/extensions/{licensee}/css/tokens.css`
+- `resources/extensions/{licensee}/views/components/ui/*.blade.php` (overrides)
 - `config/theme.php` (if created)
 
 **BLB framework files:**
@@ -451,7 +451,7 @@ php artisan vendor:publish --tag=acme-theme
 
 ### Example 3: Custom Button Style
 
-**Override:** `resources/{licensee}/views/components/ui/button.blade.php`
+**Override:** `resources/extensions/{licensee}/views/components/ui/button.blade.php`
 
 ```blade
 {{-- Adopter: Larger, pill-shaped buttons for accessibility --}}

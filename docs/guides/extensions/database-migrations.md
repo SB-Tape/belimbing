@@ -4,47 +4,47 @@ This guide explains how extensions can create and manage database tables in the 
 
 ## Overview
 
-Extensions can create their own database tables by placing migration files in their `migrations/` directory and loading them through a Service Provider. This allows extensions to have their own database schema while maintaining proper namespace isolation.
+Extensions can create their own database tables by placing migration files in their `Database/Migrations/` directory and loading them through a Service Provider. This allows extensions to have their own database schema while maintaining proper namespace isolation.
 
 ## Extension Structure
 
-Extensions should follow this directory structure:
+Extensions follow a two-level `{owner}/{module}/` layout under `extensions/`:
 
 ```
 extensions/
-├── vendor/                    # Third-party extensions
-│   └── {vendor-name}/
-│       └── {extension-name}/
-│           ├── composer.json
-│           ├── manifest.json
-│           ├── src/
-│           │   └── Providers/
-│           │       └── ExtensionServiceProvider.php
-│           ├── migrations/     # Extension migrations
-│           │   └── 2026_01_01_000000_create_example_table.php
-│           ├── seeders/
-│           ├── routes/
-│           └── views/
+├── {owner}/                   # Licensee, vendor, or organization name
+│   └── {module}/
+│       ├── Config/
+│       │   └── quality.php
+│       ├── Database/
+│       │   ├── Migrations/    # Extension migrations (PascalCase)
+│       │   │   └── 2026_01_01_000000_create_sbg_quality_inspections_table.php
+│       │   └── Seeders/
+│       ├── Models/
+│       ├── Services/
+│       ├── Routes/
+│       │   └── web.php
+│       └── ServiceProvider.php  # Module root, loads migrations
 │
-└── custom/                    # Custom business extensions
-    └── {extension-name}/
+└── another-vendor/
+    └── analytics/
         └── [same structure]
 ```
 
 ## Table Naming Conventions
 
-**Critical**: Extension tables must be prefixed with the vendor/company name followed by the module/table name to prevent conflicts.
+**Critical**: Extension tables must be prefixed with the owner and module name to prevent conflicts.
 
 ### Format
 ```
-{vendor}_{module}_{table_name}
+{owner}_{module}_{entity}
 ```
 
 ### Examples
-- `sbg_companies` - SBG vendor, company module
-- `sbg_company_relationships` - SBG vendor, company module, relationships table
-- `acme_orders` - ACME vendor, orders table
-- `acme_order_items` - ACME vendor, orders module, items table
+- `sbg_quality_inspections` — SBG owner, quality module, inspections entity
+- `sbg_quality_inspection_items` — SBG owner, quality module, inspection items entity
+- `acme_billing_invoices` — ACME owner, billing module, invoices entity
+- `acme_billing_invoice_lines` — ACME owner, billing module, invoice lines entity
 
 ### Why This Matters
 
@@ -56,7 +56,7 @@ extensions/
 
 ### Step 1: Create Migration File
 
-Create a migration file in your extension's `migrations/` directory:
+Create a migration file in your extension's `Database/Migrations/` directory:
 
 ```php
 <?php
@@ -74,7 +74,7 @@ return new class extends Migration {
      */
     public function up(): void
     {
-        Schema::create('sbg_companies', function (Blueprint $table) {
+        Schema::create('sbg_quality_inspections', function (Blueprint $table) {
             $table->id();
             $table->string('name');
             $table->string('code')->unique();
@@ -92,7 +92,7 @@ return new class extends Migration {
      */
     public function down(): void
     {
-        Schema::dropIfExists('sbg_companies');
+        Schema::dropIfExists('sbg_quality_inspections');
     }
 };
 ```
@@ -105,13 +105,14 @@ Refer to `app/Base/Database/AGENTS.md` for migration standards:
 - **Foreign Keys**: Use `foreignId()` method (creates `UNSIGNED BIGINT`)
 - **Timestamps**: Include `$table->timestamps()` for created_at/updated_at
 - **Soft Deletes**: Consider `$table->softDeletes()` if logical deletion is needed
+- **Year Prefix**: Extension migrations use real years (`2026+`), not layered prefixes
 
 ### Step 3: Reference Core Tables
 
 If your extension needs to reference core framework tables, use proper foreign key constraints:
 
 ```php
-Schema::create('sbg_company_extensions', function (Blueprint $table) {
+Schema::create('sbg_quality_audit_assignments', function (Blueprint $table) {
     $table->id();
 
     // Reference core companies table
@@ -125,7 +126,7 @@ Schema::create('sbg_company_extensions', function (Blueprint $table) {
           ->constrained('users')
           ->nullOnDelete();
 
-    $table->string('extension_data');
+    $table->string('assignment_data');
     $table->timestamps();
 });
 ```
@@ -134,7 +135,7 @@ Schema::create('sbg_company_extensions', function (Blueprint $table) {
 
 ### Step 1: Create Service Provider
 
-Create a Service Provider in your extension:
+Create a `ServiceProvider.php` at your module's root directory:
 
 ```php
 <?php
@@ -142,12 +143,11 @@ Create a Service Provider in your extension:
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (c) 2026 Your Name
 
-namespace Extensions\Vendor\CompanyExtension\Providers;
+namespace Extensions\SbGroup\Quality;
 
 use Illuminate\Support\ServiceProvider;
-use Illuminate\Support\Facades\Artisan;
 
-class CompanyExtensionServiceProvider extends ServiceProvider
+class ServiceProvider extends ServiceProvider
 {
     /**
      * Register services.
@@ -164,7 +164,7 @@ class CompanyExtensionServiceProvider extends ServiceProvider
     {
         // Load migrations from extension directory
         $this->loadMigrationsFrom(
-            __DIR__ . '/../../migrations'
+            __DIR__ . '/Database/Migrations'
         );
     }
 }
@@ -172,33 +172,16 @@ class CompanyExtensionServiceProvider extends ServiceProvider
 
 ### Step 2: Register Service Provider
 
-Add your Service Provider to `bootstrap/providers.php`:
+Extension providers are discovered automatically via `ProviderRegistry::resolve()` in `bootstrap/providers.php`. The registry scans `extensions/*/*/ServiceProvider.php`, so no manual registration is needed — just place your `ServiceProvider.php` at the module root and it will be picked up.
 
-```php
-return [
-    App\Providers\AppServiceProvider::class,
-    App\Providers\VoltServiceProvider::class,
-    \Extensions\Vendor\CompanyExtension\Providers\CompanyExtensionServiceProvider::class,
-];
-```
-
-Or use Composer auto-discovery in your extension's `composer.json`:
-
-```json
-{
-    "extra": {
-        "laravel": {
-            "providers": [
-                "Extensions\\Vendor\\CompanyExtension\\Providers\\CompanyExtensionServiceProvider"
-            ]
-        }
-    }
-}
-```
+If your extension is not being discovered, verify that:
+1. The file is at `extensions/{owner}/{module}/ServiceProvider.php`
+2. The namespace matches the directory structure (e.g., `Extensions\SbGroup\Quality`)
+3. Clear the config cache: `php artisan config:clear`
 
 ## Running Migrations
 
-Once your Service Provider is registered, Laravel will automatically discover your extension migrations when you run:
+Once your Service Provider is discovered, Laravel will automatically include your extension migrations when you run:
 
 ```bash
 php artisan migrate
@@ -211,7 +194,7 @@ This will run all migrations, including those from extensions.
 To run only your extension's migrations (useful for testing):
 
 ```bash
-php artisan migrate --path=extensions/vendor/company-extension/migrations
+php artisan migrate --path=extensions/sb-group/quality/Database/Migrations
 ```
 
 ### Rolling Back Extension Migrations
@@ -219,7 +202,7 @@ php artisan migrate --path=extensions/vendor/company-extension/migrations
 To rollback extension migrations:
 
 ```bash
-php artisan migrate:rollback --path=extensions/vendor/company-extension/migrations
+php artisan migrate:rollback --path=extensions/sb-group/quality/Database/Migrations
 ```
 
 ## Migration Best Practices
@@ -230,9 +213,9 @@ Migration filenames should clearly describe what they do:
 
 ```
 ✅ Good:
-2026_01_15_120000_create_sbg_companies_table.php
-2026_01_20_090000_add_logo_url_to_sbg_companies_table.php
-2026_02_01_100000_create_sbg_company_relationships_table.php
+2026_01_15_120000_create_sbg_quality_inspections_table.php
+2026_01_20_090000_add_logo_url_to_sbg_quality_inspections_table.php
+2026_02_01_100000_create_sbg_quality_inspection_items_table.php
 
 ❌ Bad:
 2026_01_01_000000_migration.php
@@ -245,15 +228,15 @@ Keep migrations focused and granular:
 
 ```php
 // ✅ Good: One migration for one table
-Schema::create('sbg_companies', function (Blueprint $table) {
+Schema::create('sbg_quality_inspections', function (Blueprint $table) {
     // ...
 });
 
 // ❌ Avoid: Multiple unrelated tables in one migration
-Schema::create('sbg_companies', function (Blueprint $table) {
+Schema::create('sbg_quality_inspections', function (Blueprint $table) {
     // ...
 });
-Schema::create('sbg_orders', function (Blueprint $table) {
+Schema::create('sbg_billing_invoices', function (Blueprint $table) {
     // ...
 });
 ```
@@ -267,7 +250,7 @@ Ensure your migrations can be rolled back:
 ```php
 public function down(): void
 {
-    Schema::dropIfExists('sbg_companies');
+    Schema::dropIfExists('sbg_quality_inspections');
 }
 ```
 
@@ -292,15 +275,15 @@ Order your migrations to respect foreign key dependencies:
 
 ```php
 // Migration 1: Create base table
-Schema::create('sbg_companies', function (Blueprint $table) {
+Schema::create('sbg_quality_inspections', function (Blueprint $table) {
     $table->id();
     $table->string('name');
 });
 
 // Migration 2: Create dependent table (runs after Migration 1)
-Schema::create('sbg_company_relationships', function (Blueprint $table) {
+Schema::create('sbg_quality_inspection_items', function (Blueprint $table) {
     $table->id();
-    $table->foreignId('company_id')->constrained('sbg_companies');
+    $table->foreignId('inspection_id')->constrained('sbg_quality_inspections');
 });
 ```
 
@@ -311,16 +294,15 @@ Here's a complete example of an extension with migrations:
 ### Directory Structure
 
 ```
-extensions/vendor/sbg/
-└── company-extension/
-    ├── composer.json
-    ├── manifest.json
-    ├── src/
-    │   └── Providers/
-    │       └── CompanyExtensionServiceProvider.php
-    └── migrations/
-        ├── 2026_01_01_000000_create_sbg_companies_table.php
-        └── 2026_01_02_000000_create_sbg_company_relationships_table.php
+extensions/sb-group/
+└── quality/
+    ├── Database/
+    │   └── Migrations/
+    │       ├── 2026_01_01_000000_create_sbg_quality_inspections_table.php
+    │       └── 2026_01_02_000000_create_sbg_quality_inspection_items_table.php
+    ├── Models/
+    ├── Services/
+    └── ServiceProvider.php
 ```
 
 ### Service Provider
@@ -329,17 +311,17 @@ extensions/vendor/sbg/
 <?php
 
 // SPDX-License-Identifier: AGPL-3.0-only
-// Copyright (c) 2026 SBG
+// Copyright (c) 2026 SB Group
 
-namespace Extensions\Vendor\Sbg\CompanyExtension\Providers;
+namespace Extensions\SbGroup\Quality;
 
-use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\ServiceProvider as BaseServiceProvider;
 
-class CompanyExtensionServiceProvider extends ServiceProvider
+class ServiceProvider extends BaseServiceProvider
 {
     public function boot(): void
     {
-        $this->loadMigrationsFrom(__DIR__ . '/../../migrations');
+        $this->loadMigrationsFrom(__DIR__ . '/Database/Migrations');
     }
 }
 ```
@@ -350,7 +332,7 @@ class CompanyExtensionServiceProvider extends ServiceProvider
 <?php
 
 // SPDX-License-Identifier: AGPL-3.0-only
-// Copyright (c) 2026 SBG
+// Copyright (c) 2026 SB Group
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -359,7 +341,7 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
-        Schema::create('sbg_companies', function (Blueprint $table) {
+        Schema::create('sbg_quality_inspections', function (Blueprint $table) {
             $table->id();
             $table->string('name');
             $table->string('code')->unique();
@@ -373,7 +355,7 @@ return new class extends Migration {
 
     public function down(): void
     {
-        Schema::dropIfExists('sbg_companies');
+        Schema::dropIfExists('sbg_quality_inspections');
     }
 };
 ```
@@ -385,17 +367,18 @@ return new class extends Migration {
 **Problem**: `php artisan migrate` doesn't find extension migrations.
 
 **Solutions**:
-1. Verify Service Provider is registered in `bootstrap/providers.php`
-2. Check that `loadMigrationsFrom()` path is correct
-3. Clear config cache: `php artisan config:clear`
-4. Verify migration file follows Laravel naming convention
+1. Verify `ServiceProvider.php` exists at `extensions/{owner}/{module}/ServiceProvider.php`
+2. Check that `loadMigrationsFrom()` path is correct (should be `__DIR__ . '/Database/Migrations'`)
+3. Ensure `ProviderRegistry::resolve()` is scanning extensions (check `bootstrap/providers.php`)
+4. Clear config cache: `php artisan config:clear`
+5. Verify migration file follows Laravel naming convention (`YYYY_MM_DD_HHMMSS_description.php`)
 
 ### Table Name Conflicts
 
 **Problem**: Migration fails with "Table already exists" error.
 
 **Solutions**:
-1. Ensure table name uses vendor prefix: `{vendor}_{table_name}`
+1. Ensure table name uses the full prefix: `{owner}_{module}_{entity}`
 2. Check for duplicate migration files
 3. Verify migration hasn't already run: `php artisan migrate:status`
 
@@ -404,7 +387,7 @@ return new class extends Migration {
 **Problem**: Foreign key constraint fails.
 
 **Solutions**:
-1. Ensure referenced table exists (check migration order)
+1. Ensure referenced table exists (check migration order — core tables load before extensions)
 2. Verify foreign key column type matches referenced primary key
 3. Check that referenced table uses `id()` method (UNSIGNED BIGINT)
 

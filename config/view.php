@@ -11,15 +11,15 @@ return [
     | The licensee view path (if it exists) is registered first so that
     | licensee component overrides take precedence over core components.
     |
-    | The licensee directory name is read from VITE_THEME_DIR in .env
-    | (default: 'custom').
+    | The licensee directory name is read from VITE_THEME_DIR in .env.
+    | Views resolve from resources/extensions/{licensee}/views/.
     |
     */
 
     'paths' => array_filter([
-        resource_path(env('VITE_THEME_DIR', 'custom').'/views'),
+        env('VITE_THEME_DIR') ? resource_path('extensions/'.env('VITE_THEME_DIR').'/views') : null,
         resource_path('core/views'),
-    ], fn (string $path): bool => is_dir($path)),
+    ]),
 
     /*
     |--------------------------------------------------------------------------

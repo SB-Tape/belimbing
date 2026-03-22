@@ -13,10 +13,10 @@
  * Licensee overrides (loaded after core, wins by cascade).
  *
  * To enable licensee customization:
- * 1. Set VITE_THEME_DIR=<name> in .env (default: custom)
- * 2. Create resources/<name>/css/tokens.css and/or components.css
+ * 1. Set VITE_THEME_DIR=<name> in .env
+ * 2. Create resources/extensions/<name>/css/tokens.css and/or components.css
  * 3. Uncomment the imports below (or use the blb:theme:init command)
  *
- * @import './{licensee}/css/tokens.css';
- * @import './{licensee}/css/components.css';
+ * @import './extensions/{licensee}/css/tokens.css';
+ * @import './extensions/{licensee}/css/components.css';
  */

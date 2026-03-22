@@ -102,7 +102,7 @@ class MenuDiscoveryService
         // Extract from patterns:
         // app/Base/Menu/Config/menu.php -> Menu
         // app/Modules/Core/Geonames/Config/menu.php -> Geonames
-        // extensions/vendor/extension/Config/menu.php -> extension
+        // extensions/sb-group/quality/Config/menu.php -> quality
 
         if (preg_match('#app/Base/([^/]+)/Config/menu\.php#', $relativePath, $matches)) {
             return $matches[1];

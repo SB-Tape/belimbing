@@ -39,7 +39,7 @@ export default defineConfig({
                 'resources/core/views/**',
                 'resources/core/css/**',
                 'resources/core/js/**',
-                ...(process.env.VITE_THEME_DIR ? [`resources/${process.env.VITE_THEME_DIR}/**`] : ['resources/custom/**']),
+                ...(process.env.VITE_THEME_DIR ? [`resources/extensions/${process.env.VITE_THEME_DIR}/**`] : []),
             ],
         }),
         tailwindcss(),

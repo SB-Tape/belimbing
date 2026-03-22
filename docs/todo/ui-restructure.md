@@ -137,7 +137,7 @@ PHP classes in module namespaces, Blade templates unchanged at `resources/core/v
 | Decision | Rationale |
 |----------|-----------|
 | No Volt | Collapses controller/view boundary; blocks independent licensee overrides; agent convenience irrelevant |
-| `resources/core/` + `resources/{licensee}/` | Clear ownership boundary; safe upgrades; visible customization |
+| `resources/core/` + `resources/extensions/{licensee}/` | Clear ownership boundary; safe upgrades; visible customization |
 | `.env` VITE_THEME_DIR | Bridge between Vite (build-time) and PHP (runtime); default `custom` |
 | Impersonation in Status Bar | Consolidates system warnings in one zone; eliminates dedicated banner zone |
 | Lara in Top Bar | Replaces search placeholder; gives AI assistant prominent position |
