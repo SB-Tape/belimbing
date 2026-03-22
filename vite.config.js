@@ -3,8 +3,8 @@ import {
 } from 'vite';
 import laravel from 'laravel-vite-plugin';
 import tailwindcss from "@tailwindcss/vite";
-import { readFileSync } from 'fs';
-import { resolve } from 'path';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 
 // Read FRONTEND_DOMAIN from env or .env file.
 // Each instance (main, worktree) has its own domain; don't derive from APP_ENV.
@@ -17,7 +17,9 @@ if (!frontendDomain) {
             frontendDomain = stripWrappingQuotes(match[1].trim());
         }
     } catch (e) {
-        // .env file not found or unreadable
+        if (e.code !== 'ENOENT') {
+            throw e;
+        }
     }
 }
 frontendDomain = frontendDomain || 'local.blb.lara';
@@ -44,7 +46,7 @@ export default defineConfig({
     ],
     server: {
         host: '127.0.0.1',
-        port: parseInt(process.env.VITE_PORT || '5173'),
+        port: Number.parseInt(process.env.VITE_PORT || '5173'),
         strictPort: true,
         origin: `https://${frontendDomain}`,
         hmr: {

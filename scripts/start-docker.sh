@@ -45,11 +45,8 @@ check_docker_desktop() {
     fi
 
     # Check if Docker Desktop socket exists (Docker Desktop uses this path)
-    if [[ -S "/var/run/docker.sock" ]] || [[ -S "$HOME/.docker/run/docker.sock" ]]; then
-        # Try to connect to Docker daemon
-        if docker info >/dev/null 2>&1; then
-            return 0
-        fi
+    if [[ -S "/var/run/docker.sock" || -S "$HOME/.docker/run/docker.sock" ]] && docker info >/dev/null 2>&1; then
+        return 0
     fi
 
     return 1
@@ -154,7 +151,8 @@ is_reserved_port() {
 # Find next available port starting from given port
 # Uses is_port_available from shared/validation.sh
 next_free_port() {
-    local port=$1
+    local starting_port=$1
+    local port=$starting_port
     local max_attempts=100
     local attempt=0
 
@@ -169,7 +167,7 @@ next_free_port() {
     done
 
     # Return original if no free port found
-    echo "$1"
+    echo "$starting_port"
 }
 
 # Setup Docker Compose
@@ -242,6 +240,7 @@ setup_docker_compose() {
                     echo "${key}=${value}" >> "$docker_env_file"
                 fi
             fi
+            return 0
         }
 
         # Note: DB_PORT and REDIS_PORT are NOT persisted because they are internal
@@ -295,8 +294,9 @@ run_compose() {
     local cmd_args=(-f "$compose_file" --env-file "$env_file" --profile "$profile" -p "$project_name")
 
     # Add --remove-orphans for 'up' command to clean up old containers
-    if [[ "${1:-}" = "up" ]]; then
-        cmd_args+=("$1" --remove-orphans)
+    local first_arg="${1:-}"
+    if [[ "$first_arg" = "up" ]]; then
+        cmd_args+=("$first_arg" --remove-orphans)
         shift
     fi
 
@@ -339,12 +339,10 @@ wait_for_services() {
 
     while [[ $attempt -lt $max_attempts ]]; do
         # Check if app container is running (container name is blb-app)
-        if docker ps --format "{{.Names}}" | grep -q "^${project_name}-app$"; then
-            # Try to check if app is responding
-            if docker exec "${project_name}-app" php artisan --version >/dev/null 2>&1; then
-                echo -e "${GREEN}✓${NC} Services are healthy"
-                return 0
-            fi
+        if docker ps --format "{{.Names}}" | grep -q "^${project_name}-app$" && \
+           docker exec "${project_name}-app" php artisan --version >/dev/null 2>&1; then
+            echo -e "${GREEN}✓${NC} Services are healthy"
+            return 0
         fi
 
         attempt=$((attempt + 1))
@@ -751,12 +749,10 @@ main() {
     fi
 
     # Check if domain needs /etc/hosts entry
-    if [[ "$frontend_domain" == *.blb.lara ]]; then
-        if ! grep -q "$frontend_domain" /etc/hosts 2>/dev/null; then
-            echo -e "${YELLOW}Note:${NC} You may need to add this to /etc/hosts:" >&2
-            echo -e "  ${CYAN}127.0.0.1  ${frontend_domain}${NC}" >&2
-            echo ""
-        fi
+    if [[ "$frontend_domain" == *.blb.lara ]] && ! grep -q "$frontend_domain" /etc/hosts 2>/dev/null; then
+        echo -e "${YELLOW}Note:${NC} You may need to add this to /etc/hosts:" >&2
+        echo -e "  ${CYAN}127.0.0.1  ${frontend_domain}${NC}" >&2
+        echo ""
     fi
 
     local project_name profile

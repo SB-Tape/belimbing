@@ -67,26 +67,7 @@ class CountrySeeder extends Seeder
                 continue;
             }
 
-            $countries[] = [
-                'iso' => $parts[0] ?? null,
-                'iso3' => $parts[1] ?? null,
-                'iso_numeric' => $parts[2] ?? null,
-                'country' => $parts[4] ?? null,
-                'capital' => $parts[5] ?? null,
-                'area' => ! empty($parts[6]) ? (float) $parts[6] : null,
-                'population' => ! empty($parts[7]) ? (int) $parts[7] : 0,
-                'continent' => $parts[8] ?? null,
-                'tld' => $parts[9] ?? null,
-                'currency_code' => $parts[10] ?? null,
-                'currency_name' => $parts[11] ?? null,
-                'phone' => $parts[12] ?? null,
-                'postal_code_format' => $parts[13] ?? null,
-                'postal_code_regex' => $parts[14] ?? null,
-                'languages' => $parts[15] ?? null,
-                'geoname_id' => ! empty($parts[16]) ? (int) $parts[16] : null,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ];
+            $countries[] = $this->parseCountryRow($parts);
         }
 
         $this->command?->info(
@@ -109,5 +90,37 @@ class CountrySeeder extends Seeder
                 $skipped.
                 ' lines.',
         );
+    }
+
+    /**
+     * Map a parsed TSV row to the geonames_countries column structure.
+     *
+     * Expects the 19-column countryInfo.txt format from geonames.org.
+     *
+     * @param  array<int, string>  $parts
+     * @return array<string, mixed>
+     */
+    private function parseCountryRow(array $parts): array
+    {
+        return [
+            'iso' => $parts[0] ?? null,
+            'iso3' => $parts[1] ?? null,
+            'iso_numeric' => $parts[2] ?? null,
+            'country' => $parts[4] ?? null,
+            'capital' => $parts[5] ?? null,
+            'area' => ! empty($parts[6]) ? (float) $parts[6] : null,
+            'population' => ! empty($parts[7]) ? (int) $parts[7] : 0,
+            'continent' => $parts[8] ?? null,
+            'tld' => $parts[9] ?? null,
+            'currency_code' => $parts[10] ?? null,
+            'currency_name' => $parts[11] ?? null,
+            'phone' => $parts[12] ?? null,
+            'postal_code_format' => $parts[13] ?? null,
+            'postal_code_regex' => $parts[14] ?? null,
+            'languages' => $parts[15] ?? null,
+            'geoname_id' => ! empty($parts[16]) ? (int) $parts[16] : null,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ];
     }
 }

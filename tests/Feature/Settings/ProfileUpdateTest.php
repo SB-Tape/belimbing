@@ -5,22 +5,25 @@ use App\Modules\Core\User\Livewire\Settings\Profile;
 use App\Modules\Core\User\Models\User;
 use Livewire\Livewire;
 
+const PROFILE_TEST_USER_NAME = 'Test User';
+const PROFILE_TEST_USER_EMAIL = 'test@example.com';
+
 test('profile information can be updated', function () {
     $user = User::factory()->create();
 
     $this->actingAs($user);
 
     $response = Livewire::test(Profile::class)
-        ->set('name', 'Test User')
-        ->set('email', 'test@example.com')
+        ->set('name', PROFILE_TEST_USER_NAME)
+        ->set('email', PROFILE_TEST_USER_EMAIL)
         ->call('updateProfileInformation');
 
     $response->assertHasNoErrors();
 
     $user->refresh();
 
-    expect($user->name)->toEqual('Test User');
-    expect($user->email)->toEqual('test@example.com');
+    expect($user->name)->toEqual(PROFILE_TEST_USER_NAME);
+    expect($user->email)->toEqual(PROFILE_TEST_USER_EMAIL);
     expect($user->email_verified_at)->toBeNull();
 });
 
@@ -30,7 +33,7 @@ test('email verification status is unchanged when email address is unchanged', f
     $this->actingAs($user);
 
     $response = Livewire::test(Profile::class)
-        ->set('name', 'Test User')
+        ->set('name', PROFILE_TEST_USER_NAME)
         ->set('email', $user->email)
         ->call('updateProfileInformation');
 

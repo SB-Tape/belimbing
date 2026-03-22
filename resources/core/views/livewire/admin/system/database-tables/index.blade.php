@@ -46,7 +46,7 @@
                     <thead class="bg-surface-subtle/80">
                         <tr>
                             <th class="px-table-cell-x py-table-header-y text-left text-[11px] font-semibold text-muted uppercase tracking-wider">
-                                <button wire:click="sort('table_name')" class="flex items-center gap-1 hover:text-ink transition-colors group" aria-label="{{ __('Sort by table name') }}">
+                                <button wire:click="sort('table_name')" class="flex items-center gap-1 hover:text-ink transition-colors group">
                                     <span>{{ __('Table') }}</span>
                                     @if($sortBy === 'table_name')
                                         <x-icon name="{{ $sortDir === 'asc' ? 'heroicon-m-chevron-up' : 'heroicon-m-chevron-down' }}" class="w-3 h-3 shrink-0" />
@@ -56,7 +56,7 @@
                                 </button>
                             </th>
                             <th class="px-table-cell-x py-table-header-y text-left text-[11px] font-semibold text-muted uppercase tracking-wider">
-                                <button wire:click="sort('module_name')" class="flex items-center gap-1 hover:text-ink transition-colors group" aria-label="{{ __('Sort by module') }}">
+                                <button wire:click="sort('module_name')" class="flex items-center gap-1 hover:text-ink transition-colors group">
                                     <span>{{ __('Module') }}</span>
                                     @if($sortBy === 'module_name')
                                         <x-icon name="{{ $sortDir === 'asc' ? 'heroicon-m-chevron-up' : 'heroicon-m-chevron-down' }}" class="w-3 h-3 shrink-0" />
@@ -66,7 +66,7 @@
                                 </button>
                             </th>
                             <th class="px-table-cell-x py-table-header-y text-left text-[11px] font-semibold text-muted uppercase tracking-wider">
-                                <button wire:click="sort('migration_file')" class="flex items-center gap-1 hover:text-ink transition-colors group" aria-label="{{ __('Sort by migration') }}">
+                                <button wire:click="sort('migration_file')" class="flex items-center gap-1 hover:text-ink transition-colors group">
                                     <span>{{ __('Migration') }}</span>
                                     @if($sortBy === 'migration_file')
                                         <x-icon name="{{ $sortDir === 'asc' ? 'heroicon-m-chevron-up' : 'heroicon-m-chevron-down' }}" class="w-3 h-3 shrink-0" />
@@ -77,7 +77,7 @@
                             </th>
                             @if(app()->environment('local'))
                                 <th class="px-table-cell-x py-table-header-y text-left text-[11px] font-semibold text-muted uppercase tracking-wider">
-                                    <button wire:click="sort('is_stable')" class="flex items-center gap-1 hover:text-ink transition-colors group" aria-label="{{ __('Sort by stability') }}">
+                                    <button wire:click="sort('is_stable')" class="flex items-center gap-1 hover:text-ink transition-colors group">
                                         <span>{{ __('Stable') }}</span>
                                         @if($sortBy === 'is_stable')
                                             <x-icon name="{{ $sortDir === 'asc' ? 'heroicon-m-chevron-up' : 'heroicon-m-chevron-down' }}" class="w-3 h-3 shrink-0" />
@@ -87,7 +87,7 @@
                                     </button>
                                 </th>
                                 <th class="px-table-cell-x py-table-header-y text-left text-[11px] font-semibold text-muted uppercase tracking-wider">
-                                    <button wire:click="sort('stabilized_at')" class="flex items-center gap-1 hover:text-ink transition-colors group" aria-label="{{ __('Sort by stabilized at') }}">
+                                    <button wire:click="sort('stabilized_at')" class="flex items-center gap-1 hover:text-ink transition-colors group">
                                         <span>{{ __('Stabilized At') }}</span>
                                         @if($sortBy === 'stabilized_at')
                                             <x-icon name="{{ $sortDir === 'asc' ? 'heroicon-m-chevron-up' : 'heroicon-m-chevron-down' }}" class="w-3 h-3 shrink-0" />

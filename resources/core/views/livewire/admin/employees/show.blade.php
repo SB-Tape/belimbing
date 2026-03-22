@@ -527,7 +527,7 @@
                 </x-ui.select>
 
                 <div class="space-y-1">
-                    <label class="block text-[11px] uppercase tracking-wider font-semibold text-muted">{{ __('Kind') }}</label>
+                    <span class="block text-[11px] uppercase tracking-wider font-semibold text-muted">{{ __('Kind') }}</span>
                     <div class="flex flex-wrap gap-x-4 gap-y-1">
                         @foreach(['headquarters', 'billing', 'shipping', 'branch', 'other'] as $kindOption)
                             <label class="flex items-center gap-2 text-sm cursor-pointer">

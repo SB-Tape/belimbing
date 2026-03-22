@@ -24,7 +24,7 @@
                 </div>
 
                 <!-- Navigation -->
-                <nav class="flex-1 overflow-y-auto p-4 space-y-1">
+                <nav class="flex-1 overflow-y-auto p-4 space-y-1" aria-label="{{ __('Main navigation') }}">
                     <!-- Primary Navigation -->
                     <ul class="flex flex-col space-y-1 w-full gap-1">
                         <li>
@@ -191,7 +191,7 @@
                 </div>
 
                 <!-- Navigation -->
-                <nav class="flex-1 overflow-y-auto p-4 space-y-1">
+                <nav class="flex-1 overflow-y-auto p-4 space-y-1" aria-label="{{ __('Main navigation') }}">
                     <ul class="flex flex-col space-y-1 w-full gap-1">
                         <li>
                             <a

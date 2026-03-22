@@ -9,7 +9,7 @@
     </div>
 
     <div class="drawer-side">
-        <label for="sidebar-drawer" class="drawer-overlay"></label>
+        <label for="sidebar-drawer" aria-label="{{ __('Close navigation') }}" class="drawer-overlay"></label>
         <aside class="w-64 min-h-full bg-surface-subtle border-r border-border-default">
             {{ $sidebar ?? '' }}
         </aside>

@@ -20,6 +20,8 @@ use Illuminate\Support\Facades\Event;
 
 const WF_TEST_FLOW = 'test_ticket';
 const WF_IT_TICKET_FLOW = 'it_ticket';
+const WF_STATUS_IN_PROGRESS = 'In Progress';
+const WF_TRANSITION_START_WORK = 'Start Work';
 
 /**
  * Seed a test workflow graph for unit-level engine tests.
@@ -40,7 +42,7 @@ function seedTestWorkflow(): void
 
         $statuses = [
             ['flow' => $flow, 'code' => 'open', 'label' => 'Open', 'position' => 0],
-            ['flow' => $flow, 'code' => 'in_progress', 'label' => 'In Progress', 'position' => 1],
+            ['flow' => $flow, 'code' => 'in_progress', 'label' => WF_STATUS_IN_PROGRESS, 'position' => 1],
             ['flow' => $flow, 'code' => 'resolved', 'label' => 'Resolved', 'position' => 2],
             ['flow' => $flow, 'code' => 'closed', 'label' => 'Closed', 'position' => 3],
         ];
@@ -50,7 +52,7 @@ function seedTestWorkflow(): void
         }
 
         $transitions = [
-            ['flow' => $flow, 'from_code' => 'open', 'to_code' => 'in_progress', 'label' => 'Start Work'],
+            ['flow' => $flow, 'from_code' => 'open', 'to_code' => 'in_progress', 'label' => WF_TRANSITION_START_WORK],
             ['flow' => $flow, 'from_code' => 'in_progress', 'to_code' => 'resolved', 'label' => 'Resolve'],
             ['flow' => $flow, 'from_code' => 'resolved', 'to_code' => 'closed', 'label' => 'Close'],
             ['flow' => $flow, 'from_code' => 'resolved', 'to_code' => 'open', 'label' => 'Reopen', 'position' => 1],
@@ -111,7 +113,7 @@ test('status manager returns a specific status by code', function (): void {
     $status = $manager->getStatus(WF_TEST_FLOW, 'in_progress');
 
     expect($status)->not->toBeNull();
-    expect($status->label)->toBe('In Progress');
+    expect($status->label)->toBe(WF_STATUS_IN_PROGRESS);
 });
 
 test('status manager returns null for non-existent status', function (): void {
@@ -150,7 +152,7 @@ test('transition manager finds a specific transition', function (): void {
     $transition = $manager->getTransition(WF_TEST_FLOW, 'open', 'in_progress');
 
     expect($transition)->not->toBeNull();
-    expect($transition->label)->toBe('Start Work');
+    expect($transition->label)->toBe(WF_TRANSITION_START_WORK);
 });
 
 test('transition manager returns null for non-existent transition', function (): void {
@@ -277,11 +279,11 @@ test('transition resolve label falls back to target status label', function (): 
         ->where('flow', WF_TEST_FLOW)->where('from_code', 'open')->where('to_code', 'in_progress')->first();
 
     // With explicit label
-    expect($transition->resolveLabel())->toBe('Start Work');
+    expect($transition->resolveLabel())->toBe(WF_TRANSITION_START_WORK);
 
     // Without explicit label
     $transition->label = null;
-    expect($transition->resolveLabel())->toBe('In Progress');
+    expect($transition->resolveLabel())->toBe(WF_STATUS_IN_PROGRESS);
 });
 
 // -- WorkflowEngine Integration Tests (using real Ticket model) --

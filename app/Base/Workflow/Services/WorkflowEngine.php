@@ -30,7 +30,6 @@ use Illuminate\Support\Facades\DB;
 class WorkflowEngine
 {
     public function __construct(
-        private readonly StatusManager $statusManager,
         private readonly TransitionManager $transitionManager,
         private readonly TransitionValidator $validator,
         private readonly Container $container,

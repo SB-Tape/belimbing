@@ -223,63 +223,78 @@ class LlmClient
                 continue;
             }
 
-            $payload = substr($line, 6);
+            yield from $this->parseSsePayload(substr($line, 6), $finishReason, $startTime);
 
-            if ($payload === '[DONE]') {
-                yield [
-                    'type' => 'done',
-                    'finish_reason' => $finishReason ?? 'stop',
-                    'usage' => null,
-                    'latency_ms' => $this->latencyMs($startTime),
-                ];
-
-                $finishReason = '__done__';
-
+            if ($finishReason === '__done__') {
                 return;
             }
+        }
+    }
 
-            $data = json_decode($payload, true);
-            if (! is_array($data)) {
-                continue;
-            }
+    /**
+     * Parse a single SSE data payload and yield normalized events.
+     *
+     * Sets $finishReason to '__done__' when a terminal event is encountered,
+     * signalling the caller to stop processing further lines.
+     *
+     * @return Generator<int, array<string, mixed>>
+     */
+    private function parseSsePayload(string $payload, ?string &$finishReason, int $startTime): Generator
+    {
+        if ($payload === '[DONE]') {
+            yield [
+                'type' => 'done',
+                'finish_reason' => $finishReason ?? 'stop',
+                'usage' => null,
+                'latency_ms' => $this->latencyMs($startTime),
+            ];
 
-            $delta = $data['choices'][0]['delta'] ?? [];
-            $finishReason = $data['choices'][0]['finish_reason'] ?? $finishReason;
-            $usage = $data['usage'] ?? null;
+            $finishReason = '__done__';
 
-            $contentDelta = $delta['content'] ?? null;
-            if (is_string($contentDelta) && $contentDelta !== '') {
-                yield ['type' => 'content_delta', 'text' => $contentDelta];
-            }
+            return;
+        }
 
-            $toolCallDeltas = $delta['tool_calls'] ?? null;
-            if (is_array($toolCallDeltas)) {
-                foreach ($toolCallDeltas as $tcDelta) {
-                    yield [
-                        'type' => 'tool_call_delta',
-                        'index' => $tcDelta['index'] ?? 0,
-                        'id' => $tcDelta['id'] ?? null,
-                        'name' => $tcDelta['function']['name'] ?? null,
-                        'arguments_delta' => $tcDelta['function']['arguments'] ?? '',
-                    ];
-                }
-            }
+        $data = json_decode($payload, true);
+        if (! is_array($data)) {
+            return;
+        }
 
-            if ($finishReason !== null && is_array($usage)) {
+        $delta = $data['choices'][0]['delta'] ?? [];
+        $finishReason = $data['choices'][0]['finish_reason'] ?? $finishReason;
+        $usage = $data['usage'] ?? null;
+
+        $contentDelta = $delta['content'] ?? null;
+        if (is_string($contentDelta) && $contentDelta !== '') {
+            yield ['type' => 'content_delta', 'text' => $contentDelta];
+        }
+
+        $toolCallDeltas = $delta['tool_calls'] ?? null;
+        if (is_array($toolCallDeltas)) {
+            foreach ($toolCallDeltas as $tcDelta) {
                 yield [
-                    'type' => 'done',
-                    'finish_reason' => $finishReason,
-                    'usage' => [
-                        'prompt_tokens' => $usage['prompt_tokens'] ?? null,
-                        'completion_tokens' => $usage['completion_tokens'] ?? null,
-                    ],
-                    'latency_ms' => $this->latencyMs($startTime),
+                    'type' => 'tool_call_delta',
+                    'index' => $tcDelta['index'] ?? 0,
+                    'id' => $tcDelta['id'] ?? null,
+                    'name' => $tcDelta['function']['name'] ?? null,
+                    'arguments_delta' => $tcDelta['function']['arguments'] ?? '',
                 ];
-
-                $finishReason = '__done__';
-
-                return;
             }
+        }
+
+        if ($finishReason !== null && is_array($usage)) {
+            yield [
+                'type' => 'done',
+                'finish_reason' => $finishReason,
+                'usage' => [
+                    'prompt_tokens' => $usage['prompt_tokens'] ?? null,
+                    'completion_tokens' => $usage['completion_tokens'] ?? null,
+                ],
+                'latency_ms' => $this->latencyMs($startTime),
+            ];
+
+            $finishReason = '__done__';
+
+            return;
         }
     }
 

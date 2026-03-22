@@ -214,15 +214,17 @@ parse_version() {
     # Remove 'v' prefix if present
     version=${version#v}
 
-    # Export variables (using eval since we're setting caller's variables)
-    eval "$2=$(echo "$version" | cut -d. -f1)"
-    eval "$3=$(echo "$version" | cut -d. -f2)"
-    eval "$4=$(echo "$version" | cut -d. -f3)"
-
-    # Clean up non-numeric suffixes
+    # Assign positional params to named locals before using them in evals
     local major_var=$2
     local minor_var=$3
     local patch_var=$4
+
+    # Export variables (using eval since we're setting caller's variables)
+    eval "$major_var=$(echo "$version" | cut -d. -f1)"
+    eval "$minor_var=$(echo "$version" | cut -d. -f2)"
+    eval "$patch_var=$(echo "$version" | cut -d. -f3)"
+
+    # Clean up non-numeric suffixes
     eval "$major_var=\${$major_var%%[^0-9]*}"
     eval "$minor_var=\${$minor_var%%[^0-9]*}"
     eval "$patch_var=\${$patch_var%%[^0-9]*}"

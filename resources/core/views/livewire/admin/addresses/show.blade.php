@@ -181,7 +181,7 @@
             <h3 class="text-[11px] uppercase tracking-wider font-semibold text-muted mb-1">{{ __('Provenance') }}</h3>
             <p class="text-xs text-muted mb-4">{{ __('Tracks where this address came from and how it was processed — useful for auditing data quality and imports.') }}</p>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <dl class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div x-data="{ editing: false, val: '{{ addslashes($address->source ?? '') }}' }">
                     <dt class="text-[11px] uppercase tracking-wider font-semibold text-muted">{{ __('Source') }}</dt>
                     <dd class="text-sm text-ink">
@@ -229,15 +229,15 @@
                     <dt class="text-[11px] uppercase tracking-wider font-semibold text-muted">{{ __('Parse Confidence') }}</dt>
                     <dd class="text-sm text-ink">{{ $address->parseConfidence !== null ? $address->parseConfidence : '-' }}</dd>
                 </div>
-            </div>
+            </dl>
 
             @if($address->rawInput)
-                <div class="mt-4">
+                <dl class="mt-4">
                     <dt class="text-[11px] uppercase tracking-wider font-semibold text-muted">{{ __('Raw Input') }}</dt>
                     <dd class="mt-1">
                         <pre class="text-sm text-ink bg-surface-subtle rounded-2xl p-4 overflow-x-auto">{{ $address->rawInput }}</pre>
                     </dd>
-                </div>
+                </dl>
             @endif
         </x-ui.card>
 

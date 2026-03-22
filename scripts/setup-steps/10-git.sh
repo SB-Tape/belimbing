@@ -91,10 +91,8 @@ install_git() {
             if command_exists apt-get; then
                 # Check if Git is already installed and if version needs upgrade
                 local needs_upgrade=false
-                if [[ "$CURRENT_GIT_VERSION" != "0" ]]; then
-                    if ! check_git_version; then
-                        needs_upgrade=true
-                    fi
+                if [[ "$CURRENT_GIT_VERSION" != "0" ]] && ! check_git_version; then
+                    needs_upgrade=true
                 fi
 
                 # If upgrade needed or Git not installed, use Git's official PPA for latest version

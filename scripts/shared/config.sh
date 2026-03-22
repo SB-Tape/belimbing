@@ -144,6 +144,7 @@ normalize_and_validate_env() {
         stage) env="staging" ;;
         prod) env="production" ;;
         test) env="testing" ;;
+        *) ;;
     esac
 
     # Validate environment type (Laravel standard values)

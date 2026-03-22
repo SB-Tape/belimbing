@@ -150,7 +150,7 @@
             @endif
 
             {{-- Assigned Capabilities --}}
-            <div class="mb-4">
+            <dl class="mb-4">
                 <dt class="text-[11px] uppercase tracking-wider font-semibold text-muted mb-2">{{ __('Capabilities') }}</dt>
                 <dd>
                     @if (empty($assignedCapabilities))
@@ -183,9 +183,7 @@
                         @endforeach
                     @endif
                 </dd>
-            </div>
-
-            {{-- Assign Capabilities --}}
+            </dl>
             @if ($canEdit && ! $role->is_system && ! empty($availableCapabilities))
                 <div
                     x-data="{ capFilter: '', selected: @entangle('selectedCapabilities') }"
@@ -282,7 +280,7 @@
                     x-data="{ userFilter: '', selected: @entangle('selectedUserIds') }"
                     class="mt-4 pt-4 border-t border-border-default"
                 >
-                    <dt class="text-[11px] uppercase tracking-wider font-semibold text-muted mb-2">{{ __('Add Users') }}</dt>
+                    <p class="text-[11px] uppercase tracking-wider font-semibold text-muted mb-2">{{ __('Add Users') }}</p>
                     <x-ui.search-input
                         x-model="userFilter"
                         placeholder="{{ __('Search users by name or email...') }}"

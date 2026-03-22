@@ -154,9 +154,6 @@ extract_belimbing_domains() {
 configure_existing_caddy() {
     local frontend_domain=$1
     local backend_domain=$2
-    local frontend_port=$3
-    local backend_port=$4
-    local https_port=$5
 
     echo -e "${CYAN}Auto-configuring existing Caddy installation...${NC}"
 

@@ -277,9 +277,8 @@
                                             wire:click.stop="startEditingTitle('{{ $session->id }}')"
                                             class="w-full text-left truncate font-medium hover:text-ink"
                                             title="{{ __('Edit title') }}"
-                                            aria-label="{{ __('Edit title: :title', ['title' => $session->title ?? __('Untitled')]) }}"
                                         >
-                                            {{ $session->title ?? __('Untitled') }}
+                                            {{ $session->title ?? __('Untitled') }}<span class="sr-only">, {{ __('edit title') }}</span>
                                         </button>
                                         <div class="text-xs text-muted tabular-nums">{{ $session->lastActivityAt->format('M j, H:i') }}</div>
                                     </div>

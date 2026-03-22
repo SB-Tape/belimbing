@@ -20,7 +20,7 @@
 
         {{-- Workflow metadata --}}
         <x-ui.card>
-            <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <dl class="grid grid-cols-2 gap-4 sm:grid-cols-4">
                 <div>
                     <dt class="text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Code') }}</dt>
                     <dd class="mt-1 text-sm font-mono text-ink">{{ $workflow->code }}</dd>
@@ -43,7 +43,7 @@
                         @endif
                     </dd>
                 </div>
-            </div>
+            </dl>
         </x-ui.card>
 
         {{-- Statuses --}}

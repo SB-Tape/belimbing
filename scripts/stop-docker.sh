@@ -226,11 +226,9 @@ validate_volume_removal() {
     fi
 
     # Ask for confirmation in interactive mode
-    if [[ -t 0 ]]; then
-        if ! ask_yes_no "Are you sure you want to delete all data?" "n"; then
-            echo -e "${YELLOW}Operation cancelled. Volumes preserved.${NC}"
-            return 1
-        fi
+    if [[ -t 0 ]] && ! ask_yes_no "Are you sure you want to delete all data?" "n"; then
+        echo -e "${YELLOW}Operation cancelled. Volumes preserved.${NC}"
+        return 1
     fi
 
     return 0

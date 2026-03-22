@@ -493,7 +493,7 @@
                 </x-ui.select>
 
                 <div class="space-y-1">
-                    <label class="block text-[11px] uppercase tracking-wider font-semibold text-muted">{{ __('Kind') }}</label>
+                    <span class="block text-[11px] uppercase tracking-wider font-semibold text-muted">{{ __('Kind') }}</span>
                     <div class="flex flex-wrap gap-x-4 gap-y-1">
                         @foreach(['headquarters', 'billing', 'shipping', 'branch', 'other'] as $kindOption)
                             <label class="flex items-center gap-2 text-sm cursor-pointer">
@@ -581,7 +581,7 @@
                     <h4 class="text-[11px] uppercase tracking-wider font-semibold text-muted mb-3">{{ __('Link Settings') }}</h4>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="space-y-1">
-                            <label class="block text-[11px] uppercase tracking-wider font-semibold text-muted">{{ __('Kind') }}</label>
+                            <span class="block text-[11px] uppercase tracking-wider font-semibold text-muted">{{ __('Kind') }}</span>
                             <div class="flex flex-wrap gap-x-4 gap-y-1">
                                 @foreach(['headquarters', 'billing', 'shipping', 'branch', 'other'] as $kindOption)
                                     <label class="flex items-center gap-2 text-sm cursor-pointer">

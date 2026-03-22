@@ -116,7 +116,7 @@ class MutationListener
     /**
      * Resolve old and new values for the mutation, applying field strategies.
      *
-     * @return array{0: array<string, mixed>, 1: array<string, mixed>}|null  Null if no meaningful changes.
+     * @return array{0: array<string, mixed>, 1: array<string, mixed>}|null Null if no meaningful changes.
      */
     private function resolveChanges(Model $model, string $event): ?array
     {
@@ -126,53 +126,63 @@ class MutationListener
         $encryptedFields = $this->resolveEncryptedFields($model);
         $truncateDefault = (int) config('audit.truncate_default', 2000);
 
-        $oldValues = [];
-        $newValues = [];
+        $args = [$excludedFields, $redactedFields, $encryptedFields, $truncateFields, $truncateDefault];
 
         if ($event === 'created') {
-            foreach ($model->getAttributes() as $field => $value) {
-                if (in_array($field, $excludedFields, true)) {
-                    continue;
-                }
+            return [[], $this->collectFieldValues($model->getAttributes(), ...$args)];
+        }
 
-                $newValues[$field] = $this->applyFieldStrategy(
-                    $field, $value, $redactedFields, $encryptedFields, $truncateFields, $truncateDefault
-                );
-            }
-        } elseif ($event === 'updated') {
+        if ($event === 'deleted') {
+            return [$this->collectFieldValues($model->getAttributes(), ...$args), []];
+        }
+
+        if ($event === 'updated') {
             $dirty = $model->getDirty();
-
-            foreach ($dirty as $field => $value) {
-                if (in_array($field, $excludedFields, true)) {
-                    continue;
-                }
-
-                $original = $model->getOriginal($field);
-
-                $oldValues[$field] = $this->applyFieldStrategy(
-                    $field, $original, $redactedFields, $encryptedFields, $truncateFields, $truncateDefault
-                );
-                $newValues[$field] = $this->applyFieldStrategy(
-                    $field, $value, $redactedFields, $encryptedFields, $truncateFields, $truncateDefault
-                );
-            }
+            $keys = array_keys($dirty);
+            $originals = array_combine($keys, array_map(fn ($f) => $model->getOriginal($f), $keys));
+            $newValues = $this->collectFieldValues($dirty, ...$args);
 
             if ($newValues === []) {
                 return null;
             }
-        } elseif ($event === 'deleted') {
-            foreach ($model->getAttributes() as $field => $value) {
-                if (in_array($field, $excludedFields, true)) {
-                    continue;
-                }
 
-                $oldValues[$field] = $this->applyFieldStrategy(
-                    $field, $value, $redactedFields, $encryptedFields, $truncateFields, $truncateDefault
-                );
-            }
+            return [$this->collectFieldValues($originals, ...$args), $newValues];
         }
 
-        return [$oldValues, $newValues];
+        return [[], []];
+    }
+
+    /**
+     * Map an attribute array through field exclusion and strategy application.
+     *
+     * @param  array<string, mixed>  $attributes
+     * @param  array<int, string>  $excludedFields
+     * @param  array<int, string>  $redactedFields
+     * @param  array<int, string>  $encryptedFields
+     * @param  array<string, int>  $truncateFields
+     * @return array<string, mixed>
+     */
+    private function collectFieldValues(
+        array $attributes,
+        array $excludedFields,
+        array $redactedFields,
+        array $encryptedFields,
+        array $truncateFields,
+        int $truncateDefault,
+    ): array {
+        $result = [];
+
+        foreach ($attributes as $field => $value) {
+            if (in_array($field, $excludedFields, true)) {
+                continue;
+            }
+
+            $result[$field] = $this->applyFieldStrategy(
+                $field, $value, $redactedFields, $encryptedFields, $truncateFields, $truncateDefault
+            );
+        }
+
+        return $result;
     }
 
     /**
@@ -261,7 +271,7 @@ class MutationListener
             return $default;
         }
 
-        $reflection = new \ReflectionProperty($model, $property);
+        $reflection = new \ReflectionProperty($model, $property); // NOSONAR — reflection used to read model property metadata; $property comes from internal code, not user input
 
         return $reflection->getValue($model) ?? $default;
     }

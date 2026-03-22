@@ -5,7 +5,6 @@
 
 namespace App\Modules\Core\User\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Base\Foundation\Contracts\CompanyScoped;
 use App\Modules\Core\Company\Models\Company;
 use App\Modules\Core\Company\Models\ExternalAccess;

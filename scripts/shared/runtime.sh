@@ -234,6 +234,7 @@ launch_browser() {
                 return 0
             fi
             ;;
+        *) ;;
     esac
 
     echo -e "${YELLOW}${INFO_MARK} Couldn't auto-launch browser. Open manually: ${CYAN}$url${NC}"

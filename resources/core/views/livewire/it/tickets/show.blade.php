@@ -31,7 +31,7 @@
             <div class="lg:col-span-2 space-y-6">
                 {{-- Ticket details --}}
                 <x-ui.card>
-                    <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                    <dl class="grid grid-cols-2 gap-4 sm:grid-cols-4">
                         <div>
                             <dt class="text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Status') }}</dt>
                             <dd class="mt-1">
@@ -52,9 +52,9 @@
                             <dt class="text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Location') }}</dt>
                             <dd class="mt-1 text-sm text-ink">{{ $ticket->location ?? '—' }}</dd>
                         </div>
-                    </div>
+                    </dl>
 
-                    <div class="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
+                    <dl class="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
                         <div>
                             <dt class="text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Reporter') }}</dt>
                             <dd class="mt-1 text-sm text-ink">{{ $ticket->reporter?->name ?? '—' }}</dd>
@@ -67,13 +67,13 @@
                             <dt class="text-[11px] font-semibold text-muted uppercase tracking-wider">{{ __('Created') }}</dt>
                             <dd class="mt-1 text-sm text-ink" title="{{ $ticket->created_at?->format('Y-m-d H:i:s') }}">{{ $ticket->created_at?->diffForHumans() }}</dd>
                         </div>
-                    </div>
+                    </dl>
 
                     @if($ticket->description)
-                        <div class="mt-4 pt-4 border-t border-border-default">
+                        <dl class="mt-4 pt-4 border-t border-border-default">
                             <dt class="text-[11px] font-semibold text-muted uppercase tracking-wider mb-1">{{ __('Description') }}</dt>
                             <dd class="text-sm text-ink whitespace-pre-wrap">{{ $ticket->description }}</dd>
-                        </div>
+                        </dl>
                     @endif
                 </x-ui.card>
 

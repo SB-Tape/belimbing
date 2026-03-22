@@ -35,7 +35,6 @@ APP_ENV="${1:-local}"
 
 # Add Bun to PATH permanently
 add_bun_to_path_permanently() {
-    local bun_path="$HOME/.bun/bin"
     local path_export="export PATH=\"\$HOME/.bun/bin:\$PATH\""
 
     # Detect shell and determine config file
@@ -69,11 +68,9 @@ add_bun_to_path_permanently() {
     esac
 
     # Check if PATH entry already exists
-    if [[ -f "$shell_config" ]]; then
-        if grep -q "\.bun/bin" "$shell_config" 2>/dev/null; then
-            echo -e "${CYAN}ℹ${NC} Bun PATH entry already exists in ${CYAN}$shell_config${NC}"
-            return 0
-        fi
+    if [[ -f "$shell_config" ]] && grep -q "\.bun/bin" "$shell_config" 2>/dev/null; then
+        echo -e "${CYAN}ℹ${NC} Bun PATH entry already exists in ${CYAN}$shell_config${NC}"
+        return 0
     fi
 
     # Add PATH entry to config file

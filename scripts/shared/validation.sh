@@ -20,7 +20,8 @@ fi
 
 # Check if a command exists
 command_exists() {
-    command -v "$1" &> /dev/null
+    local cmd=$1
+    command -v "$cmd" &> /dev/null
 }
 
 # Check if a port is available
@@ -314,6 +315,7 @@ validate_required_tools() {
             google-chrome) echo -e "${GREEN}${CHECK_MARK}${NC} Google Chrome installed" ;;
             chromium-browser) echo -e "${GREEN}${CHECK_MARK}${NC} Chromium installed" ;;
             firefox) echo -e "${GREEN}${CHECK_MARK}${NC} Firefox installed" ;;
+            *) ;;
         esac
     done
 
@@ -364,10 +366,8 @@ validate_required_tools() {
         fi
 
         # Install mkcert
-        if [[ "$install_needed_str" =~ " mkcert " ]]; then
-            if ! install_mkcert "$os_type"; then
-                return 1
-            fi
+        if [[ "$install_needed_str" =~ " mkcert " ]] && ! install_mkcert "$os_type"; then
+            return 1
         fi
 
         # Install Chromium if needed

@@ -82,21 +82,30 @@ class ChatStreamController
                 }
             }
 
-            // Persist the assistant message after streaming completes
-            if ($fullContent !== null && $runId !== null) {
-                $messageManager->appendAssistantMessage(
-                    $employeeId,
-                    $sessionId,
-                    $fullContent,
-                    $runId,
-                    $meta ?? [],
-                );
-            }
+            $this->persistAssistantMessage($messageManager, $employeeId, $sessionId, $fullContent, $runId, $meta ?? []);
         }, 200, [
             'Content-Type' => 'text/event-stream',
             'Cache-Control' => 'no-cache, no-transform',
             'Connection' => 'keep-alive',
             'X-Accel-Buffering' => 'no',
         ]);
+    }
+
+    /**
+     * Append the assistant message to the session after streaming completes.
+     *
+     * No-op when the stream ended without a 'done' event (fullContent or runId is null).
+     */
+    private function persistAssistantMessage(
+        MessageManager $messageManager,
+        int $employeeId,
+        string $sessionId,
+        ?string $fullContent,
+        ?string $runId,
+        array $meta,
+    ): void {
+        if ($fullContent !== null && $runId !== null) {
+            $messageManager->appendAssistantMessage($employeeId, $sessionId, $fullContent, $runId, $meta);
+        }
     }
 }

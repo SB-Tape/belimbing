@@ -55,10 +55,8 @@ generate_password() {
 check_postgresql() {
     if command_exists psql; then
         # Check if service is running
-        if command_exists pg_isready; then
-            if pg_isready -h localhost -p 5432 >/dev/null 2>&1; then
-                return 0
-            fi
+        if command_exists pg_isready && pg_isready -h localhost -p 5432 >/dev/null 2>&1; then
+            return 0
         fi
         # psql exists but service might not be running
         return 1
@@ -71,21 +69,18 @@ fix_postgresql_repo_key() {
     local pg_key_file="/etc/apt/trusted.gpg.d/postgresql-repo.gpg"
 
     # Check if legacy key exists in trusted.gpg
-    if [[ -f "/etc/apt/trusted.gpg" ]] && command_exists apt-key; then
-        # Try to export PostgreSQL key from legacy keyring and save to modern location
-        if apt-key list 2>/dev/null | grep -q "PostgreSQL"; then
-            echo -e "${CYAN}Migrating PostgreSQL GPG key from legacy storage...${NC}"
-            # Export the key using apt-key and convert to modern format
-            apt-key export ACCC4CF8 2>/dev/null | sudo gpg --dearmor -o "$pg_key_file" 2>/dev/null || {
-                # Fallback: download fresh key
-                sudo wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | \
-                    sudo gpg --dearmor -o "$pg_key_file" 2>/dev/null || true
-            }
-            sudo chmod 644 "$pg_key_file" 2>/dev/null || true
+    if [[ -f "/etc/apt/trusted.gpg" ]] && command_exists apt-key && apt-key list 2>/dev/null | grep -q "PostgreSQL"; then
+        echo -e "${CYAN}Migrating PostgreSQL GPG key from legacy storage...${NC}"
+        # Export the key using apt-key and convert to modern format
+        apt-key export ACCC4CF8 2>/dev/null | sudo gpg --dearmor -o "$pg_key_file" 2>/dev/null || {
+            # Fallback: download fresh key
+            sudo wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | \
+                sudo gpg --dearmor -o "$pg_key_file" 2>/dev/null || true
+        }
+        sudo chmod 644 "$pg_key_file" 2>/dev/null || true
 
-            # Remove from legacy keyring (safe, we have it in modern location now)
-            sudo apt-key del ACCC4CF8 2>/dev/null || true
-        fi
+        # Remove from legacy keyring (safe, we have it in modern location now)
+        sudo apt-key del ACCC4CF8 2>/dev/null || true
     fi
 
     # Ensure key file exists in modern location
@@ -344,10 +339,8 @@ setup_postgresql_database() {
 
 # Check if Redis is installed and running
 check_redis() {
-    if command_exists redis-cli; then
-        if redis-cli ping >/dev/null 2>&1; then
-            return 0
-        fi
+    if command_exists redis-cli && redis-cli ping >/dev/null 2>&1; then
+        return 0
     fi
     return 1
 }
@@ -530,6 +523,7 @@ start_postgresql_service_then_setup() {
             brew services start "$postgresql_brew_version" 2>/dev/null || brew services start postgresql
             sleep 2
             ;;
+        *) ;;
     esac
 
     if check_postgresql; then
@@ -587,6 +581,7 @@ start_redis_service_then_check() {
             brew services start redis
             sleep 1
             ;;
+        *) ;;
     esac
 
     if check_redis; then

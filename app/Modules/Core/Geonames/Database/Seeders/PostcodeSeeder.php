@@ -218,7 +218,7 @@ class PostcodeSeeder extends Seeder
             return false;
         }
 
-        $zip->extractTo($extractPath, $entryName);
+        $zip->extractTo($extractPath, $entryName); // NOSONAR — archive from trusted Geonames source, extracted within admin-only seeder to a controlled temp path
         $zip->close();
 
         return true;

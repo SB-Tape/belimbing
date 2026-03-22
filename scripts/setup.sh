@@ -62,6 +62,7 @@ for arg in "$@"; do
         local|staging|production|testing)
             APP_ENV="$arg"
             ;;
+        *) ;;
     esac
 done
 

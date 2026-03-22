@@ -10,6 +10,8 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 const AUDIT_TEST_TABLE = 'audit_test_models';
+const AUDIT_TEST_EMAIL = 'alice@example.com';
+const AUDIT_REDACTED_VALUE = '[redacted]';
 
 beforeEach(function (): void {
     Schema::create(AUDIT_TEST_TABLE, function (Blueprint $table): void {
@@ -52,7 +54,7 @@ function flushAuditBuffer(): void
 it('logs field values on model creation', function (): void {
     $model = AuditTestModel::query()->create([
         'name' => 'Alice',
-        'email' => 'alice@example.com',
+        'email' => AUDIT_TEST_EMAIL,
     ]);
 
     flushAuditBuffer();
@@ -70,12 +72,12 @@ it('logs field values on model creation', function (): void {
 
     $newValues = $mutation->new_values;
     expect($newValues['name'])->toBe('Alice');
-    expect($newValues['email'])->toBe('alice@example.com');
+    expect($newValues['email'])->toBe(AUDIT_TEST_EMAIL);
     expect($mutation->old_values)->toBeNull();
 });
 
 it('logs old and new values on update with only dirty fields', function (): void {
-    $model = AuditTestModel::query()->create(['name' => 'Alice', 'email' => 'alice@example.com']);
+    $model = AuditTestModel::query()->create(['name' => 'Alice', 'email' => AUDIT_TEST_EMAIL]);
     flushAuditBuffer();
 
     $model->update(['name' => 'Bob']);
@@ -124,8 +126,8 @@ it('redacts globally configured sensitive fields', function (): void {
         ->first();
 
     $newValues = $mutation->new_values;
-    expect($newValues['password'])->toBe('[redacted]');
-    expect($newValues['api_key'])->toBe('[redacted]');
+    expect($newValues['password'])->toBe(AUDIT_REDACTED_VALUE);
+    expect($newValues['api_key'])->toBe(AUDIT_REDACTED_VALUE);
     expect($newValues['name'])->toBe('Alice');
 });
 
@@ -161,7 +163,7 @@ it('truncates long text values at the configured default', function (): void {
 });
 
 it('respects model-level auditExclude property', function (): void {
-    $model = AuditTestModelWithExclusions::query()->create([
+    AuditTestModelWithExclusions::query()->create([
         'name' => 'Alice',
         'metadata' => json_encode(['key' => 'value']),
     ]);
@@ -202,7 +204,7 @@ it('suppresses auditing inside withoutAuditing callback', function (): void {
 });
 
 it('auto-redacts encrypted cast fields', function (): void {
-    $model = AuditTestModelWithEncrypted::query()->create([
+    AuditTestModelWithEncrypted::query()->create([
         'name' => 'Alice',
         'encrypted_field' => 'sensitive-data',
     ]);
@@ -214,7 +216,7 @@ it('auto-redacts encrypted cast fields', function (): void {
         ->where('event', 'created')
         ->first();
 
-    expect($mutation->new_values['encrypted_field'])->toBe('[redacted]');
+    expect($mutation->new_values['encrypted_field'])->toBe(AUDIT_REDACTED_VALUE);
     expect($mutation->new_values['name'])->toBe('Alice');
 });
 

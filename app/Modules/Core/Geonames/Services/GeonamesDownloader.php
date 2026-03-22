@@ -47,36 +47,9 @@ class GeonamesDownloader
 
         // We have file and ETag: conditional GET.
         if ($fileExists && $storedEtag !== null) {
-            $result = $this->conditionalGet($url, $storedEtag);
-            if ($result['status'] === 304) {
-                return [
-                    'success' => true,
-                    'cached' => true,
-                    'body' => null,
-                    'etag' => $storedEtag,
-                    'status' => 304,
-                ];
-            }
-            if ($result['status'] === 200 && $result['body'] !== null) {
-                File::put($filePath, $result['body']);
-                $this->writeEtag($etagPath, $result['etag']);
-
-                return [
-                    'success' => true,
-                    'cached' => false,
-                    'body' => $result['body'],
-                    'etag' => $result['etag'],
-                    'status' => 200,
-                ];
-            }
-            if ($result['status'] !== null && $result['status'] >= 400) {
-                return [
-                    'success' => false,
-                    'cached' => false,
-                    'body' => null,
-                    'etag' => null,
-                    'status' => $result['status'],
-                ];
+            $result = $this->tryConditionalGet($url, $filePath, $etagPath, $storedEtag);
+            if ($result !== null) {
+                return $result;
             }
         }
 
@@ -122,6 +95,41 @@ class GeonamesDownloader
             'etag' => $etag,
             'status' => $status,
         ];
+    }
+
+    /**
+     * Perform a conditional GET and resolve it to a final download result.
+     *
+     * Returns a result array on 304 (cached), 200 (downloaded), or 4xx (error).
+     * Returns null when the response status does not match any handled case,
+     * signalling the caller to fall through to a full GET.
+     *
+     * @param  string  $url  URL to request
+     * @param  string  $filePath  Local path to write the downloaded body
+     * @param  string  $etagPath  Path to the stored ETag file
+     * @param  string  $storedEtag  Previously stored ETag value
+     * @return array{success: bool, cached: bool, body: string|null, etag: string|null, status: int|null}|null
+     */
+    private function tryConditionalGet(string $url, string $filePath, string $etagPath, string $storedEtag): ?array
+    {
+        $result = $this->conditionalGet($url, $storedEtag);
+
+        if ($result['status'] === 304) {
+            return ['success' => true, 'cached' => true, 'body' => null, 'etag' => $storedEtag, 'status' => 304];
+        }
+
+        if ($result['status'] === 200 && $result['body'] !== null) {
+            File::put($filePath, $result['body']);
+            $this->writeEtag($etagPath, $result['etag']);
+
+            return ['success' => true, 'cached' => false, 'body' => $result['body'], 'etag' => $result['etag'], 'status' => 200];
+        }
+
+        if ($result['status'] !== null && $result['status'] >= 400) {
+            return ['success' => false, 'cached' => false, 'body' => null, 'etag' => null, 'status' => $result['status']];
+        }
+
+        return null;
     }
 
     /**
