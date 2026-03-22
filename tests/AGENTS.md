@@ -49,3 +49,6 @@
 - Prefer a small number of deep tests over many shallow variations that duplicate the same setup.
 - Keep test doubles aligned with Laravel contracts and real application types. Avoid ad hoc doubles that satisfy only the immediate test but diverge from production expectations.
 - If a refactor introduces a shared helper only for one tiny test, do not force the abstraction. Extract only when it clearly reduces duplication without hiding intent.
+- Browser- and AI-heavy tests are especially prone to Sonar duplication noise. Extract repeated URLs, selectors, titles, prompts, status labels, and fixture payload keys to unique file-level constants once they recur three or more times.
+- When production code throws a dedicated domain exception (see root AGENTS.md §Sonar Prevention Guard), test assertions should expect that same type. Keep generic `RuntimeException` only when the production contract is explicitly generic.
+- Repeated mocked payload shapes should move into helper builders like `runnerSuccess()` / `runnerError()` rather than being copied inline across many examples.

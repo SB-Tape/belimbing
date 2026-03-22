@@ -121,6 +121,17 @@ public function __construct(
 - **Do not force abstractions for tiny duplication.** Extract only when it meaningfully reduces repetition.
 - **Prefer `require` over `require_once`** for PHP config files that return arrays.
 
+### Sonar Prevention Guard
+- **Review touched files for common Sonar traps before finishing**: duplicate literals, unused imports/locals/fields, empty blocks, generic exceptions, overly nested conditionals, and accessibility mismatches.
+- **Prefer structural fixes over cosmetic suppression**:
+  - extract a private method before complexity becomes difficult to name
+  - extract a constant before the same literal appears across several assertions or config branches
+  - remove dead state rather than leaving an unused field, import, or variable in place
+- **Use `NOSONAR` only for real false positives** and always explain the trust boundary or framework constraint in the comment.
+- **In JavaScript / Node ESM**, prefer `node:` built-ins, `Number.parseInt`, top-level `await` in entry scripts, and narrow catches that rethrow unexpected errors.
+- **In PHP services**, throw dedicated domain exceptions at module boundaries instead of generic `RuntimeException`/`Exception` when the failure belongs to a named subsystem. Nested guides apply this principle to their own subsystems; do not restate the rule — add domain-specific boundaries only.
+- Nested `AGENTS.md` files (see table below) carry **domain-specific** guards for shell, browser, AI, and test code. The root rules above are the canonical source; nested files should reference, not repeat them.
+
 ## 6. Nested AGENTS.md Files
 
 Agents should read the nearest AGENTS.md in the directory tree for context-specific instructions:
@@ -131,6 +142,7 @@ Agents should read the nearest AGENTS.md in the directory tree for context-speci
 | Database | `app/Base/Database/AGENTS.md` |
 | Authz | `app/Base/Authz/AGENTS.md` |
 | Foundation | `app/Base/Foundation/AGENTS.md` |
+| Shell scripts | `scripts/AGENTS.md` |
 | Docs | `docs/AGENTS.md` |
 
 ## 7. Playbook-First Implementation Guard

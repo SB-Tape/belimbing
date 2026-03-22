@@ -133,6 +133,19 @@ When a needed primitive doesn't exist, create it in `resources/core/views/compon
 - Do not rely on auto-generated or randomized ids in callers. Use stable, readable ids based on the field purpose, such as `employee-company`, `company-status`, or `provider-is-active`.
 - When a control has a visible label, ensure the label targets that explicit `id` so accessibility relationships remain deterministic across renders.
 
+## Accessibility Guardrails That Also Prevent Sonar Noise
+
+- Use semantic container elements for description lists:
+  - `<dt>` / `<dd>` pairs must live inside `<dl>`
+  - if the text is only a section heading, use `<p>` or `<span>`, not `<dt>`
+- Use `<label>` only for actual form controls with a stable target `id`. If the text is a group heading or static descriptor, use `<span>` / `<p>` instead.
+- Do not add `aria-label` when visible text already gives the correct accessible name. If extra context is needed, make sure the accessible name still contains the visible text.
+- Landmark and dismiss controls should keep explicit names:
+  - `<nav>` elements need an accessible name when there is more than one navigation region
+  - icon-only or overlay-dismiss controls need an `aria-label`
+- Avoid adding ARIA roles to native elements unless the component truly implements the full ARIA pattern. Reuse `x-ui.combobox` and other existing primitives instead of re-creating listbox/menu semantics ad hoc.
+- Before finishing a Blade change, scan for these common regressions: orphaned labels, mismatched `aria-label`s, redundant roles on native elements, and list/detail semantics implemented with generic `<div>` wrappers.
+
 ## Elevating to Modern Sleek
 
 - **Layered depth** — Page: `bg-surface-page`. Cards/panels: `bg-surface-card` with `border-border-default` and `rounded-2xl shadow-sm`. Primary actions: `bg-accent` / `text-accent-on`.

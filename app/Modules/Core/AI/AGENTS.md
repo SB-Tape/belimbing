@@ -46,3 +46,14 @@ Core AI reads catalog data from `app/Base/AI/Services/ModelCatalogService`. It d
 
 - `resources/core/views/livewire/ai/providers.blade.php` — Provider catalog wizard + CRUD management
 - `resources/core/views/livewire/ai/playground.blade.php` — Agent chat playground + LLM config assignment
+
+## Sonar / Browser Tool Guardrails
+
+- Browser/runner exception boundaries (per root AGENTS.md §Sonar Prevention Guard): subprocess launch and protocol decode failures.
+- Keep runner orchestration shallow:
+  - resolve execution mode
+  - launch the process
+  - decode the result
+  - delegate each step to helpers once branching starts to stack up
+- For browser tool tests, centralize repeated URLs, selectors, titles, and payload fragments into file-level constants or helper builders before they sprawl across dozens of examples.
+- For ESM runner scripts under this module, prefer top-level `await` in the entrypoint and avoid empty catches unless the ignored failure is both expected and obvious from the surrounding code.

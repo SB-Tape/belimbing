@@ -28,6 +28,16 @@ app/Base/AI/
 3. **File-based cache** — catalog stored in `storage/download/ai/models-dev/catalog.json`, following the Geonames pattern.
 4. **ETag invalidation** — conditional HTTP requests avoid unnecessary re-downloads.
 
+## Sonar / Maintainability Guardrails
+
+- Keep orchestration methods shallow. When stream parsing, payload normalization, or retry/response branching starts to dominate a method, extract a private helper with one named responsibility.
+- AI-specific exception boundaries (per root AGENTS.md §Sonar Prevention Guard): catalog sync, provider discovery, LLM transport.
+- For HTTP and SSE parsing code, separate these concerns:
+  - transport execution
+  - payload decoding
+  - response mapping
+- In Node-facing or OpenAI-compatible code, rethrow unexpected errors instead of swallowing them in broad catches.
+
 ## Data Sources
 
 - **models.dev** (`https://models.dev/api.json`) — community-maintained provider and model catalog (MIT licensed)
