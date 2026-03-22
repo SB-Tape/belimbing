@@ -56,7 +56,7 @@
                     <ul class="flex flex-col space-y-1 w-full gap-1">
                         <li>
                             <a
-                            href="https://github.com/BelimbingApp/lara"
+                            href="https://github.com/BelimbingApp/belimbing"
                                 target="_blank"
                                 class="nav-link"
                             >
@@ -220,7 +220,7 @@
                     <ul class="flex flex-col space-y-1 w-full gap-1">
                         <li>
                             <a
-                            href="https://github.com/BelimbingApp/lara"
+                            href="https://github.com/BelimbingApp/belimbing"
                                 target="_blank"
                                 class="nav-link"
                             >

@@ -33,7 +33,7 @@
                     <x-icon name="heroicon-o-magnifying-glass" class="w-5 h-5" />
                     <span class="sr-only">{{ __('Search') }}</span>
                 </a>
-                <a href="https://github.com/BelimbingApp/lara" target="_blank" class="inline-flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg hover:bg-surface-subtle text-accent transition-colors" title="{{ __('Repository') }}" aria-label="{{ __('Repository') }}">
+                <a href="https://github.com/BelimbingApp/belimbing" target="_blank" class="inline-flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg hover:bg-surface-subtle text-accent transition-colors" title="{{ __('Repository') }}" aria-label="{{ __('Repository') }}">
                     <x-icon name="heroicon-o-folder" class="w-5 h-5" />
                     <span class="sr-only">{{ __('Repository') }}</span>
                 </a>
@@ -71,7 +71,7 @@
                     <div class="border-t border-border-input my-4"></div>
                     <ul class="flex flex-col space-y-1 w-full">
                         <li>
-                            <a href="https://github.com/BelimbingApp/lara" target="_blank">
+                            <a href="https://github.com/BelimbingApp/belimbing" target="_blank">
                                 <x-icon name="heroicon-o-folder" class="w-5 h-5" />
                                 {{ __('Repository') }}
                             </a>

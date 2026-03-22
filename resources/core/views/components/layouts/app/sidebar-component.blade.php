@@ -40,7 +40,7 @@
             <!-- Secondary Navigation -->
             <li>
                 <a
-                    href="https://github.com/BelimbingApp/lara"
+                    href="https://github.com/BelimbingApp/belimbing"
                     target="_blank"
                     class="nav-link"
                 >

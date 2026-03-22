@@ -42,7 +42,7 @@ Belimbing is in active development and not yet ready for production. However, yo
 ### Quick Install
 
 ```bash
-git clone https://github.com/BelimbingApp/lara.git belimbing
+git clone https://github.com/BelimbingApp/belimbing.git belimbing
 cd belimbing
 ./scripts/setup.sh local
 ./scripts/start-app.sh

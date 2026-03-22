@@ -27,7 +27,7 @@ Get the Belimbing codebase from GitHub by cloning the repository to your local m
 
 ```bash
 cd ~
-git clone https://github.com/BelimbingApp/lara.git belimbing
+git clone https://github.com/BelimbingApp/belimbing.git belimbing
 cd belimbing # go to the project root
 ```
 

@@ -30,14 +30,14 @@ One fork. No branch lanes. No worktrees. Separation is enforced by **directory p
 ### 3.1 Repository Topology
 
 ```text
-upstream:  BelimbingApp/lara         # BLB framework
-origin:    {licensee}/lara (fork)    # Licensee's fork
+upstream:  BelimbingApp/belimbing         # BLB framework
+origin:    {licensee}/belimbing (fork)    # Licensee's fork
 ```
 
 ### 3.2 How It Works
 
-1. Licensee forks `BelimbingApp/lara`.
-2. Adds upstream remote: `git remote add upstream <BelimbingApp/lara URL>`.
+1. Licensee forks `BelimbingApp/belimbing`.
+2. Adds upstream remote: `git remote add upstream <BelimbingApp/belimbing URL>`.
 3. Develops on `main` (or feature branches — their choice).
 4. Syncs upstream regularly: `git pull upstream main`.
 
@@ -163,7 +163,7 @@ When a licensee builds something reusable:
 1. Extract the generic behavior from `extensions/{licensee}/{module}/`.
 2. Rename domain-specific terms to neutral language.
 3. Implement in `app/Base/` or `app/Modules/` with tests.
-4. Open PR to `BelimbingApp/lara`.
+4. Open PR to `BelimbingApp/belimbing`.
 5. Once merged, remove the duplicate from licensee extension and use the upstream version.
 
 No "promotion flow" ceremony — it's a standard PR.
@@ -255,7 +255,7 @@ resources/extensions/sb-group/
 
 ## 10. Operational Checklist
 
-1. Fork `BelimbingApp/lara` and add upstream remote.
+1. Fork `BelimbingApp/belimbing` and add upstream remote.
 2. Place all licensee code in `extensions/{licensee}/` and `resources/extensions/{licensee}/`.
 3. Use owner-prefixed table names (`{owner}_{module}_{entity}`).
 4. Set `VITE_THEME_DIR={licensee}` in `.env`.
