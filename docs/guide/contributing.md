@@ -48,7 +48,7 @@ composer test
 If your change touches frontend/build tooling, also run:
 
 ```bash
-bun test
+bun run build
 ```
 
 5. Commit with a clear message.
