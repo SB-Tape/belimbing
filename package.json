@@ -16,7 +16,7 @@
         "laravel-vite-plugin": "^2.1.0",
         "pusher-js": "^8.4.3",
         "sortablejs": "^1.15.7",
-        "tailwindcss": "^4.2.1",
+        "tailwindcss": "^4.2.2",
         "vite": "^7"
     },
     "optionalDependencies": {
