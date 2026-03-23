@@ -119,17 +119,13 @@ for step in "${STEPS[@]}"; do
     ((step_num++))
 done
 
-# === Summary ===
-
-echo ""
-print_section_banner "Setup Summary"
+# === Finishing ===
 
 total_time=$(($(date +%s) - INSTALL_START_TIME))
 
 if [[ ${#FAILED[@]} -eq 0 ]] && [[ "$completed_count" -eq ${#STEPS[@]} ]]; then
-    echo -e "${GREEN}✓ Setup Complete! 🎉${NC} (${total_time}s)"
     echo ""
-    echo -e "  Configuration: ${CYAN}.env${NC} (edit to customize)"
+    echo -e "${GREEN}✓ Setup Complete! 🎉${NC} (${total_time}s)"
     echo ""
 
     # Cleanup temporary setup state file

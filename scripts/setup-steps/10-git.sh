@@ -34,7 +34,7 @@ source "$SCRIPTS_DIR/shared/interactive.sh"
 APP_ENV="${1:-local}"
 
 # Global variables (used throughout script)
-LATEST_GIT_VERSION=$(get_latest_git_version)  # Latest available Git version
+LATEST_GIT_VERSION=$(resolve_latest_git_version)  # Latest available Git version (resolved via GitHub API)
 if command_exists git; then
     CURRENT_GIT_VERSION=$(git --version | awk '{print $3}')
 else

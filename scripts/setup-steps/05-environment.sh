@@ -6,7 +6,8 @@
 #
 # This script:
 # - Creates storage/ directories (logs, app/.devops, etc.)
-# - Creates .env file from .env.example with auto-detected defaults
+# - Copies .env.example to .env as the canonical config baseline
+# - Fills setup-time defaults for a small set of environment-specific values
 # - Saves APP_ENV and setup date to state
 #
 # Note: APP_KEY generation happens in 25-laravel.sh after Composer install.
@@ -43,15 +44,6 @@ detect_app_name() {
     basename "$PROJECT_ROOT"
 }
 
-# Detect app URL based on environment.
-detect_app_url() {
-    case "$APP_ENV" in
-        staging)    echo "https://staging.blb.lara" ;;
-        production) echo "https://app.blb.lara" ;;
-        *)          echo "https://local.blb.lara" ;;
-    esac
-}
-
 # Detect default APP_DEBUG based on environment.
 detect_app_debug() {
     case "$APP_ENV" in
@@ -60,31 +52,66 @@ detect_app_debug() {
     esac
 }
 
-# Create .env file from .env.example, prompting for each value.
-create_env_file() {
-    if [[ -f "$PROJECT_ROOT/.env" ]]; then
-        echo -e "${CYAN}ℹ${NC} .env file already exists"
-        return 0
-    fi
+detect_reverb_app_id() {
+    local app_name="${1:-belimbing}"
+    local normalized
+    normalized=$(printf '%s' "$app_name" | tr '[:upper:]' '[:lower:]' | tr -cs 'a-z0-9' '-')
+    normalized="${normalized#-}"
+    normalized="${normalized%-}"
+    normalized="${normalized:-belimbing}"
 
-    cp "$PROJECT_ROOT/.env.example" "$PROJECT_ROOT/.env"
-    echo -e "${GREEN}✓${NC} Created .env from .env.example"
+    printf '%s\n' "${normalized}-${APP_ENV}"
+}
+
+# Prepare .env and prompt user for configuration values.
+# When .env already exists, current values are offered as defaults so the user
+# can confirm or override them. When .env is absent, it is created from the
+# template first and hardcoded defaults are used as the initial prompt values.
+create_env_file() {
+    if [[ ! -f "$PROJECT_ROOT/.env" ]]; then
+        cp "$PROJECT_ROOT/.env.example" "$PROJECT_ROOT/.env"
+        echo -e "${GREEN}✓${NC} Created .env from .env.example"
+    else
+        echo -e "${CYAN}ℹ${NC} .env already exists — reviewing configuration"
+    fi
     echo ""
 
-    local app_name app_url app_debug
-    app_name=$(ask_input "APP_NAME" "$(detect_app_name)")
-    app_url=$(ask_input "APP_URL" "$(detect_app_url)")
-    app_debug=$(ask_input "APP_DEBUG" "$(detect_app_debug)")
+    local app_name
+    app_name=$(ask_input "APP_NAME" "$(get_env_var "APP_NAME" "$(detect_app_name)")")
 
     update_env_file "APP_NAME" "$app_name"
     update_env_file "APP_ENV" "$APP_ENV"
-    update_env_file "APP_URL" "$app_url"
-    update_env_file "APP_DEBUG" "$app_debug"
+
+    # APP_DEBUG is auto-derived for local; only prompt for staging/production.
+    if [[ "$APP_ENV" != "local" ]]; then
+        local app_debug
+        app_debug=$(ask_input "APP_DEBUG" "$(get_env_var "APP_DEBUG" "$(detect_app_debug)")")
+        update_env_file "APP_DEBUG" "$app_debug"
+    fi
+
+    # Domain configuration — drives APP_URL, Caddy routing, and /etc/hosts.
+    local default_domains default_frontend default_backend
+    default_domains=$(get_default_domains "$APP_ENV")
+    default_frontend=$(echo "$default_domains" | cut -d'|' -f1)
+    default_backend=$(echo "$default_domains" | cut -d'|' -f2)
+
+    local frontend_domain
+    frontend_domain=$(ask_input "FRONTEND_DOMAIN" "$(get_env_var "FRONTEND_DOMAIN" "$default_frontend")")
+
+    local derived_backend
+    derived_backend=$(derive_backend_domain "$frontend_domain")
+    local backend_domain
+    backend_domain=$(ask_input "BACKEND_DOMAIN" "$(get_env_var "BACKEND_DOMAIN" "$derived_backend")")
+
+    save_domains_to_env "$frontend_domain" "$backend_domain"
 
     update_env_file_if_missing "DB_HOST" "127.0.0.1"
     update_env_file_if_missing "DB_PORT" "5432"
     update_env_file_if_missing "REDIS_HOST" "127.0.0.1"
     update_env_file_if_missing "REDIS_PORT" "6379"
+    update_env_file_if_missing "REVERB_APP_ID" "$(detect_reverb_app_id "$app_name")"
+    update_env_file_if_missing "REVERB_APP_KEY" "$(generate_random_token 24)"
+    update_env_file_if_missing "REVERB_APP_SECRET" "$(generate_random_token 32)"
 }
 
 # === Main ===
