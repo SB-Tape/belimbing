@@ -43,10 +43,10 @@ resolve_sqlite_vec_version() {
     fallback=$(get_sqlite_vec_version)
 
     local latest
-    latest=$(curl -fsSL --max-time 5 \
-        'https://api.github.com/repos/asg017/sqlite-vec/releases/latest' 2>/dev/null \
-        | grep '"tag_name"' \
-        | sed 's/.*"tag_name": *"\([^"]*\)".*/\1/')
+    latest=$(fetch_github_api_response 'https://api.github.com/repos/asg017/sqlite-vec/releases/latest' \
+        | sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p' \
+        | head -1
+    )
 
     if [[ -n "$latest" ]]; then
         echo "$latest"

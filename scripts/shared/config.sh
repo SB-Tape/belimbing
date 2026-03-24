@@ -29,7 +29,9 @@ unset _CONFIG_DIR
 # === Setup Defaults ===
 # shellcheck disable=SC2034
 # Used by setup scripts to provide sensible defaults during interactive setup
-DEFAULT_DB_USER="postgres"
+# Use a dedicated application role by default so setup never modifies the
+# PostgreSQL superuser account unless the operator explicitly opts in.
+DEFAULT_DB_USER="belimbing_app"
 DEFAULT_DB_PORT="5432"
 DEFAULT_PROXY_TYPE="caddy"
 

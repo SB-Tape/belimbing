@@ -41,6 +41,7 @@ readonly LOCAL_DB_HOST="127.0.0.1"
 readonly POSTGRES_ADMIN_MODE_NONE="none"
 readonly POSTGRES_ADMIN_MODE_CURRENT_OS_USER="current-os-user"
 readonly POSTGRES_ADMIN_MODE_POSTGRES_OS_USER="postgres-os-user"
+readonly POSTGRES_SUPERUSER_ROLE="postgres"
 
 POSTGRES_ADMIN_MODE="$POSTGRES_ADMIN_MODE_NONE"
 
@@ -140,6 +141,30 @@ run_postgresql_admin_sql() {
             return 1
             ;;
     esac
+}
+
+confirm_postgresql_role_is_safe() {
+    local db_user=$1
+
+    if [[ "$db_user" != "$POSTGRES_SUPERUSER_ROLE" ]]; then
+        return 0
+    fi
+
+    echo -e "${YELLOW}⚠${NC} DB_USERNAME is set to the PostgreSQL superuser (${CYAN}${POSTGRES_SUPERUSER_ROLE}${NC})." >&2
+    echo -e "  ${YELLOW}Belimbing defaults to a dedicated app role to avoid changing the superuser password.${NC}" >&2
+
+    if [[ ! -t 0 ]]; then
+        echo -e "  ${RED}✗${NC} Refusing to modify the PostgreSQL superuser in non-interactive mode." >&2
+        echo -e "  ${YELLOW}Fix:${NC} Set ${CYAN}DB_USERNAME${NC} to a dedicated role such as ${CYAN}${DEFAULT_DB_USER}${NC}, or rerun interactively and confirm the override." >&2
+        return 1
+    fi
+
+    if ask_yes_no "Continue and modify PostgreSQL superuser '${POSTGRES_SUPERUSER_ROLE}' anyway?" "n"; then
+        return 0
+    fi
+
+    echo -e "  ${YELLOW}Fix:${NC} Rerun setup with a dedicated role such as ${CYAN}${DEFAULT_DB_USER}${NC}." >&2
+    return 1
 }
 
 save_postgresql_credentials() {
@@ -473,7 +498,7 @@ setup_postgresql_database() {
     db_user=$(get_env_var "DB_USERNAME" "$DEFAULT_DB_USER")
     db_password=$(get_env_var "DB_PASSWORD" "")
 
-    # Auto-generate password when empty (admin mode can ALTER USER to set it)
+    # Auto-generate password when empty so setup can provision a dedicated app role.
     local password_auto_generated=false
     if [[ -z "$db_password" ]]; then
         db_password=$(generate_random_token 24)
@@ -504,6 +529,10 @@ setup_postgresql_database() {
         local existing_password
         existing_password=$(get_env_var "DB_PASSWORD" "")
         db_password=$(prompt_database_password "DB_PASSWORD" "$existing_password")
+    fi
+
+    if ! confirm_postgresql_role_is_safe "$db_user"; then
+        return 1
     fi
 
     local escaped_db_user escaped_db_name escaped_db_password
