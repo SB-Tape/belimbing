@@ -805,33 +805,20 @@ start_postgresql_service_then_setup() {
     return 0
 }
 
-# PostgreSQL not installed: prompt (interactive) or install (non-interactive), then setup.
+# PostgreSQL not installed: auto-install (required prerequisite), then setup.
 install_postgresql_if_needed() {
     echo -e "${YELLOW}ℹ${NC} PostgreSQL not found"
 
-    if [[ -t 0 ]]; then
-        if ask_yes_no "Install PostgreSQL?" "y"; then
-            if install_postgresql; then
-                configure_postgresql_database
-            else
-                echo -e "${RED}✗${NC} PostgreSQL installation failed"
-                echo ""
-                echo -e "${YELLOW}Please install PostgreSQL manually:${NC}"
-                echo -e "  • macOS: ${CYAN}brew install postgresql${NC}"
-                echo -e "  • Linux: ${CYAN}sudo apt-get install postgresql${NC}"
-                echo -e "  • Manual: ${CYAN}https://www.postgresql.org/download/${NC}"
-                exit 1
-            fi
-        else
-            echo -e "${YELLOW}Skipping PostgreSQL installation${NC}"
-            exit 1
-        fi
+    if install_postgresql; then
+        configure_postgresql_database
     else
-        if install_postgresql; then
-            configure_postgresql_database
-        else
-            exit 1
-        fi
+        echo -e "${RED}✗${NC} PostgreSQL installation failed"
+        echo ""
+        echo -e "${YELLOW}Please install PostgreSQL manually:${NC}"
+        echo -e "  • macOS: ${CYAN}brew install postgresql${NC}"
+        echo -e "  • Linux: ${CYAN}sudo apt-get install postgresql${NC}"
+        echo -e "  • Manual: ${CYAN}https://www.postgresql.org/download/${NC}"
+        exit 1
     fi
     return 0
 }
@@ -863,29 +850,18 @@ start_redis_service_then_check() {
     return 0
 }
 
-# Redis not installed: prompt (interactive) or install (non-interactive).
+# Redis not installed: auto-install (required prerequisite).
 install_redis_if_needed() {
     echo -e "${YELLOW}ℹ${NC} Redis not found"
 
-    if [[ -t 0 ]]; then
-        if ask_yes_no "Install Redis?" "y"; then
-            if ! install_redis; then
-                echo -e "${RED}✗${NC} Redis installation failed"
-                echo ""
-                echo -e "${YELLOW}Please install Redis manually:${NC}"
-                echo -e "  • macOS: ${CYAN}brew install redis${NC}"
-                echo -e "  • Linux: ${CYAN}sudo apt-get install redis-server${NC}"
-                echo -e "  • Manual: ${CYAN}https://redis.io/download${NC}"
-                exit 1
-            fi
-        else
-            echo -e "${YELLOW}Skipping Redis installation${NC}"
-            exit 1
-        fi
-    else
-        if ! install_redis; then
-            exit 1
-        fi
+    if ! install_redis; then
+        echo -e "${RED}✗${NC} Redis installation failed"
+        echo ""
+        echo -e "${YELLOW}Please install Redis manually:${NC}"
+        echo -e "  • macOS: ${CYAN}brew install redis${NC}"
+        echo -e "  • Linux: ${CYAN}sudo apt-get install redis-server${NC}"
+        echo -e "  • Manual: ${CYAN}https://redis.io/download${NC}"
+        exit 1
     fi
     return 0
 }
