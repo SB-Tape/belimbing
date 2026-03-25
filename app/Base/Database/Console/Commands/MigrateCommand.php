@@ -5,6 +5,9 @@
 
 namespace App\Base\Database\Console\Commands;
 
+use App\Base\Authz\Enums\PrincipalType;
+use App\Base\Authz\Models\PrincipalRole;
+use App\Base\Authz\Models\Role;
 use App\Base\Database\Concerns\InteractsWithModuleMigrations;
 use App\Base\Database\Exceptions\CircularSeederDependencyException;
 use App\Base\Database\Models\SeederRegistry;
@@ -246,12 +249,14 @@ class MigrateCommand extends IlluminateMigrateCommand
      * Values are read from env vars (passed transiently by the setup script).
      * Defaults allow day-to-day `migrate:fresh --seed --dev` to work without
      * env vars since `is_stable` preserves the users table across fresh runs.
+     * Reads LICENSEE_COMPANY_NAME and optional LICENSEE_COMPANY_CODE.
      */
     private function ensureFrameworkPrimitives(): void
     {
         $companyName = env('LICENSEE_COMPANY_NAME', 'My Company');
+        $companyCode = env('LICENSEE_COMPANY_CODE');
 
-        if (Company::provisionLicensee($companyName)) {
+        if (Company::provisionLicensee($companyName, $companyCode)) {
             $this->line("  Created licensee company: {$companyName}");
         }
 
@@ -290,8 +295,37 @@ class MigrateCommand extends IlluminateMigrateCommand
             ],
         );
 
+        $this->ensureSystemRoleAssigned($user, 'core_admin');
+
         if ($user->wasRecentlyCreated) {
             $this->line("  Created admin user: {$email}");
+        }
+    }
+
+    /**
+     * Ensure the given user has the requested system role assignment.
+     */
+    private function ensureSystemRoleAssigned(User $user, string $roleCode): void
+    {
+        $role = Role::query()
+            ->whereNull('company_id')
+            ->where('is_system', true)
+            ->where('code', $roleCode)
+            ->first();
+
+        if ($role === null) {
+            return;
+        }
+
+        $principalRole = PrincipalRole::query()->firstOrCreate([
+            'company_id' => $user->company_id,
+            'principal_type' => PrincipalType::HUMAN_USER->value,
+            'principal_id' => $user->id,
+            'role_id' => $role->id,
+        ]);
+
+        if ($principalRole->wasRecentlyCreated) {
+            $this->line("  Assigned {$roleCode} role to admin user: {$user->email}");
         }
     }
 
