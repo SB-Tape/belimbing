@@ -17,7 +17,7 @@ use Illuminate\Support\Carbon;
  *
  * @property string $id
  * @property int $employee_id
- * @property int|null $acting_for_user_id
+ * @property int $acting_for_user_id
  * @property int|null $ticket_id
  * @property string $task
  * @property string $status

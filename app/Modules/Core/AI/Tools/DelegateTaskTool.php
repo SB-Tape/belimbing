@@ -168,7 +168,7 @@ class DelegateTaskTool extends AbstractTool
      */
     private function formatDispatchResult(AgentTaskDispatch $dispatch): string
     {
-        $employeeName = $dispatch->meta['employee_name'] ?? 'Agent #'.$dispatch->employee_id;
+        $employeeName = data_get($dispatch->meta, 'employee_name') ?? 'Agent #'.$dispatch->employee_id;
 
         return 'Task dispatched successfully.'
             ."\n\n".'**Dispatch ID:** '.$dispatch->id

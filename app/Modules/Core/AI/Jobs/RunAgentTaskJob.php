@@ -68,24 +68,26 @@ class RunAgentTaskJob implements ShouldQueue
         KodiPromptFactory $promptFactory,
         AgentExecutionContext $context,
     ): void {
-        $dispatch = AgentTaskDispatch::query()->find($this->dispatchId);
-
-        if ($dispatch === null || $dispatch->isTerminal()) {
-            return;
-        }
-
-        $dispatch->markRunning();
-
-        Auth::loginUsingId($dispatch->acting_for_user_id);
-
-        $context->set(
-            employeeId: $dispatch->employee_id,
-            actingForUserId: $dispatch->acting_for_user_id,
-            ticketId: $dispatch->ticket_id,
-            dispatchId: $dispatch->id,
-        );
+        $dispatch = null;
 
         try {
+            $dispatch = AgentTaskDispatch::query()->find($this->dispatchId);
+
+            if ($dispatch === null || $dispatch->isTerminal()) {
+                return;
+            }
+
+            $dispatch->markRunning();
+
+            Auth::loginUsingId($dispatch->acting_for_user_id);
+
+            $context->set(
+                employeeId: $dispatch->employee_id,
+                actingForUserId: $dispatch->acting_for_user_id,
+                ticketId: $dispatch->ticket_id,
+                dispatchId: $dispatch->id,
+            );
+
             $ticket = $dispatch->ticket_id !== null
                 ? Ticket::query()->find($dispatch->ticket_id)
                 : null;
@@ -102,12 +104,14 @@ class RunAgentTaskJob implements ShouldQueue
                 messages: $messages,
                 employeeId: $dispatch->employee_id,
                 systemPrompt: $systemPrompt,
-                modelOverride: $dispatch->meta['model_override'] ?? null,
+                modelOverride: data_get($dispatch->meta, 'model_override'),
             );
 
             $this->recordResult($dispatch, $result);
         } catch (\Throwable $e) {
-            $dispatch->markFailed($e->getMessage());
+            if ($dispatch !== null && ! $dispatch->isTerminal()) {
+                $dispatch->markFailed($e->getMessage());
+            }
 
             throw $e;
         } finally {

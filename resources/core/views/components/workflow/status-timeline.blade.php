@@ -65,7 +65,7 @@
                                 @php $agentStyle = $agentTagStyle($entry->comment_tag); @endphp
                                 <div class="mt-2 text-sm text-ink {{ $agentStyle !== null ? 'rounded-md border border-border-default bg-surface-subtle p-2' : '' }}">
                                     @if($agentStyle !== null)
-                                        <span class="text-xs font-semibold uppercase tracking-wider {{ $agentStyle['class'] }}">🤖 {{ $agentStyle['label'] }}:</span>
+                                        <span class="text-xs font-semibold uppercase tracking-wider {{ $agentStyle['class'] }}"><span aria-hidden="true">🤖</span> {{ $agentStyle['label'] }}:</span>
                                     @elseif($entry->comment_tag)
                                         <span class="text-xs font-semibold text-muted uppercase tracking-wider">{{ $entry->comment_tag }}:</span>
                                     @endif

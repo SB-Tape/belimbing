@@ -74,6 +74,23 @@ describe('status lookup', function () {
             ->and($data)->toHaveKey('checked_at');
     });
 
+    it('returns a null employee name when dispatch meta is absent', function () {
+        AgentTaskDispatch::unguarded(fn () => AgentTaskDispatch::query()->create([
+            'id' => 'agent_dispatch_no_meta',
+            'employee_id' => 1,
+            'acting_for_user_id' => 1,
+            'task' => 'Test task',
+            'status' => 'queued',
+            'meta' => null,
+        ]));
+
+        $result = (string) $this->tool->execute(['dispatch_id' => 'agent_dispatch_no_meta']);
+        $data = json_decode($result, true);
+
+        expect($data)->not->toBeNull()
+            ->and($data['employee_name'])->toBeNull();
+    });
+
     it('includes result_summary for succeeded dispatch', function () {
         AgentTaskDispatch::unguarded(fn () => AgentTaskDispatch::query()->create([
             'id' => 'agent_dispatch_success',

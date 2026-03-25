@@ -189,17 +189,33 @@ class EditFileTool extends AbstractTool
     {
         $directory = dirname($absolutePath);
 
-        if (! is_dir($directory)) {
-            mkdir($directory, 0755, true);
+        if (! $this->ensureDirectoryExists($directory, $filePath)) {
+            return ToolResult::error(
+                "Failed to create the parent directory for \"{$filePath}\".",
+                'directory_create_failed',
+            );
+        }
+
+        if (is_dir($absolutePath)) {
+            return ToolResult::error(
+                "Failed to write \"{$filePath}\" because the target path is a directory.",
+                'file_write_failed',
+            );
         }
 
         $existed = file_exists($absolutePath);
-        file_put_contents($absolutePath, $content);
+        $bytesWritten = file_put_contents($absolutePath, $content);
+
+        if ($bytesWritten === false) {
+            return ToolResult::error(
+                "Failed to write \"{$filePath}\".",
+                'file_write_failed',
+            );
+        }
 
         $verb = $existed ? 'Updated' : 'Created';
-        $bytes = strlen($content);
 
-        return ToolResult::success("{$verb} {$filePath} ({$bytes} bytes).");
+        return ToolResult::success("{$verb} {$filePath} ({$bytesWritten} bytes).");
     }
 
     /**
@@ -213,10 +229,35 @@ class EditFileTool extends AbstractTool
             );
         }
 
-        file_put_contents($absolutePath, $content, FILE_APPEND);
+        if (is_dir($absolutePath)) {
+            return ToolResult::error(
+                "Failed to append to \"{$filePath}\" because the target path is a directory.",
+                'file_append_failed',
+            );
+        }
 
-        $bytes = strlen($content);
+        $bytesWritten = file_put_contents($absolutePath, $content, FILE_APPEND);
 
-        return ToolResult::success("Appended {$bytes} bytes to {$filePath}.");
+        if ($bytesWritten === false) {
+            return ToolResult::error(
+                "Failed to append to \"{$filePath}\".",
+                'file_append_failed',
+            );
+        }
+
+        return ToolResult::success("Appended {$bytesWritten} bytes to {$filePath}.");
+    }
+
+    private function ensureDirectoryExists(string $directory, string $filePath): bool
+    {
+        if (is_dir($directory)) {
+            return true;
+        }
+
+        if (! mkdir($directory, 0755, true) && ! is_dir($directory)) {
+            return false;
+        }
+
+        return true;
     }
 }

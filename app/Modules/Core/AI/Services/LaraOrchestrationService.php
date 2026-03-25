@@ -62,7 +62,7 @@ class LaraOrchestrationService
 
                     $response = $this->response(
                         __('Delegation queued to :agent (dispatch: :dispatch_id).', [
-                            'agent' => $dispatch->meta['employee_name'] ?? $match['name'],
+                            'agent' => data_get($dispatch->meta, 'employee_name', $match['name']),
                             'dispatch_id' => $dispatch->id,
                         ]),
                         [

@@ -159,7 +159,7 @@ class TicketUpdateTool extends AbstractTool
             );
         }
 
-        $actor = $this->resolveAgentActor();
+        $actor = $this->resolveAgentActor($ticket);
 
         return match ($action) {
             'post_comment' => $this->handlePostComment($ticket, $actor, $arguments),
@@ -232,32 +232,50 @@ class TicketUpdateTool extends AbstractTool
     /**
      * Build an Actor DTO for the current agent context.
      *
-     * Prefers the AgentExecutionContext (set during queued job execution)
-     * to correctly attribute actions to the agent principal. Falls back
-     * to the authenticated user, then to Kodi's hardcoded employee ID.
+     * Prefers the AgentExecutionContext (set during queued job execution),
+     * then the authenticated user's linked employee, before falling back
+     * to Kodi's provisioned employee record.
      */
-    private function resolveAgentActor(): Actor
+    private function resolveAgentActor(Ticket $ticket): Actor
     {
         if ($this->executionContext->active()) {
-            return new Actor(
-                type: PrincipalType::AGENT,
-                id: $this->executionContext->employeeId(),
-                companyId: 1,
-                actingForUserId: $this->executionContext->actingForUserId(),
-            );
+            $employee = Employee::query()->find($this->executionContext->employeeId());
+
+            if ($employee !== null) {
+                return $this->makeAgentActor(
+                    employeeId: $employee->id,
+                    companyId: $employee->company_id,
+                    actingForUserId: $this->executionContext->actingForUserId(),
+                );
+            }
         }
 
         $user = auth()->user();
 
-        if ($user !== null) {
-            return Actor::forUser($user, PrincipalType::AGENT, (int) $user->getAuthIdentifier());
+        if ($user?->employee !== null) {
+            return $this->makeAgentActor(
+                employeeId: $user->employee->id,
+                companyId: $user->employee->company_id,
+                actingForUserId: (int) $user->getAuthIdentifier(),
+            );
         }
 
+        $kodi = Employee::query()->find(Employee::KODI_ID);
+
+        return $this->makeAgentActor(
+            employeeId: $kodi?->id ?? Employee::KODI_ID,
+            companyId: $kodi?->company_id ?? $ticket->company_id,
+            actingForUserId: $user !== null ? (int) $user->getAuthIdentifier() : null,
+        );
+    }
+
+    private function makeAgentActor(int $employeeId, ?int $companyId, ?int $actingForUserId): Actor
+    {
         return new Actor(
             type: PrincipalType::AGENT,
-            id: Employee::KODI_ID,
-            companyId: 1,
-            actingForUserId: null,
+            id: $employeeId,
+            companyId: $companyId,
+            actingForUserId: $actingForUserId,
         );
     }
 }

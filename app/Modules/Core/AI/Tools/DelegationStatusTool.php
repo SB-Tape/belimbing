@@ -125,7 +125,7 @@ class DelegationStatusTool extends AbstractTool
             'dispatch_id' => $dispatch->id,
             'status' => $dispatch->status,
             'employee_id' => $dispatch->employee_id,
-            'employee_name' => $dispatch->meta['employee_name'] ?? null,
+            'employee_name' => data_get($dispatch->meta, 'employee_name'),
             'task' => $dispatch->task,
             'ticket_id' => $dispatch->ticket_id,
             'created_at' => $dispatch->created_at?->toIso8601String(),

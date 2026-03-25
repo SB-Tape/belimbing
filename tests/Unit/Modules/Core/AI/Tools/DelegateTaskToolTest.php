@@ -173,4 +173,23 @@ describe('output format', function () {
             ->and((string) $result)->toContain('**Task:**')
             ->and((string) $result)->toContain('**Created:**');
     });
+
+    it('falls back to agent id when dispatch meta is absent', function () {
+        $dispatch = new AgentTaskDispatch([
+            'id' => 'agent_dispatch_null_meta',
+            'status' => 'queued',
+            'employee_id' => 9,
+            'task' => 'Do something else',
+            'acting_for_user_id' => 10,
+            'meta' => null,
+        ]);
+
+        $this->dispatcher->shouldReceive('dispatchForCurrentUser')
+            ->once()
+            ->andReturn($dispatch);
+
+        $result = $this->tool->execute(['task' => 'Do something else', 'agent_id' => 9]);
+
+        expect((string) $result)->toContain('Agent #9');
+    });
 });
