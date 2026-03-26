@@ -28,8 +28,8 @@ describe('tool metadata', function () {
             $this->tool,
             'delegate_task',
             'ai.tool_delegate.execute',
-            ['task', 'agent_id'],
-            ['task'],
+            ['task', 'task_type', 'agent_id'],
+            ['task', 'task_type'],
         );
     });
 });
@@ -40,9 +40,18 @@ describe('input validation', function () {
     });
 
     it('rejects task exceeding max length', function () {
-        $result = $this->tool->execute(['task' => str_repeat('x', 5001)]);
+        $result = $this->tool->execute(['task' => str_repeat('x', 5001), 'task_type' => 'general']);
         expect((string) $result)->toContain('Error')
             ->and((string) $result)->toContain('maximum length');
+    });
+
+    it('rejects task_type exceeding max length', function () {
+        $result = $this->tool->execute([
+            'task' => 'Do work',
+            'task_type' => str_repeat('t', 61),
+        ]);
+        expect((string) $result)->toContain('Error')
+            ->and((string) $result)->toContain('task_type');
     });
 
     it('accepts task at max length', function () {
@@ -50,6 +59,7 @@ describe('input validation', function () {
             'id' => 'agent_dispatch_abc123',
             'status' => 'queued',
             'employee_id' => 1,
+            'task_type' => 'general',
             'task' => str_repeat('x', 5000),
             'acting_for_user_id' => 10,
             'meta' => ['employee_name' => 'Worker'],
@@ -61,6 +71,7 @@ describe('input validation', function () {
 
         $result = $this->tool->execute([
             'task' => str_repeat('x', 5000),
+            'task_type' => 'general',
             'agent_id' => 1,
         ]);
 
@@ -74,6 +85,7 @@ describe('dispatch with explicit agent_id', function () {
             'id' => 'agent_dispatch_test123',
             'status' => 'queued',
             'employee_id' => 42,
+            'task_type' => 'general',
             'task' => ANALYZE_SALES_DATA,
             'acting_for_user_id' => 10,
             'meta' => ['employee_name' => 'Data Analyst'],
@@ -81,10 +93,10 @@ describe('dispatch with explicit agent_id', function () {
 
         $this->dispatcher->shouldReceive('dispatchForCurrentUser')
             ->once()
-            ->with(42, ANALYZE_SALES_DATA)
+            ->with(42, 'general', ANALYZE_SALES_DATA)
             ->andReturn($dispatch);
 
-        $result = $this->tool->execute(['task' => ANALYZE_SALES_DATA, 'agent_id' => 42]);
+        $result = $this->tool->execute(['task' => ANALYZE_SALES_DATA, 'task_type' => 'general', 'agent_id' => 42]);
 
         expect((string) $result)->toContain(DISPATCH_SUCCESS)
             ->and((string) $result)->toContain('agent_dispatch_test123')
@@ -99,7 +111,7 @@ describe('dispatch with explicit agent_id', function () {
             ->once()
             ->andThrow(new AuthorizationException('Unauthorized Agent dispatch target.'));
 
-        $result = $this->tool->execute(['task' => 'Test task', 'agent_id' => 999]);
+        $result = $this->tool->execute(['task' => 'Test task', 'task_type' => 'general', 'agent_id' => 999]);
 
         expect((string) $result)->toContain('Error')
             ->and((string) $result)->toContain('Unauthorized');
@@ -122,6 +134,7 @@ describe('dispatch with auto-matching', function () {
             'id' => 'agent_dispatch_auto456',
             'status' => 'queued',
             'employee_id' => 7,
+            'task_type' => 'generate_report',
             'task' => GENERATE_MONTHLY_REPORT,
             'acting_for_user_id' => 10,
             'meta' => ['employee_name' => REPORT_GENERATOR],
@@ -129,10 +142,10 @@ describe('dispatch with auto-matching', function () {
 
         $this->dispatcher->shouldReceive('dispatchForCurrentUser')
             ->once()
-            ->with(7, GENERATE_MONTHLY_REPORT)
+            ->with(7, 'generate_report', GENERATE_MONTHLY_REPORT)
             ->andReturn($dispatch);
 
-        $result = $this->tool->execute(['task' => GENERATE_MONTHLY_REPORT]);
+        $result = $this->tool->execute(['task' => GENERATE_MONTHLY_REPORT, 'task_type' => 'generate_report']);
 
         expect((string) $result)->toContain(DISPATCH_SUCCESS)
             ->and((string) $result)->toContain(REPORT_GENERATOR);
@@ -143,7 +156,7 @@ describe('dispatch with auto-matching', function () {
             ->once()
             ->andReturn(null);
 
-        $result = $this->tool->execute(['task' => 'Something obscure']);
+        $result = $this->tool->execute(['task' => 'Something obscure', 'task_type' => 'general']);
 
         expect((string) $result)->toContain('Error')
             ->and((string) $result)->toContain('No suitable Agent');
@@ -156,6 +169,7 @@ describe('output format', function () {
             'id' => 'agent_dispatch_xyz789',
             'status' => 'queued',
             'employee_id' => 1,
+            'task_type' => 'general',
             'task' => 'Do something',
             'acting_for_user_id' => 10,
             'meta' => ['employee_name' => 'Worker'],
@@ -165,7 +179,7 @@ describe('output format', function () {
             ->once()
             ->andReturn($dispatch);
 
-        $result = $this->tool->execute(['task' => 'Do something', 'agent_id' => 1]);
+        $result = $this->tool->execute(['task' => 'Do something', 'task_type' => 'general', 'agent_id' => 1]);
 
         expect((string) $result)->toContain('**Dispatch ID:**')
             ->and((string) $result)->toContain('**Status:**')
@@ -179,6 +193,7 @@ describe('output format', function () {
             'id' => 'agent_dispatch_null_meta',
             'status' => 'queued',
             'employee_id' => 9,
+            'task_type' => 'general',
             'task' => 'Do something else',
             'acting_for_user_id' => 10,
             'meta' => null,
@@ -188,7 +203,7 @@ describe('output format', function () {
             ->once()
             ->andReturn($dispatch);
 
-        $result = $this->tool->execute(['task' => 'Do something else', 'agent_id' => 9]);
+        $result = $this->tool->execute(['task' => 'Do something else', 'task_type' => 'general', 'agent_id' => 9]);
 
         expect((string) $result)->toContain('Agent #9');
     });
