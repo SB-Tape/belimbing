@@ -6,6 +6,7 @@
                    Each item must have 'id' and 'label'; optional 'icon' for a Heroicon name.
         default  — ID of the initially active tab (falls back to first tab)
         variant  — Visual style: 'underline' (default) or 'pill'
+        size     — Density: 'md' (default) or 'sm'
 
     Usage:
         <x-ui.tabs :tabs="[
@@ -31,6 +32,7 @@
     'tabs' => [],
     'default' => null,
     'variant' => 'underline',
+    'size' => 'md',
 ])
 
 @php
@@ -39,16 +41,33 @@
     $tabsId = 'tabs-' . Str::random(8);
     $defaultTab = $default ?? ($tabs[0]['id'] ?? null);
 
+    $sizeClasses = match($size) {
+        'sm' => [
+            'pill_list' => 'p-0.5 rounded-xl',
+            'pill_tab' => 'px-3.5 py-1 rounded-lg text-sm',
+            'underline_tab' => 'px-3.5 py-1 text-sm',
+            'icon' => 'w-4 h-4',
+            'panels' => 'mt-3',
+        ],
+        default => [
+            'pill_list' => 'p-1 rounded-2xl',
+            'pill_tab' => 'px-3.5 py-1.5 rounded-xl text-sm',
+            'underline_tab' => 'px-3.5 py-2 text-sm',
+            'icon' => 'w-4 h-4',
+            'panels' => 'mt-4',
+        ],
+    };
+
     $variantClasses = match($variant) {
         'pill' => [
-            'list' => 'flex gap-1 p-1 rounded-2xl bg-surface-subtle',
-            'tab' => 'px-3.5 py-1.5 text-sm font-medium rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-1',
+            'list' => 'flex gap-1 bg-surface-subtle '.$sizeClasses['pill_list'],
+            'tab' => $sizeClasses['pill_tab'].' font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-1',
             'active' => 'bg-surface-card text-ink shadow-sm',
             'inactive' => 'text-muted hover:text-ink',
         ],
         default => [
             'list' => 'flex gap-0 border-b border-border-default',
-            'tab' => 'relative px-3.5 py-2 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-accent focus:ring-inset',
+            'tab' => 'relative '.$sizeClasses['underline_tab'].' font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-accent focus:ring-inset',
             'active' => 'text-ink',
             'inactive' => 'text-muted hover:text-ink',
         ],
@@ -151,7 +170,7 @@
             >
                 @if(isset($tab['icon']))
                     <span class="inline-flex items-center gap-1.5">
-                        <x-icon :name="$tab['icon']" class="w-4 h-4" />
+                        <x-icon :name="$tab['icon']" class="{{ $sizeClasses['icon'] }}" />
                         <span>{{ $tab['label'] }}</span>
                     </span>
                 @else
@@ -170,7 +189,7 @@
     </div>
 
     {{-- Tab panels (rendered by <x-ui.tab> children) --}}
-    <div class="mt-4">
+    <div class="{{ $sizeClasses['panels'] }}">
         {{ $slot }}
     </div>
 </div>

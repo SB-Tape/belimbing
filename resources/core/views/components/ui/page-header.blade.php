@@ -2,20 +2,18 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // (c) Ng Kiat Siong <kiatsiong.ng@gmail.com>
 
-use App\Base\Menu\Services\PagePinResolver;
-use App\Base\Menu\Services\PinMetadataNormalizer;
 ?>
 
 @props(['title', 'subtitle' => null, 'actions' => null, 'help' => null, 'pinnable' => null])
 
 @php
-    $resolvedPinnable = app(PagePinResolver::class)->resolve((string) $title, $pinnable);
+    $resolvedPinnable = app(\App\Base\Menu\Services\PagePinResolver::class)->resolve((string) $title, $pinnable);
     $hasInteractive = $help || $resolvedPinnable;
     $alpineData = [];
     if ($help) $alpineData[] = 'helpOpen: false';
     if ($resolvedPinnable) {
         $alpineData[] = 'pinData: ' . json_encode($resolvedPinnable, JSON_UNESCAPED_SLASHES);
-        $normalizer = app(PinMetadataNormalizer::class);
+        $normalizer = app(\App\Base\Menu\Services\PinMetadataNormalizer::class);
         $normalizedPageUrl = $normalizer->normalizeUrl($resolvedPinnable['url']);
         $isCurrentlyPinned = auth()->check()
             && collect(auth()->user()->getPins())
@@ -35,7 +33,7 @@ use App\Base\Menu\Services\PinMetadataNormalizer;
 >
     <div class="flex items-center justify-between gap-4">
         <div class="min-w-0 flex-1">
-            <div class="inline-flex items-center gap-2 max-w-full">
+            <div class="inline-flex items-center gap-2 max-w-full mb-1">
                 <h1 class="min-w-0 text-xl font-medium tracking-tight text-ink">{{ $title }}</h1>
                 @if($resolvedPinnable)
                     <button
@@ -49,13 +47,13 @@ use App\Base\Menu\Services\PinMetadataNormalizer;
                         <x-icon name="heroicon-o-pin" class="w-4 h-4" />
                     </button>
                 @endif
+                @if($subtitle)
+                    <p class="text-sm text-muted">{!! $subtitle !!}</p>
+                @endif
                 @if($help)
                     <x-ui.help size="lg" @click="helpOpen = !helpOpen" ::aria-expanded="helpOpen" />
                 @endif
             </div>
-            @if($subtitle)
-                <p class="mt-1 text-sm text-muted">{!! $subtitle !!}</p>
-            @endif
         </div>
         @if($actions)
             <div class="shrink-0 flex items-center gap-2">

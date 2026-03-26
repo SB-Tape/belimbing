@@ -192,8 +192,10 @@ class Show extends Component
     {
         $inspector = app(TableInspector::class);
         $columns = $inspector->columns($this->tableName);
+        $indexes = $inspector->indexes($this->tableName);
         $rowCount = $inspector->rowCount($this->tableName);
         $foreignKeys = $inspector->foreignKeys($this->tableName);
+        $migrationSource = $inspector->migrationSource($this->tableName);
         $tablesGrouped = $inspector->allTablesGroupedByModule();
         $recentTables = session('recent_tables', []);
 
@@ -202,6 +204,7 @@ class Show extends Component
                 ->where('table_name', $this->tableName)
                 ->first(),
             'columns' => $columns,
+            'indexes' => $indexes,
             'rows' => $inspector->rows(
                 $this->tableName,
                 $this->search ?: null,
@@ -210,6 +213,7 @@ class Show extends Component
             ),
             'rowCount' => $rowCount,
             'foreignKeys' => $foreignKeys,
+            'migrationSource' => $migrationSource,
             'tablesGrouped' => $tablesGrouped,
             'recentTables' => $recentTables,
         ]);

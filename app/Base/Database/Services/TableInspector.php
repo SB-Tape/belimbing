@@ -47,6 +47,18 @@ class TableInspector
     }
 
     /**
+     * Get index metadata for a table.
+     *
+     * @return list<array{name: string, columns: list<string>, type: string, unique: bool, primary: bool}>
+     */
+    public function indexes(string $table): array
+    {
+        $this->guardRegisteredRelationExists($table);
+
+        return Schema::getIndexes($table);
+    }
+
+    /**
      * Get paginated rows with optional search and sort.
      *
      * @param  string  $table  Table name
@@ -210,6 +222,40 @@ class TableInspector
     }
 
     /**
+     * Get migration source metadata for a registered table.
+     *
+     * @return array{file_name: string, relative_path: string, contents: string}|null
+     */
+    public function migrationSource(string $table): ?array
+    {
+        $registry = TableRegistry::query()
+            ->where('table_name', $table)
+            ->first();
+
+        if ($registry === null || $registry->migration_file === null) {
+            return null;
+        }
+
+        $absolutePath = $this->resolveMigrationPath($registry->module_path, $registry->migration_file);
+
+        if ($absolutePath === null) {
+            return null;
+        }
+
+        $contents = file_get_contents($absolutePath);
+
+        if ($contents === false) {
+            return null;
+        }
+
+        return [
+            'file_name' => $registry->migration_file,
+            'relative_path' => $this->relativeBasePath($absolutePath),
+            'contents' => $contents,
+        ];
+    }
+
+    /**
      * Consume and clear orphaned registry notices for the current session.
      *
      * @return list<string>
@@ -290,5 +336,35 @@ class TableInspector
         }
 
         session()->put(self::ORPHANED_REGISTRY_SESSION_KEY, $messages);
+    }
+
+    /**
+     * Resolve the absolute filesystem path for a migration file.
+     */
+    private function resolveMigrationPath(?string $modulePath, string $migrationFile): ?string
+    {
+        $candidates = [];
+
+        if ($modulePath !== null) {
+            $candidates[] = base_path($modulePath.'/Database/Migrations/'.$migrationFile);
+        }
+
+        $candidates[] = database_path('migrations/'.$migrationFile);
+
+        foreach ($candidates as $candidate) {
+            if (is_file($candidate)) {
+                return $candidate;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Convert an absolute path to a workspace-relative path.
+     */
+    private function relativeBasePath(string $absolutePath): string
+    {
+        return str_replace([base_path().DIRECTORY_SEPARATOR, '\\'], ['', '/'], $absolutePath);
     }
 }

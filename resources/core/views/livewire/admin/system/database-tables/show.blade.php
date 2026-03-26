@@ -182,7 +182,7 @@ use App\Base\Database\Livewire\DatabaseTables\Show;
     <div class="flex-1 min-w-0 overflow-y-auto px-1 py-2 sm:px-4 sm:py-1">
         <x-slot name="title">{{ $this->tableName }}</x-slot>
 
-        <div class="space-y-section-gap">
+        <div>
             <x-ui.page-header
                 :title="$this->tableName"
                 :subtitle="trans_choice(':count row|:count rows', $rowCount, ['count' => number_format($rowCount)])"
@@ -211,200 +211,57 @@ use App\Base\Database\Livewire\DatabaseTables\Show;
                 </x-slot>
             </x-ui.page-header>
 
-            @foreach($this->orphanedRegistryNotices as $index => $notice)
-                <x-ui.alert variant="warning" class="flex items-start justify-between gap-3">
-                    <span>{{ $notice }}</span>
-                    <button
-                        type="button"
-                        wire:click="dismissNotice({{ $index }})"
-                        class="shrink-0 text-muted hover:text-ink transition-colors"
-                        aria-label="{{ __('Dismiss notice') }}"
-                    >
-                        <x-icon name="heroicon-o-x-mark" class="w-4 h-4" />
-                    </button>
-                </x-ui.alert>
-            @endforeach
-
-            {{-- Related Tables (Foreign Keys) --}}
-            @if(count($foreignKeys['outgoing']) > 0 || count($foreignKeys['incoming']) > 0)
-                <div class="flex flex-wrap items-center gap-2 text-xs">
-                    @if(count($foreignKeys['outgoing']) > 0)
-                        <span class="text-muted font-medium">{{ __('References:') }}</span>
-                        @foreach($foreignKeys['outgoing'] as $fk)
-                            <a
-                                href="{{ route('admin.system.database-tables.show', $fk['foreign_table']) }}"
-                                wire:navigate
-                                class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-border-default bg-surface-card text-link hover:bg-surface-subtle transition-colors font-mono"
-                                title="{{ $fk['column'] }} → {{ $fk['foreign_table'] }}.{{ $fk['foreign_column'] }}"
-                            >
-                                <x-icon name="heroicon-o-arrow-top-right-on-square" class="w-3 h-3" />
-                                {{ $fk['foreign_table'] }}
-                            </a>
-                        @endforeach
-                    @endif
-                    @if(count($foreignKeys['incoming']) > 0)
-                        <span class="text-muted font-medium {{ count($foreignKeys['outgoing']) > 0 ? 'ml-2' : '' }}">{{ __('Referenced by:') }}</span>
-                        @foreach($foreignKeys['incoming'] as $fk)
-                            <a
-                                href="{{ route('admin.system.database-tables.show', $fk['table']) }}"
-                                wire:navigate
-                                class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-border-default bg-surface-card text-link hover:bg-surface-subtle transition-colors font-mono"
-                                title="{{ $fk['table'] }}.{{ $fk['column'] }} → {{ $fk['local_column'] }}"
-                            >
-                                <x-icon name="heroicon-o-arrow-uturn-left" class="w-3 h-3" />
-                                {{ $fk['table'] }}
-                            </a>
-                        @endforeach
-                    @endif
-                </div>
-            @endif
-
-            <x-ui.card>
-                <div class="mb-2 flex items-center justify-between gap-4">
-                    <div class="flex-1">
-                        <x-ui.search-input
-                            wire:model.live.debounce.300ms="search"
-                            placeholder="{{ __('Search across text columns...') }}"
-                        />
-                    </div>
-                    @if(app()->environment('local') && $tableRegistry)
+            <div @class(['mt-4 space-y-section-gap' => count($this->orphanedRegistryNotices) > 0])>
+                @foreach($this->orphanedRegistryNotices as $index => $notice)
+                    <x-ui.alert variant="warning" class="flex items-start justify-between gap-3">
+                        <span>{{ $notice }}</span>
                         <button
-                            wire:click="toggleStability"
-                            class="cursor-pointer"
-                            title="{{ $tableRegistry->is_stable ? __('Click to mark unstable') : __('Click to mark stable') }}"
+                            type="button"
+                            wire:click="dismissNotice({{ $index }})"
+                            class="shrink-0 text-muted hover:text-ink transition-colors"
+                            aria-label="{{ __('Dismiss notice') }}"
                         >
-                            <x-ui.badge :variant="$this->stabilityVariant($tableRegistry->is_stable)">
-                                {{ $tableRegistry->is_stable ? __('Stable') : __('Unstable') }}
-                            </x-ui.badge>
+                            <x-icon name="heroicon-o-x-mark" class="w-4 h-4" />
                         </button>
-                    @endif
-                    <x-ui.button
-                        variant="ghost"
-                        size="sm"
-                        @click="localTime = !localTime"
-                        ::class="localTime ? 'ring-2 ring-accent' : ''"
-                        x-bind:aria-pressed="localTime.toString()"
-                        title="{{ __('Toggle timestamp display between UTC and Local Time.') }}"
-                        aria-label="{{ __('Toggle timestamp display between UTC and Local Time.') }}"
-                    >
-                        <x-icon name="heroicon-o-clock" class="w-4 h-4" />
-                        <span x-text="localTime ? '{{ __('Local Time') }}' : '{{ __('UTC') }}'"></span>
-                    </x-ui.button>
-                    <x-ui.button
-                        variant="ghost"
-                        size="sm"
-                        wire:click="toggleRawValues"
-                        @class(['ring-2 ring-accent' => $this->rawValues])
-                        aria-pressed="{{ $this->rawValues ? 'true' : 'false' }}"
-                        title="{{ __('Toggle between formatted display and raw database values for NULL and boolean columns.') }}"
-                        aria-label="{{ __('Toggle between formatted display and raw database values for NULL and boolean columns.') }}"
-                    >
-                        <x-icon name="heroicon-o-code-bracket" class="w-4 h-4" />
-                        {{ $this->rawValues ? __('Raw') : __('Formatted') }}
-                    </x-ui.button>
-                    <span class="text-xs text-muted whitespace-nowrap tabular-nums">
-                        {{ trans_choice(':count column|:count columns', count($columns), ['count' => count($columns)]) }}
-                    </span>
-                </div>
+                    </x-ui.alert>
+                @endforeach
 
-                <div class="overflow-x-auto -mx-card-inner px-card-inner">
-                    <table class="min-w-full divide-y divide-border-default text-sm">
-                        <thead class="bg-surface-subtle/80">
-                            <tr>
-                                @foreach($columns as $col)
-                                    @php
-                                        $outgoingFk = collect($foreignKeys['outgoing'])->firstWhere('column', $col['name']);
-                                    @endphp
-                                    <th
-                                        wire:click="sort('{{ $col['name'] }}')"
-                                        class="px-table-cell-x py-table-header-y text-left text-[11px] font-semibold text-muted uppercase tracking-wider cursor-pointer select-none hover:text-ink transition-colors"
-                                        title="{{ $col['type_name'] }}{{ $col['nullable'] ? ', nullable' : '' }}{{ $outgoingFk ? ' → ' . $outgoingFk['foreign_table'] . '.' . $outgoingFk['foreign_column'] : '' }}"
-                                    >
-                                        <span class="inline-flex items-center gap-1">
-                                            {{ $col['name'] }}
-                                            @if($outgoingFk)
-                                                <a
-                                                    href="{{ route('admin.system.database-tables.show', $outgoingFk['foreign_table']) }}"
-                                                    wire:navigate
-                                                    class="text-accent hover:text-accent-hover"
-                                                    title="{{ __('Go to :table', ['table' => $outgoingFk['foreign_table']]) }}"
-                                                    onclick="event.stopPropagation()"
-                                                >
-                                                    <x-icon name="heroicon-o-link" class="w-3 h-3" />
-                                                </a>
-                                            @endif
-                                            @if($this->sortColumn === $col['name'])
-                                                @if($this->sortDirection === 'asc')
-                                                    <x-icon name="heroicon-m-chevron-up" class="w-3 h-3" />
-                                                @else
-                                                    <x-icon name="heroicon-m-chevron-down" class="w-3 h-3" />
-                                                @endif
-                                            @endif
-                                        </span>
-                                    </th>
-                                @endforeach
-                            </tr>
-                        </thead>
-                        <tbody class="bg-surface-card divide-y divide-border-default">
-                            @forelse($rows as $row)
-                                <tr wire:key="row-{{ $loop->index }}" class="hover:bg-surface-subtle/50 transition-colors">
-                                    @foreach($columns as $col)
-                                        @php
-                                            $value = data_get((array) $row, $col['name']);
-                                            $formatted = $this->formatCell($value, $col['type_name']);
-                                            $isLong = $value !== null && mb_strlen((string) $value) > 120;
-                                            $outgoingFk = collect($foreignKeys['outgoing'])->firstWhere('column', $col['name']);
-                                            $isTimestamp = $value !== null && (
-                                                str_contains(strtolower($col['type_name']), 'timestamp')
-                                                || str_contains(strtolower($col['type_name']), 'datetime')
-                                            );
-                                        @endphp
-                                        <td
-                                            class="px-table-cell-x py-table-cell-y text-sm font-mono whitespace-nowrap {{ $value === null ? 'text-muted' : 'text-ink' }}"
-                                            @if($isLong) title="{{ Str::limit((string) $value, 500) }}" @endif
-                                            @if($isTimestamp)
-                                                x-data
-                                                x-effect="
-                                                    if (localTime) {
-                                                        const el = $el;
-                                                        const text = el.getAttribute('data-raw') || el.textContent;
-                                                        if (!el.getAttribute('data-raw')) el.setAttribute('data-raw', text);
-                                                        try { el.textContent = new Date(text.trim()).toLocaleString(); } catch(e) {}
-                                                    } else {
-                                                        const raw = $el.getAttribute('data-raw');
-                                                        if (raw) $el.textContent = raw;
-                                                    }
-                                                "
-                                            @endif
-                                        >
-                                            @if($outgoingFk && $value !== null)
-                                                <a
-                                                    href="{{ route('admin.system.database-tables.show', $outgoingFk['foreign_table']) }}?search={{ urlencode((string) $value) }}"
-                                                    wire:navigate
-                                                    class="text-link hover:underline"
-                                                    title="{{ __('View in :table', ['table' => $outgoingFk['foreign_table']]) }}"
-                                                >{{ $formatted }}</a>
-                                            @else
-                                                {{ $formatted }}
-                                            @endif
-                                        </td>
-                                    @endforeach
-                                </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="{{ count($columns) }}" class="px-table-cell-x py-8 text-center text-sm text-muted">
-                                        {{ $this->search ? __('No rows match your search.') : __('This table is empty.') }}
-                                    </td>
-                                </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
+                <x-ui.tabs
+                    :tabs="[
+                        ['id' => 'data', 'label' => __('Data'), 'icon' => 'heroicon-o-table-cells'],
+                        ['id' => 'schema', 'label' => __('Schema'), 'icon' => 'heroicon-o-circle-stack'],
+                        ['id' => 'relationships', 'label' => __('Relationships'), 'icon' => 'heroicon-o-link'],
+                    ]"
+                    default="data"
+                    size="sm"
+                >
+                    <x-ui.tab id="data">
+                        @include('livewire.admin.system.database-tables.partials.show-data-tab', [
+                            'columns' => $columns,
+                            'foreignKeys' => $foreignKeys,
+                            'rowCount' => $rowCount,
+                            'rows' => $rows,
+                            'tableRegistry' => $tableRegistry,
+                        ])
+                    </x-ui.tab>
 
-                <div class="mt-2">
-                    {{ $rows->links() }}
-                </div>
-            </x-ui.card>
+                    <x-ui.tab id="schema" class="space-y-4">
+                        @include('livewire.admin.system.database-tables.partials.show-schema-tab', [
+                            'columns' => $columns,
+                            'foreignKeys' => $foreignKeys,
+                            'indexes' => $indexes,
+                            'migrationSource' => $migrationSource,
+                            'tableRegistry' => $tableRegistry,
+                        ])
+                    </x-ui.tab>
+
+                    <x-ui.tab id="relationships" class="space-y-4">
+                        @include('livewire.admin.system.database-tables.partials.show-relationships-tab', [
+                            'foreignKeys' => $foreignKeys,
+                        ])
+                    </x-ui.tab>
+                </x-ui.tabs>
+            </div>
         </div>
     </div>
 </div>
