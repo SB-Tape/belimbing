@@ -35,6 +35,8 @@ class DelegateTaskTool extends AbstractTool
 
     private const MAX_TASK_LENGTH = 5000;
 
+    private const MAX_TASK_TYPE_LENGTH = 60;
+
     public function __construct(
         private readonly LaraTaskDispatcher $dispatcher,
         private readonly LaraCapabilityMatcher $capabilityMatcher,
@@ -65,7 +67,7 @@ class DelegateTaskTool extends AbstractTool
             ->string(
                 'task_type',
                 'Task type discriminator (e.g., "resolve_ticket", "review_qac_case"). '
-                    .'Classifies the kind of work being dispatched.'
+                    .'Classifies the kind of work being dispatched. Maximum '.self::MAX_TASK_TYPE_LENGTH.' characters.'
             )->required()
             ->integer(
                 'agent_id',
@@ -105,7 +107,10 @@ class DelegateTaskTool extends AbstractTool
             'test_examples' => [
                 [
                     'label' => 'Delegate a task',
-                    'input' => ['task' => 'Summarize today\'s activity'],
+                    'input' => [
+                        'task' => 'Summarize today\'s activity',
+                        'task_type' => 'general',
+                    ],
                 ],
             ],
             'health_checks' => [
@@ -127,6 +132,12 @@ class DelegateTaskTool extends AbstractTool
         if (mb_strlen($task) > self::MAX_TASK_LENGTH) {
             throw new ToolArgumentException(
                 'Task description exceeds maximum length of '.self::MAX_TASK_LENGTH.' characters.'
+            );
+        }
+
+        if (mb_strlen($taskType) > self::MAX_TASK_TYPE_LENGTH) {
+            throw new ToolArgumentException(
+                'task_type exceeds maximum length of '.self::MAX_TASK_TYPE_LENGTH.' characters.'
             );
         }
 

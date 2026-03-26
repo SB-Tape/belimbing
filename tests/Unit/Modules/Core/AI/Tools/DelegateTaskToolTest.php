@@ -45,6 +45,15 @@ describe('input validation', function () {
             ->and((string) $result)->toContain('maximum length');
     });
 
+    it('rejects task_type exceeding max length', function () {
+        $result = $this->tool->execute([
+            'task' => 'Do work',
+            'task_type' => str_repeat('t', 61),
+        ]);
+        expect((string) $result)->toContain('Error')
+            ->and((string) $result)->toContain('task_type');
+    });
+
     it('accepts task at max length', function () {
         $dispatch = new AgentTaskDispatch([
             'id' => 'agent_dispatch_abc123',

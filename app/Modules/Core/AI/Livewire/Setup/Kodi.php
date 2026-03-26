@@ -10,6 +10,7 @@ use App\Modules\Core\AI\Models\AiProviderModel;
 use App\Modules\Core\AI\Services\ConfigResolver;
 use App\Modules\Core\Company\Models\Company;
 use App\Modules\Core\Employee\Models\Employee;
+use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Validation\Rule;
 use Livewire\Component;
@@ -42,7 +43,7 @@ class Kodi extends Component
                 ->value('id');
         }
 
-        $this->hydrateSelectedModel();
+        $this->hydrateSelectedModel(forceDefault: false);
     }
 
     /**
@@ -50,7 +51,7 @@ class Kodi extends Component
      */
     public function updatedSelectedProviderId(): void
     {
-        $this->hydrateSelectedModel();
+        $this->hydrateSelectedModel(forceDefault: true);
     }
 
     /**
@@ -72,7 +73,7 @@ class Kodi extends Component
         Session::flash('success', __('Kodi has been updated.'));
     }
 
-    public function render(): \Illuminate\Contracts\View\View
+    public function render(): View
     {
         $licenseeExists = Company::query()->whereKey(Company::LICENSEE_ID)->exists();
         $laraActivated = Employee::laraActivationState() === true;
@@ -170,7 +171,12 @@ class Kodi extends Component
         $this->selectedModelId = $default['model'] ?? null;
     }
 
-    private function hydrateSelectedModel(): void
+    /**
+     * Align the selected model with the current provider.
+     *
+     * @param  bool  $forceDefault  When true (user changed provider), pick the provider default. When false (mount), keep a valid explicit selection.
+     */
+    private function hydrateSelectedModel(bool $forceDefault = false): void
     {
         if ($this->selectedProviderId === null) {
             $this->selectedModelId = null;
@@ -189,6 +195,18 @@ class Kodi extends Component
             $this->selectedModelId = null;
 
             return;
+        }
+
+        if (! $forceDefault && $this->selectedModelId !== null) {
+            $modelStillValid = AiProviderModel::query()
+                ->where('ai_provider_id', $this->selectedProviderId)
+                ->where('model_id', $this->selectedModelId)
+                ->active()
+                ->exists();
+
+            if ($modelStillValid) {
+                return;
+            }
         }
 
         $this->selectedModelId = AiProviderModel::query()
@@ -248,4 +266,3 @@ class Kodi extends Component
         $resolver->writeWorkspaceConfig(Employee::KODI_ID, $config);
     }
 }
-

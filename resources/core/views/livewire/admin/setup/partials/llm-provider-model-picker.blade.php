@@ -2,16 +2,14 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // (c) Ng Kiat Siong <kiatsiong.ng@gmail.com>
 ?>
-@props([
-    'context',
-    'providers',
-    'models',
-    'selectedProviderId' => null,
-    'providerBinding' => 'selectedProviderId',
-    'modelBinding' => 'selectedModelId',
-    'providerErrorKey' => 'selectedProviderId',
-    'modelErrorKey' => 'selectedModelId',
-])
+@php
+    // Included via @include — avoid @props (component-only). Callers pass context, providers, models.
+    $selectedProviderId = $selectedProviderId ?? null;
+    $providerBinding = $providerBinding ?? 'selectedProviderId';
+    $modelBinding = $modelBinding ?? 'selectedModelId';
+    $providerErrorKey = $providerErrorKey ?? 'selectedProviderId';
+    $modelErrorKey = $modelErrorKey ?? 'selectedModelId';
+@endphp
 
 <div>
     {{-- Provider picker --}}
@@ -53,7 +51,13 @@
             @else
                 <div x-data="{ modelFilter: '' }" class="mt-2">
                     @if ($models->count() > 6)
-                        <x-ui.search-input x-model="modelFilter" placeholder="{{ __('Search models...') }}" class="mb-2" />
+                        @php($modelFilterId = 'llm-model-filter-'.$context)
+                        <x-ui.search-input
+                            :id="$modelFilterId"
+                            x-model="modelFilter"
+                            placeholder="{{ __('Search models...') }}"
+                            class="mb-2"
+                        />
                     @endif
 
                     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1 max-h-64 overflow-y-auto">
@@ -61,7 +65,7 @@
                             @php($modelId = 'llm-model-'.$context.'-'.$model->id)
                             <label
                                 for="{{ $modelId }}"
-                                x-show="!modelFilter || '{{ strtolower($model->model_id) }}'.includes(modelFilter.toLowerCase())"
+                                x-show='!modelFilter || @json(\Illuminate\Support\Str::lower($model->model_id)).includes(modelFilter.toLowerCase())'
                                 class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-surface-subtle cursor-pointer"
                             >
                                 <input
