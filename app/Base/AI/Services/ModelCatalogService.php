@@ -8,6 +8,8 @@ namespace App\Base\AI\Services;
 use App\Base\AI\DTO\CatalogSyncResult;
 use App\Base\AI\Exceptions\ModelCatalogSyncException;
 use DateTimeImmutable;
+use Illuminate\Contracts\Cache\LockTimeoutException;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 
 /**
@@ -31,7 +33,33 @@ class ModelCatalogService
 
     private const META_FILE = 'catalog.meta.json';
 
+    private const CATALOG_SYNC_LOCK = 'ai:model-catalog-sync';
+
+    private const CATALOG_SYNC_LOCK_TTL_SECONDS = 60;
+
+    private const CATALOG_SYNC_LOCK_WAIT_SECONDS = 45;
+
     private ?array $catalogCache = null;
+
+    /**
+     * Ensure the models.dev catalog is on disk (refresh via conditional GET if needed).
+     *
+     * Called before provider model sync so catalog fallback works without a manual
+     * `blb:ai:catalog:sync` run. Uses a cache lock so concurrent syncs do not race.
+     *
+     * @throws ModelCatalogSyncException
+     */
+    public function ensureSynced(): void
+    {
+        try {
+            Cache::lock(self::CATALOG_SYNC_LOCK, self::CATALOG_SYNC_LOCK_TTL_SECONDS)
+                ->block(self::CATALOG_SYNC_LOCK_WAIT_SECONDS, function (): void {
+                    $this->sync(force: false);
+                });
+        } catch (LockTimeoutException $e) {
+            throw ModelCatalogSyncException::lockTimeout(self::CATALOG_SYNC_LOCK_WAIT_SECONDS, $e);
+        }
+    }
 
     /**
      * Fetch api.json with ETag conditional request, write to storage/download/ai/.
