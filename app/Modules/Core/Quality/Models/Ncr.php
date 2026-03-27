@@ -11,11 +11,9 @@ use App\Modules\Core\Quality\Database\Factories\NcrFactory;
 use App\Modules\Core\User\Models\User;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
-use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Support\Carbon;
 
 /**
@@ -62,7 +60,7 @@ use Illuminate\Support\Carbon;
  * @property-read Collection<int, QualityEvent> $events
  * @property-read Collection<int, QualityActionItem> $actionItems
  */
-class Ncr extends Model
+class Ncr extends QualityRecord
 {
     use HasFactory, HasWorkflowStatus;
 
@@ -182,20 +180,9 @@ class Ncr extends Model
         return $this->hasMany(Scar::class);
     }
 
-    /**
-     * Get the evidence attachments for this NCR.
-     */
-    public function evidence(): MorphMany
+    protected function qualityEventForeignKey(): string
     {
-        return $this->morphMany(QualityEvidence::class, 'evidenceable');
-    }
-
-    /**
-     * Get the domain events for this NCR.
-     */
-    public function events(): HasMany
-    {
-        return $this->hasMany(QualityEvent::class, 'ncr_id');
+        return 'ncr_id';
     }
 
     /**
