@@ -5,16 +5,18 @@
 
 namespace App\Modules\Business\IT\Livewire\Tickets;
 
-use App\Base\Foundation\Livewire\Concerns\ResetsPaginationOnSearch;
+use App\Base\Foundation\Livewire\SearchablePaginatedList;
 use App\Modules\Business\IT\Models\Ticket;
-use Illuminate\Contracts\View\View;
-use Livewire\Component;
-use Livewire\WithPagination;
+use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 
-class Index extends Component
+class Index extends SearchablePaginatedList
 {
-    use ResetsPaginationOnSearch;
-    use WithPagination;
+    protected const string VIEW_NAME = 'livewire.it.tickets.index';
+
+    protected const string VIEW_DATA_KEY = 'tickets';
+
+    protected const string SORT_COLUMN = 'created_at';
 
     public string $search = '';
 
@@ -44,24 +46,21 @@ class Index extends Component
         };
     }
 
-    public function render(): View
+    protected function query(): EloquentBuilder|QueryBuilder
     {
-        return view('livewire.it.tickets.index', [
-            'tickets' => Ticket::query()
-                ->with('reporter', 'assignee')
-                ->when($this->search, function ($query, $search): void {
-                    $query->where(function ($q) use ($search): void {
-                        $q->where('title', 'like', '%'.$search.'%')
-                            ->orWhere('category', 'like', '%'.$search.'%')
-                            ->orWhere('status', 'like', '%'.$search.'%')
-                            ->orWhereHas('reporter', function ($rq) use ($search): void {
-                                $rq->where('full_name', 'like', '%'.$search.'%')
-                                    ->orWhere('short_name', 'like', '%'.$search.'%');
-                            });
-                    });
-                })
-                ->latest()
-                ->paginate(25),
-        ]);
+        return Ticket::query()->with('reporter', 'assignee');
+    }
+
+    protected function applySearch(EloquentBuilder|QueryBuilder $query, string $search): void
+    {
+        $query->where(function (EloquentBuilder $builder) use ($search): void {
+            $builder->where('title', 'like', '%'.$search.'%')
+                ->orWhere('category', 'like', '%'.$search.'%')
+                ->orWhere('status', 'like', '%'.$search.'%')
+                ->orWhereHas('reporter', function (EloquentBuilder $reporterQuery) use ($search): void {
+                    $reporterQuery->where('full_name', 'like', '%'.$search.'%')
+                        ->orWhere('short_name', 'like', '%'.$search.'%');
+                });
+        });
     }
 }

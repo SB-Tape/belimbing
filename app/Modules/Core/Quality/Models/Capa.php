@@ -63,18 +63,8 @@ class Capa extends QualityRecord
 {
     use HasFactory;
 
-    /**
-     * The table associated with the model.
-     *
-     * @var string
-     */
     protected $table = 'quality_capas';
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
     protected $fillable = [
         'ncr_id',
         'workflow_status',
@@ -108,11 +98,6 @@ class Capa extends QualityRecord
         'metadata',
     ];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
     protected function casts(): array
     {
         return [

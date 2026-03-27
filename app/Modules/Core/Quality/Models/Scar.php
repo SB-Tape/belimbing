@@ -70,18 +70,8 @@ class Scar extends QualityRecord
 {
     use HasFactory, HasWorkflowStatus;
 
-    /**
-     * The table associated with the model.
-     *
-     * @var string
-     */
     protected $table = 'quality_scars';
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
     protected $fillable = [
         'ncr_id',
         'scar_no',
@@ -122,11 +112,6 @@ class Scar extends QualityRecord
         'metadata',
     ];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
     protected function casts(): array
     {
         return [

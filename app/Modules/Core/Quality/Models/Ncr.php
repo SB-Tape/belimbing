@@ -64,18 +64,8 @@ class Ncr extends QualityRecord
 {
     use HasFactory, HasWorkflowStatus;
 
-    /**
-     * The table associated with the model.
-     *
-     * @var string
-     */
     protected $table = 'quality_ncrs';
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
     protected $fillable = [
         'company_id',
         'ncr_no',
@@ -105,11 +95,6 @@ class Ncr extends QualityRecord
         'metadata',
     ];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
     protected function casts(): array
     {
         return [
